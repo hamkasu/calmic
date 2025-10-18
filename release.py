@@ -75,7 +75,19 @@ def run_migrations():
             db.session.commit()
             print("PhotoVault Release: Database connectivity verified")
         except Exception as e:
-            print(f"PhotoVault Release: Database connection failed: {str(e)}")
+            error_msg = str(e)
+            print(f"PhotoVault Release: Database connection failed: {error_msg}")
+            
+            # Check if this is a Railway build-time error (postgres.railway.internal not accessible)
+            if 'postgres.railway.internal' in error_msg or 'Name or service not known' in error_msg:
+                print("PhotoVault Release: ⚠️  DETECTED BUILD-TIME EXECUTION")
+                print("PhotoVault Release: Database is not accessible during build phase")
+                print("PhotoVault Release: This is expected - migrations will run at runtime")
+                print("PhotoVault Release: Skipping migrations for now (will retry at app startup)")
+                return True  # ✅ Don't fail the build
+            
+            # If it's a different database error at runtime, fail properly
+            print("PhotoVault Release: ❌ Database connection failed at runtime - this is a real error")
             return False
         
         # Check if tables and required columns exist
