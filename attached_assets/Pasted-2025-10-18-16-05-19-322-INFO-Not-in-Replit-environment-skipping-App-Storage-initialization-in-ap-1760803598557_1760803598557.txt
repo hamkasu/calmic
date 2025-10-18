@@ -1,0 +1,49 @@
+2025-10-18 16:05:19,322 INFO: Not in Replit environment, skipping App Storage initialization [in /app/photovault/services/app_storage_service.py:22]
+[2025-10-18 16:05:19,484] INFO in image_enhancement: OpenCV available - full image enhancement features enabled
+2025-10-18 16:05:19,484 INFO: OpenCV available - full image enhancement features enabled [in /app/photovault/utils/image_enhancement.py:19]
+[2025-10-18 16:05:19,500] INFO in face_detection: Haar cascade face detector loaded
+2025-10-18 16:05:19,500 INFO: Haar cascade face detector loaded [in /app/photovault/utils/face_detection.py:42]
+[2025-10-18 16:05:19,501] INFO in face_detection: DNN model file not found - using Haar cascade only
+2025-10-18 16:05:19,501 INFO: DNN model file not found - using Haar cascade only [in /app/photovault/utils/face_detection.py:64]
+[2025-10-18 16:05:19,501] INFO in face_detection: Face detection initialized successfully
+2025-10-18 16:05:19,501 INFO: Face detection initialized successfully [in /app/photovault/utils/face_detection.py:27]
+[2025-10-18 16:05:19,503] INFO in face_recognition: OpenCV face recognizer initialized
+2025-10-18 16:05:19,503 INFO: OpenCV face recognizer initialized [in /app/photovault/utils/face_recognition.py:46]
+2025-10-18 16:05:19,517 INFO: Face recognition models loaded [in /app/photovault/utils/face_recognition.py:58]
+[2025-10-18 16:05:19,517] INFO in face_recognition: Face recognition models loaded
+[2025-10-18 16:05:19,518] INFO in face_recognition: No cached encodings found - starting fresh
+2025-10-18 16:05:19,518 INFO: No cached encodings found - starting fresh [in /app/photovault/utils/face_recognition.py:76]
+2025-10-18 16:05:19,518 INFO: Face recognition initialized successfully [in /app/photovault/utils/face_recognition.py:31]
+[2025-10-18 16:05:19,518] INFO in face_recognition: Face recognition initialized successfully
+[2025-10-18 16:05:19,523] INFO in photo_detection: OpenCV available for photo detection
+2025-10-18 16:05:19,523 INFO: OpenCV available for photo detection [in /app/photovault/utils/photo_detection.py:18]
+2025-10-18 16:05:20,763 ERROR: Database initialization error: (psycopg2.OperationalError) could not translate host name "postgres.railway.internal" to address: Name or service not known
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8) [in /app/photovault/__init__.py:414]
+[2025-10-18 16:05:20,763] ERROR in __init__: Database initialization error: (psycopg2.OperationalError) could not translate host name "postgres.railway.internal" to address: Name or service not known
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+ERROR:photovault:Database initialization error: (psycopg2.OperationalError) could not translate host name "postgres.railway.internal" to address: Name or service not known
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+[2025-10-18 16:05:20,763] ERROR in __init__: App will continue to start, but database operations may fail
+ERROR:photovault:App will continue to start, but database operations may fail
+2025-10-18 16:05:20,763 ERROR: App will continue to start, but database operations may fail [in /app/photovault/__init__.py:415]
+PhotoVault Release: App created successfully with config: ProductionConfig
+PhotoVault Release: Could not log database details: Working outside of application context.
+This typically means that you attempted to use functionality that needed
+the current application. To solve this, set up an application context
+with app.app_context(). See the documentation for more information.
+PhotoVault Release: Database connection failed: (psycopg2.OperationalError) could not translate host name "postgres.railway.internal" to address: Name or service not known
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+PhotoVault Release: Migration failed - aborting release
+Dockerfile:24
+-------------------
+22 |     # release phase
+23 |     COPY . /app/.
+24 | >>> RUN  python release.py
+25 |
+26 |
+-------------------
+ERROR: failed to build: failed to solve: process "/bin/bash -ol pipefail -c python release.py" did not complete successfully: exit code: 1
+Error: Docker build failed

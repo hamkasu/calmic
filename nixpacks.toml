@@ -1,10 +1,7 @@
 providers = ["python"]
 
-[phases.release]
-cmd = "python release.py"
-
 [start]
-cmd = "gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 1 --worker-class sync --timeout 120 --log-level debug --access-logfile - --error-logfile -"
+cmd = "python release.py && gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 --log-level info --access-logfile - --error-logfile -"
 
 [variables]
 NIXPACKS_PYTHON_VERSION = "3.11"

@@ -1,28 +1,39 @@
 # Railway Database Migration Fix
 
 ## Problem
-Railway's production database didn't have any tables created because the migration script wasn't running before the app started.
+Railway's production database didn't have any tables created because the migration script wasn't running properly.
 
-**Error:**
+**Errors:**
 ```
 (psycopg2.errors.UndefinedTable) relation "subscription_plan" does not exist
 (psycopg2.errors.UndefinedTable) relation "user" does not exist
+(psycopg2.OperationalError) could not translate host name "postgres.railway.internal" to address
 ```
 
 ## Root Cause
-The `railway.json` deployment configuration was only running `gunicorn` directly, without executing the `release.py` script that creates database tables and runs migrations.
+The `nixpacks.toml` file was running `release.py` during the **build phase** (`[phases.release]`), but Railway's private database network is only available during the **runtime phase**. This caused a DNS error because `postgres.railway.internal` cannot be resolved at build time.
 
 ## Fix Applied
-Updated `railway.json` to run migrations **before** starting the app:
+Updated `nixpacks.toml` to run migrations at **runtime** instead of build time:
 
-**Old:**
-```json
-"startCommand": "gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 ..."
+**Old (nixpacks.toml):**
+```toml
+[phases.release]  # ❌ Runs at build time - database not accessible
+cmd = "python release.py"
+
+[start]
+cmd = "gunicorn wsgi:app ..."
 ```
 
-**New:**
+**New (nixpacks.toml):**
+```toml
+[start]  # ✅ Runs at runtime - database accessible
+cmd = "python release.py && gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 ..."
+```
+
+Also updated `railway.json` to match:
 ```json
-"startCommand": "python release.py && gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 ..."
+"startCommand": "python release.py && gunicorn --bind 0.0.0.0:$PORT ..."
 ```
 
 ## What release.py Does
@@ -37,8 +48,8 @@ Updated `railway.json` to run migrations **before** starting the app:
 
 ### Step 1: Push Changes to GitHub
 ```bash
-git add railway.json Procfile RAILWAY_DATABASE_FIX.md
-git commit -m "Fix Railway database migration - run release.py before starting app"
+git add nixpacks.toml railway.json Procfile RAILWAY_DATABASE_FIX.md
+git commit -m "Fix Railway database migration - run at runtime not build time"
 git push origin main
 ```
 
