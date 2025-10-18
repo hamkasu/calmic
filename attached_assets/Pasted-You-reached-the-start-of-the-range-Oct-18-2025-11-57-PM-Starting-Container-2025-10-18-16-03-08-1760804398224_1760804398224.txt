@@ -1,0 +1,110 @@
+You reached the start of the range
+Oct 18, 2025, 11:57 PM
+Starting Container
+[2025-10-18 16:03:08,415] INFO in config: PhotoVault startup
+2025-10-18 16:03:08,415 INFO: PhotoVault startup [in /app/photovault/config.py:221]
+[2025-10-18 16:03:08,434] INFO in config: PhotoVault startup
+2025-10-18 16:03:08,434 INFO: PhotoVault startup [in /app/photovault/config.py:221]
+[2025-10-18 16:03:07 +0000] [1] [INFO] Starting gunicorn 21.2.0
+[2025-10-18 16:03:07 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+[2025-10-18 16:03:07 +0000] [1] [INFO] Using worker: gthread
+[2025-10-18 16:03:07 +0000] [4] [INFO] Booting worker with pid: 4
+[2025-10-18 16:03:07 +0000] [5] [INFO] Booting worker with pid: 5
+[2025-10-18 16:03:08,657] INFO in app_storage_service: Not in Replit environment, skipping App Storage initialization
+2025-10-18 16:03:08,657 INFO: Not in Replit environment, skipping App Storage initialization [in /app/photovault/services/app_storage_service.py:22]
+[2025-10-18 16:03:08,659] INFO in app_storage_service: Not in Replit environment, skipping App Storage initialization
+2025-10-18 16:03:08,659 INFO: Not in Replit environment, skipping App Storage initialization [in /app/photovault/services/app_storage_service.py:22]
+2025-10-18 16:03:08,953 INFO: OpenCV available - full image enhancement features enabled [in /app/photovault/utils/image_enhancement.py:19]
+[2025-10-18 16:03:08,953] INFO in image_enhancement: OpenCV available - full image enhancement features enabled
+[2025-10-18 16:03:08,970] INFO in image_enhancement: OpenCV available - full image enhancement features enabled
+2025-10-18 16:03:08,970 INFO: OpenCV available - full image enhancement features enabled [in /app/photovault/utils/image_enhancement.py:19]
+2025-10-18 16:03:08,979 INFO: Haar cascade face detector loaded [in /app/photovault/utils/face_detection.py:42]
+[2025-10-18 16:03:08,979] INFO in face_detection: Haar cascade face detector loaded
+[2025-10-18 16:03:08,982] INFO in face_detection: DNN model file not found - using Haar cascade only
+2025-10-18 16:03:08,982 INFO: DNN model file not found - using Haar cascade only [in /app/photovault/utils/face_detection.py:64]
+[2025-10-18 16:03:08,982] INFO in face_detection: Face detection initialized successfully
+2025-10-18 16:03:08,982 INFO: Face detection initialized successfully [in /app/photovault/utils/face_detection.py:27]
+[2025-10-18 16:03:08,986] INFO in face_recognition: OpenCV face recognizer initialized
+2025-10-18 16:03:08,986 INFO: OpenCV face recognizer initialized [in /app/photovault/utils/face_recognition.py:46]
+[2025-10-18 16:03:08,992] INFO in face_detection: Haar cascade face detector loaded
+2025-10-18 16:03:08,992 INFO: Haar cascade face detector loaded [in /app/photovault/utils/face_detection.py:42]
+[2025-10-18 16:03:08,993] INFO in face_detection: DNN model file not found - using Haar cascade only
+2025-10-18 16:03:08,993 INFO: DNN model file not found - using Haar cascade only [in /app/photovault/utils/face_detection.py:64]
+[2025-10-18 16:03:08,993] INFO in face_detection: Face detection initialized successfully
+2025-10-18 16:03:08,993 INFO: Face detection initialized successfully [in /app/photovault/utils/face_detection.py:27]
+[2025-10-18 16:03:08,996] INFO in face_recognition: OpenCV face recognizer initialized
+2025-10-18 16:03:08,996 INFO: OpenCV face recognizer initialized [in /app/photovault/utils/face_recognition.py:46]
+[2025-10-18 16:03:09,009] INFO in face_recognition: Face recognition models loaded
+2025-10-18 16:03:09,009 INFO: Face recognition models loaded [in /app/photovault/utils/face_recognition.py:58]
+[2025-10-18 16:03:09,009] INFO in face_recognition: No cached encodings found - starting fresh
+2025-10-18 16:03:09,009 INFO: No cached encodings found - starting fresh [in /app/photovault/utils/face_recognition.py:76]
+[2025-10-18 16:03:09,009] INFO in face_recognition: Face recognition initialized successfully
+2025-10-18 16:03:09,009 INFO: Face recognition initialized successfully [in /app/photovault/utils/face_recognition.py:31]
+[2025-10-18 16:03:09,017] INFO in face_recognition: Face recognition models loaded
+2025-10-18 16:03:09,017 INFO: Face recognition models loaded [in /app/photovault/utils/face_recognition.py:58]
+[2025-10-18 16:03:09,017] INFO in face_recognition: No cached encodings found - starting fresh
+2025-10-18 16:03:09,017 INFO: No cached encodings found - starting fresh [in /app/photovault/utils/face_recognition.py:76]
+[2025-10-18 16:03:09,017] INFO in face_recognition: Face recognition initialized successfully
+2025-10-18 16:03:09,017 INFO: Face recognition initialized successfully [in /app/photovault/utils/face_recognition.py:31]
+[2025-10-18 16:03:09,017] INFO in photo_detection: OpenCV available for photo detection
+2025-10-18 16:03:09,017 INFO: OpenCV available for photo detection [in /app/photovault/utils/photo_detection.py:18]
+2025-10-18 16:03:09,026 INFO: OpenCV available for photo detection [in /app/photovault/utils/photo_detection.py:18]
+[2025-10-18 16:03:09,026] INFO in photo_detection: OpenCV available for photo detection
+[2025-10-18 16:03:10,822] INFO in __init__: Database connection verified (production mode)
+2025-10-18 16:03:10,822 INFO: Database connection verified (production mode) [in /app/photovault/__init__.py:362]
+INFO:photovault:Database connection verified (production mode)
+[2025-10-18 16:03:10,822] INFO in __init__: Running database migrations automatically...
+2025-10-18 16:03:10,822 INFO: Running database migrations automatically... [in /app/photovault/__init__.py:375]
+INFO:photovault:Running database migrations automatically...
+[2025-10-18 16:03:10,824] WARNING in __init__: Auto-migration via Alembic failed: 'NoneType' object is not iterable
+2025-10-18 16:03:10,824 WARNING: Auto-migration via Alembic failed: 'NoneType' object is not iterable [in /app/photovault/__init__.py:380]
+WARNING:photovault:Auto-migration via Alembic failed: 'NoneType' object is not iterable
+[2025-10-18 16:03:10,824] INFO in __init__: Attempting direct column addition as fallback...
+2025-10-18 16:03:10,824 INFO: Attempting direct column addition as fallback... [in /app/photovault/__init__.py:381]
+INFO:photovault:Attempting direct column addition as fallback...
+[2025-10-18 16:03:10,914] INFO in __init__: Database connection verified (production mode)
+INFO:photovault:Database connection verified (production mode)
+2025-10-18 16:03:10,914 INFO: Database connection verified (production mode) [in /app/photovault/__init__.py:362]
+[2025-10-18 16:03:10,915] INFO in __init__: Running database migrations automatically...
+2025-10-18 16:03:10,915 INFO: Running database migrations automatically... [in /app/photovault/__init__.py:375]
+INFO:photovault:Running database migrations automatically...
+[2025-10-18 16:03:10,916] WARNING in __init__: Auto-migration via Alembic failed: 'NoneType' object is not iterable
+WARNING:photovault:Auto-migration via Alembic failed: 'NoneType' object is not iterable
+2025-10-18 16:03:10,916 WARNING: Auto-migration via Alembic failed: 'NoneType' object is not iterable [in /app/photovault/__init__.py:380]
+[2025-10-18 16:03:10,917] INFO in __init__: Attempting direct column addition as fallback...
+2025-10-18 16:03:10,917 INFO: Attempting direct column addition as fallback... [in /app/photovault/__init__.py:381]
+INFO:photovault:Attempting direct column addition as fallback...
+[2025-10-18 16:03:10,947] ERROR in __init__: Failed to seed subscription plans: (psycopg2.errors.UndefinedTable) relation "subscription_plan" does not exist
+LINE 2: FROM subscription_plan 
+             ^
+[SQL: SELECT subscription_plan.id AS subscription_plan_id, subscription_plan.name AS subscription_plan_name, subscription_plan.display_name AS subscription_plan_display_name, subscription_plan.description AS subscription_plan_description, subscription_plan.price_myr AS subscription_plan_price_myr, subscription_plan.sst_rate AS subscription_plan_sst_rate, subscription_plan.storage_gb AS subscription_plan_storage_gb, subscription_plan.max_photos AS subscription_plan_max_photos, subscription_plan.max_family_vaults AS subscription_plan_max_family_vaults, subscription_plan.face_detection AS subscription_plan_face_detection, subscription_plan.photo_enhancement AS subscription_plan_photo_enhancement, subscription_plan.smart_tagging AS subscription_plan_smart_tagging, subscription_plan.social_media_integration AS subscription_plan_social_media_integration, subscription_plan.api_access AS subscription_plan_api_access, subscription_plan.priority_support AS subscription_plan_priority_support, subscription_plan.stripe_price_id AS subscription_plan_stripe_price_id, subscription_plan.stripe_product_id AS subscription_plan_stripe_product_id, subscription_plan.billing_period AS subscription_plan_billing_period, subscription_plan.is_active AS subscription_plan_is_active, subscription_plan.is_featured AS subscription_plan_is_featured, subscription_plan.sort_order AS subscription_plan_sort_order, subscription_plan.created_at AS subscription_plan_created_at, subscription_plan.updated_at AS subscription_plan_updated_at 
+FROM subscription_plan 
+WHERE subscription_plan.name = %(name_1)s 
+ LIMIT %(param_1)s]
+[parameters: {'name_1': 'free', 'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2025-10-18 16:03:10,947 ERROR: Failed to seed subscription plans: (psycopg2.errors.UndefinedTable) relation "subscription_plan" does not exist
+LINE 2: FROM subscription_plan 
+             ^
+[SQL: SELECT subscription_plan.id AS subscription_plan_id, subscription_plan.name AS subscription_plan_name, subscription_plan.display_name AS subscription_plan_display_name, subscription_plan.description AS subscription_plan_description, subscription_plan.price_myr AS subscription_plan_price_myr, subscription_plan.sst_rate AS subscription_plan_sst_rate, subscription_plan.storage_gb AS subscription_plan_storage_gb, subscription_plan.max_photos AS subscription_plan_max_photos, subscription_plan.max_family_vaults AS subscription_plan_max_family_vaults, subscription_plan.face_detection AS subscription_plan_face_detection, subscription_plan.photo_enhancement AS subscription_plan_photo_enhancement, subscription_plan.smart_tagging AS subscription_plan_smart_tagging, subscription_plan.social_media_integration AS subscription_plan_social_media_integration, subscription_plan.api_access AS subscription_plan_api_access, subscription_plan.priority_support AS subscription_plan_priority_support, subscription_plan.stripe_price_id AS subscription_plan_stripe_price_id, subscription_plan.stripe_product_id AS subscription_plan_stripe_product_id, subscription_plan.billing_period AS subscription_plan_billing_period, subscription_plan.is_active AS subscription_plan_is_active, subscription_plan.is_featured AS subscription_plan_is_featured, subscription_plan.sort_order AS subscription_plan_sort_order, subscription_plan.created_at AS subscription_plan_created_at, subscription_plan.updated_at AS subscription_plan_updated_at 
+FROM subscription_plan 
+WHERE subscription_plan.name = %(name_1)s 
+ LIMIT %(param_1)s]
+[parameters: {'name_1': 'free', 'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/f405) [in /app/photovault/__init__.py:157]
+ERROR:photovault:Failed to seed subscription plans: (psycopg2.errors.UndefinedTable) relation "subscription_plan" does not exist
+LINE 2: FROM subscription_plan 
+             ^
+[SQL: SELECT subscription_plan.id AS subscription_plan_id, subscription_plan.name AS subscription_plan_name, subscription_plan.display_name AS subscription_plan_display_name, subscription_plan.description AS subscription_plan_description, subscription_plan.price_myr AS subscription_plan_price_myr, subscription_plan.sst_rate AS subscription_plan_sst_rate, subscription_plan.storage_gb AS subscription_plan_storage_gb, subscription_plan.max_photos AS subscription_plan_max_photos, subscription_plan.max_family_vaults AS subscription_plan_max_family_vaults, subscription_plan.face_detection AS subscription_plan_face_detection, subscription_plan.photo_enhancement AS subscription_plan_photo_enhancement, subscription_plan.smart_tagging AS subscription_plan_smart_tagging, subscription_plan.social_media_integration AS subscription_plan_social_media_integration, subscription_plan.api_access AS subscription_plan_api_access, subscription_plan.priority_support AS subscription_plan_priority_support, subscription_plan.stripe_price_id AS subscription_plan_stripe_price_id, subscription_plan.stripe_product_id AS subscription_plan_stripe_product_id, subscription_plan.billing_period AS subscription_plan_billing_period, subscription_plan.is_active AS subscription_plan_is_active, subscription_plan.is_featured AS subscription_plan_is_featured, subscription_plan.sort_order AS subscription_plan_sort_order, subscription_plan.created_at AS subscription_plan_created_at, subscription_plan.updated_at AS subscription_plan_updated_at 
+[parameters: {'param_1': 1}]
+FROM subscription_plan 
+(Background on this error at: https://sqlalche.me/e/20/f405)
+WHERE subscription_plan.name = %(name_1)s 
+2025-10-18 16:03:10,953 INFO: Skipping superuser creation - tables not ready: (psycopg2.errors.UndefinedTable) relation "user" does not exist
+ LIMIT %(param_1)s]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+LINE 2: FROM "user" 
+[parameters: {'name_1': 'free', 'param_1': 1}]
+             ^
+[2025-10-18 16:03:10,953] INFO in __init__: Skipping superuser creation - tables not ready: (psycopg2.errors.UndefinedTable) relation "user" does not exist
+[SQL: SELECT "user".id AS user_id, "user".username AS user_username, "user".email AS user_email, "user".password_hash AS user_password_hash, "user".created_at AS user_created_at, "user".is_active AS user_is_active, "user".is_admin AS user_is_admin, "user".is_superuser AS user_is_superuser, "user".stripe_customer_id AS user_stripe_customer_id 

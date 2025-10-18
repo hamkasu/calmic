@@ -17,6 +17,20 @@ os.environ['FLASK_CONFIG'] = 'production'
 os.environ['FLASK_ENV'] = 'production'
 os.environ['FLASK_DEBUG'] = 'False'
 
+# Run database migrations BEFORE creating the app
+# This ensures tables exist before app initialization
+print("PhotoVault WSGI: Running database migrations...")
+try:
+    from release import run_migrations
+    migration_success = run_migrations()
+    if migration_success:
+        print("PhotoVault WSGI: Migrations completed successfully")
+    else:
+        print("PhotoVault WSGI: WARNING - Migrations failed, app may not work correctly")
+except Exception as migration_error:
+    print(f"PhotoVault WSGI: WARNING - Could not run migrations: {migration_error}")
+    print("PhotoVault WSGI: Continuing anyway, create_app will try fallback methods")
+
 # Import the application factory
 from photovault import create_app
 from config import ProductionConfig
