@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 --limit-request-line 8190 --limit-request-field_size 8190 wsgi:app",
+    "startCommand": "python release.py && gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 --limit-request-line 8190 --limit-request-field_size 8190 wsgi:app",
     "numReplicas": 1,
     "sleepApplication": false,
     "restartPolicyType": "ON_FAILURE",

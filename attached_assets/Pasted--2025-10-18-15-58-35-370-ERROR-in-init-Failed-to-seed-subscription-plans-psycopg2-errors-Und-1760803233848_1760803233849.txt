@@ -1,0 +1,50 @@
+[2025-10-18 15:58:35,370] ERROR in __init__: Failed to seed subscription plans: (psycopg2.errors.UndefinedTable) relation "subscription_plan" does not exist
+LINE 2: FROM subscription_plan 
+             ^
+[SQL: SELECT subscription_plan.id AS subscription_plan_id, subscription_plan.name AS subscription_plan_name, subscription_plan.display_name AS subscription_plan_display_name, subscription_plan.description AS subscription_plan_description, subscription_plan.price_myr AS subscription_plan_price_myr, subscription_plan.sst_rate AS subscription_plan_sst_rate, subscription_plan.storage_gb AS subscription_plan_storage_gb, subscription_plan.max_photos AS subscription_plan_max_photos, subscription_plan.max_family_vaults AS subscription_plan_max_family_vaults, subscription_plan.face_detection AS subscription_plan_face_detection, subscription_plan.photo_enhancement AS subscription_plan_photo_enhancement, subscription_plan.smart_tagging AS subscription_plan_smart_tagging, subscription_plan.social_media_integration AS subscription_plan_social_media_integration, subscription_plan.api_access AS subscription_plan_api_access, subscription_plan.priority_support AS subscription_plan_priority_support, subscription_plan.stripe_price_id AS subscription_plan_stripe_price_id, subscription_plan.stripe_product_id AS subscription_plan_stripe_product_id, subscription_plan.billing_period AS subscription_plan_billing_period, subscription_plan.is_active AS subscription_plan_is_active, subscription_plan.is_featured AS subscription_plan_is_featured, subscription_plan.sort_order AS subscription_plan_sort_order, subscription_plan.created_at AS subscription_plan_created_at, subscription_plan.updated_at AS subscription_plan_updated_at 
+FROM subscription_plan 
+WHERE subscription_plan.name = %(name_1)s 
+ LIMIT %(param_1)s]
+[parameters: {'name_1': 'free', 'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+ERROR:photovault:Failed to seed subscription plans: (psycopg2.errors.UndefinedTable) relation "subscription_plan" does not exist
+LINE 2: FROM subscription_plan 
+             ^
+[SQL: SELECT subscription_plan.id AS subscription_plan_id, subscription_plan.name AS subscription_plan_name, subscription_plan.display_name AS subscription_plan_display_name, subscription_plan.description AS subscription_plan_description, subscription_plan.price_myr AS subscription_plan_price_myr, subscription_plan.sst_rate AS subscription_plan_sst_rate, subscription_plan.storage_gb AS subscription_plan_storage_gb, subscription_plan.max_photos AS subscription_plan_max_photos, subscription_plan.max_family_vaults AS subscription_plan_max_family_vaults, subscription_plan.face_detection AS subscription_plan_face_detection, subscription_plan.photo_enhancement AS subscription_plan_photo_enhancement, subscription_plan.smart_tagging AS subscription_plan_smart_tagging, subscription_plan.social_media_integration AS subscription_plan_social_media_integration, subscription_plan.api_access AS subscription_plan_api_access, subscription_plan.priority_support AS subscription_plan_priority_support, subscription_plan.stripe_price_id AS subscription_plan_stripe_price_id, subscription_plan.stripe_product_id AS subscription_plan_stripe_product_id, subscription_plan.billing_period AS subscription_plan_billing_period, subscription_plan.is_active AS subscription_plan_is_active, subscription_plan.is_featured AS subscription_plan_is_featured, subscription_plan.sort_order AS subscription_plan_sort_order, subscription_plan.created_at AS subscription_plan_created_at, subscription_plan.updated_at AS subscription_plan_updated_at 
+             ^
+FROM subscription_plan 
+[SQL: SELECT "user".id AS user_id, "user".username AS user_username, "user".email AS user_email, "user".password_hash AS user_password_hash, "user".created_at AS user_created_at, "user".is_active AS user_is_active, "user".is_admin AS user_is_admin, "user".is_superuser AS user_is_superuser, "user".stripe_customer_id AS user_stripe_customer_id 
+WHERE subscription_plan.name = %(name_1)s 
+ LIMIT %(param_1)s]
+[parameters: {'name_1': 'free', 'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2025-10-18 15:58:35,380] INFO in __init__: Skipping superuser creation - tables not ready: (psycopg2.errors.UndefinedTable) relation "user" does not exist
+LINE 2: FROM "user" 
+             ^
+[SQL: SELECT "user".id AS user_id, "user".username AS user_username, "user".email AS user_email, "user".password_hash AS user_password_hash, "user".created_at AS user_created_at, "user".is_active AS user_is_active, "user".is_admin AS user_is_admin, "user".is_superuser AS user_is_superuser, "user".stripe_customer_id AS user_stripe_customer_id 
+FROM "user" 
+WHERE "user".is_superuser = true 
+ LIMIT %(param_1)s]
+[parameters: {'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2025-10-18 15:58:35,380 INFO: Skipping superuser creation - tables not ready: (psycopg2.errors.UndefinedTable) relation "user" does not exist
+LINE 2: FROM "user" 
+PhotoVault WSGI: Debug = False
+PhotoVault WSGI: Config = Config
+FROM "user" 
+PhotoVault WSGI: Database URI set = Yes
+PhotoVault WSGI: App created successfully, ready to handle requests
+WHERE "user".is_superuser = true 
+ LIMIT %(param_1)s]
+[parameters: {'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/f405) [in /app/photovault/__init__.py:171]
+[SQL: SELECT "user".id AS user_id, "user".username AS user_username, "user".email AS user_email, "user".password_hash AS user_password_hash, "user".created_at AS user_created_at, "user".is_active AS user_is_active, "user".is_admin AS user_is_admin, "user".is_superuser AS user_is_superuser, "user".stripe_customer_id AS user_stripe_customer_id 
+INFO:photovault:Skipping superuser creation - tables not ready: (psycopg2.errors.UndefinedTable) relation "user" does not exist
+LINE 2: FROM "user" 
+FROM "user" 
+             ^
+WHERE "user".is_superuser = true 
+ LIMIT %(param_1)s]
+[parameters: {'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+PhotoVault WSGI: Environment = production
