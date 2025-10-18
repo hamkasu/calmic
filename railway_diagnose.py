@@ -64,19 +64,32 @@ def check_environment():
     # Check storage configuration
     print("4. File Storage Configuration:")
     upload_folder = os.environ.get('UPLOAD_FOLDER')
-    if upload_folder:
+    railway_volume = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH')
+    
+    if railway_volume:
+        print(f"   RAILWAY_VOLUME_MOUNT_PATH: {railway_volume}")
+        print("   ✅ Railway Volume detected! (auto-configured)")
+        if upload_folder:
+            print(f"   UPLOAD_FOLDER (manual): {upload_folder}")
+        else:
+            print(f"   UPLOAD_FOLDER (auto): {railway_volume}/uploads")
+        print("   ✅ Files will persist across restarts")
+    elif upload_folder:
         print(f"   UPLOAD_FOLDER: {upload_folder}")
         if upload_folder.startswith('/data'):
-            print("   ✅ Using Railway Volume (persistent)")
+            print("   ✅ Using persistent storage")
         else:
             print("   ⚠️  WARNING: Using ephemeral storage (files will be lost on restart)")
     else:
+        print("   RAILWAY_VOLUME_MOUNT_PATH: NOT SET")
         print("   UPLOAD_FOLDER: NOT SET (using default)")
         print("   ⚠️  WARNING: Files stored in ephemeral directory")
         print()
         print("   TO FIX (for persistent storage):")
-        print("   1. Create Railway Volume at /data")
-        print("   2. Set: railway variables set UPLOAD_FOLDER=/data/uploads")
+        print("   1. Go to Railway Dashboard → Your service → Settings")
+        print("   2. Click '+ New Volume' in Volumes section")
+        print("   3. Railway will auto-set RAILWAY_VOLUME_MOUNT_PATH")
+        print("   4. Redeploy - app will automatically use the volume")
     print()
     
     # Check optional services
@@ -130,8 +143,9 @@ def check_environment():
         critical_issues.append("PostgreSQL database not configured")
     if not secret_key:
         warnings.append("SECRET_KEY not set")
-    if not upload_folder or not upload_folder.startswith('/data'):
-        warnings.append("File storage not persistent")
+    railway_volume = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH')
+    if not railway_volume and (not upload_folder or not upload_folder.startswith('/data')):
+        warnings.append("File storage not persistent - add Railway Volume")
     
     if critical_issues:
         print("❌ CRITICAL ISSUES:")

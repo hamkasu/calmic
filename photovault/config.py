@@ -36,9 +36,26 @@ class Config:
         return base_options
     
     # File upload settings
-    # For Railway: Use mounted volume path if available (Railway Volumes)
-    # Example: Set UPLOAD_FOLDER=/data/uploads in Railway environment
-    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER') or os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+    # For Railway: Automatically detect mounted volume path (Railway Volumes)
+    # Railway provides RAILWAY_VOLUME_MOUNT_PATH when a volume is attached
+    # Priority: UPLOAD_FOLDER > RAILWAY_VOLUME_MOUNT_PATH/uploads > local uploads/
+    
+    # Helper function to determine upload folder
+    def _get_upload_folder_path():
+        """Get upload folder path with Railway Volume auto-detection"""
+        # Check for explicit override first
+        if os.environ.get('UPLOAD_FOLDER'):
+            return os.environ.get('UPLOAD_FOLDER')
+        
+        # Auto-detect Railway Volume
+        railway_volume = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH')
+        if railway_volume:
+            return os.path.join(railway_volume, 'uploads')
+        
+        # Fallback to local uploads directory
+        return os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+    
+    UPLOAD_FOLDER = _get_upload_folder_path()
     MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50MB max file size (for photos and voice memos)
     
     # Camera-specific settings
@@ -67,7 +84,9 @@ class Config:
     def init_app(app):
         """Initialize app-specific configuration"""
         # Create upload directory
-        os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
+        upload_folder = Config.UPLOAD_FOLDER
+        if upload_folder:
+            os.makedirs(upload_folder, exist_ok=True)
 
 class DevelopmentConfig(Config):
     """Development configuration"""
@@ -170,17 +189,26 @@ class ProductionConfig(Config):
         
         # Warn about ephemeral file storage on Railway
         upload_folder = app.config.get('UPLOAD_FOLDER', '')
-        if is_railway and upload_folder and not upload_folder.startswith('/data'):
-            app.logger.warning(
-                '⚠️  WARNING: Uploaded files are stored in ephemeral directory! '
-                'Files will be LOST on Railway restart. '
-                '\n'
-                'TO FIX: Mount a Railway Volume:\n'
-                '  1. Go to Railway → Your service → Settings → Volumes\n'
-                '  2. Click "New Volume" → Mount path: /data\n'
-                '  3. Set environment variable: UPLOAD_FOLDER=/data/uploads\n'
-                '  4. Redeploy your app\n'
-            )
+        railway_volume = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH')
+        
+        if is_railway:
+            if railway_volume:
+                app.logger.info(
+                    f'✅ Railway Volume detected and mounted at: {railway_volume}\n'
+                    f'   Files will be saved to: {upload_folder}\n'
+                    f'   Storage: Persistent (survives restarts) ✅'
+                )
+            elif upload_folder and not upload_folder.startswith('/data'):
+                app.logger.warning(
+                    '⚠️  WARNING: Uploaded files are stored in ephemeral directory! '
+                    'Files will be LOST on Railway restart. '
+                    f'\nCurrent UPLOAD_FOLDER: {upload_folder}\n'
+                    'TO FIX: Add a Railway Volume:\n'
+                    '  1. Go to Railway → Your service → Settings → Volumes\n'
+                    '  2. Click "+ New Volume"\n'
+                    '  3. Railway will auto-set RAILWAY_VOLUME_MOUNT_PATH\n'
+                    '  4. Redeploy - app will automatically detect and use the volume ✅\n'
+                )
         
         # Log configuration for debugging (without exposing credentials)
         db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', 'Not set')
