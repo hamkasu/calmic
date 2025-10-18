@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}Voice Memo Test{% endblock %}
+
+{% block extra_css %}
+<style>
+    .recording-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    .record-button {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        border: none;
+        font-size: 36px;
+        transition: all 0.3s;
+    }
+    .record-button.recording {
+        background-color: #dc3545;
+        animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+    .audio-player {
+        width: 100%;
+        margin-top: 20px;
+    }
+    .status-box {
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 20px;
+    }
+    .status-box.success {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+    .status-box.error {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+    .status-box.info {
+        background-color: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+    }
+    .debug-info {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        font-family: monospace;
+        font-size: 12px;
+        margin-top: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid recording-container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-mic"></i> Voice Memo Recording Test</h2>
+            <p class="text-muted">Test voice recording and upload functionality</p>
+        </div>
+    </div>
+
+    {% if not photo %}
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i> <strong>No photos found!</strong>
+        <p>Please upload at least one photo before testing voice memos.</p>
+        <a href="/upload" class="btn btn-primary">Upload Photo</a>
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Testing with Photo ID: {{ photo.id }}</h5>
+                    <small class="text-muted">{{ photo.filename }}</small>
+                </div>
+                <div class="card-body text-center">
+                    <!-- Recording Controls -->
+                    <div class="mb-4">
+                        <button id="recordButton" class="btn btn-danger record-button">
+                            <i class="bi bi-mic-fill"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button id="stopButton" class="btn btn-warning btn-lg" disabled>
+                                <i class="bi bi-stop-fill"></i> Stop Recording
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button id="uploadButton" class="btn btn-success btn-lg" disabled>
+                                <i class="bi bi-cloud-upload"></i> Upload Recording
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Timer Display -->
+                    <div class="mt-3">
+                        <h4 id="timer">00:00</h4>
+                    </div>
+
+                    <!-- Audio Player -->
+                    <div id="audioPlayerContainer" style="display: none;">
+                        <audio id="audioPlayer" class="audio-player" controls></audio>
+                    </div>
+
+                    <!-- Status Messages -->
+                    <div id="statusContainer"></div>
+
+                    <!-- Debug Info -->
+                    <div class="debug-info">
+                        <strong>Debug Information:</strong>
+                        <div id="debugInfo">Waiting for recording...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if photo %}
+<script>
+let mediaRecorder;
+let audioChunks = [];
+let recordedBlob;
+let startTime;
+let timerInterval;
+let duration = 0;
+
+const recordButton = document.getElementById('recordButton');
+const stopButton = document.getElementById('stopButton');
+const uploadButton = document.getElementById('uploadButton');
+const audioPlayer = document.getElementById('audioPlayer');
+const audioPlayerContainer = document.getElementById('audioPlayerContainer');
+const timer = document.getElementById('timer');
+const statusContainer = document.getElementById('statusContainer');
+const debugInfo = document.getElementById('debugInfo');
+
+// Request microphone permission and start recording
+recordButton.addEventListener('click', async () => {
+    try {
+        updateDebug('Requesting microphone permission...');
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        updateDebug('Microphone permission granted');
+        
+        // Create MediaRecorder with m4a format (iOS compatible)
+        const mimeType = 'audio/mp4';
+        mediaRecorder = new MediaRecorder(stream, { mimeType: mimeType });
+        updateDebug(`MediaRecorder created with mimeType: ${mimeType}`);
+        
+        audioChunks = [];
+        
+        mediaRecorder.ondataavailable = (event) => {
+            audioChunks.push(event.data);
+            updateDebug(`Audio chunk received: ${event.data.size} bytes`);
+        };
+        
+        mediaRecorder.onstop = () => {
+            recordedBlob = new Blob(audioChunks, { type: mimeType });
+            updateDebug(`Recording stopped. Total size: ${recordedBlob.size} bytes`);
+            
+            const audioUrl = URL.createObjectURL(recordedBlob);
+            audioPlayer.src = audioUrl;
+            audioPlayerContainer.style.display = 'block';
+            uploadButton.disabled = false;
+            
+            showStatus(`Recording complete! Duration: ${formatTime(duration)} | Size: ${(recordedBlob.size / 1024).toFixed(2)} KB`, 'success');
+        };
+        
+        mediaRecorder.start();
+        startTime = Date.now();
+        updateTimer();
+        
+        recordButton.disabled = true;
+        recordButton.classList.add('recording');
+        stopButton.disabled = false;
+        uploadButton.disabled = true;
+        audioPlayerContainer.style.display = 'none';
+        
+        updateDebug('Recording started...');
+        showStatus('Recording in progress...', 'info');
+        
+    } catch (error) {
+        updateDebug(`ERROR: ${error.message}`);
+        showStatus(`Error accessing microphone: ${error.message}`, 'error');
+    }
+});
+
+stopButton.addEventListener('click', () => {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        clearInterval(timerInterval);
+        duration = Math.floor((Date.now() - startTime) / 1000);
+        mediaRecorder.stop();
+        mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        
+        recordButton.disabled = false;
+        recordButton.classList.remove('recording');
+        stopButton.disabled = true;
+    }
+});
+
+uploadButton.addEventListener('click', async () => {
+    if (!recordedBlob) {
+        showStatus('No recording to upload', 'error');
+        return;
+    }
+    
+    updateDebug('Preparing to upload...');
+    showStatus('Uploading voice memo...', 'info');
+    
+    const formData = new FormData();
+    formData.append('audio', recordedBlob, 'voice_memo.m4a');
+    formData.append('duration', duration);
+    
+    updateDebug(`FormData created: audio file (${recordedBlob.size} bytes), duration (${duration}s)`);
+    
+    try {
+        uploadButton.disabled = true;
+        uploadButton.innerHTML = '<i class="bi bi-hourglass-split"></i> Uploading...';
+        
+        const response = await fetch('/test-recording/{{ photo.id }}/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        updateDebug(`Server response: ${JSON.stringify(result, null, 2)}`);
+        
+        if (result.success) {
+            showStatus(`✅ ${result.message}`, 'success');
+            updateDebug(`Upload successful! Voice memo ID: ${result.voice_memo.id}`);
+        } else {
+            showStatus(`❌ Upload failed: ${result.error}`, 'error');
+        }
+        
+    } catch (error) {
+        updateDebug(`Upload ERROR: ${error.message}`);
+        showStatus(`Upload error: ${error.message}`, 'error');
+    } finally {
+        uploadButton.disabled = false;
+        uploadButton.innerHTML = '<i class="bi bi-cloud-upload"></i> Upload Recording';
+    }
+});
+
+function updateTimer() {
+    timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        timer.textContent = formatTime(elapsed);
+    }, 1000);
+}
+
+function formatTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+function showStatus(message, type) {
+    statusContainer.innerHTML = `<div class="status-box ${type}">${message}</div>`;
+}
+
+function updateDebug(message) {
+    const timestamp = new Date().toLocaleTimeString();
+    debugInfo.innerHTML += `<br>[${timestamp}] ${message}`;
+    debugInfo.scrollTop = debugInfo.scrollHeight;
+}
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Invoice {{ invoice.invoice_number }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1><i class="bi bi-file-earmark-text"></i> Invoice {{ invoice.invoice_number }}</h1>
+                <button onclick="window.print()" class="btn btn-primary">
+                    <i class="bi bi-printer"></i> Print Invoice
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h5>Calmic Sdn Bhd</h5>
+                    <p class="mb-1">StoryKeep Service Provider</p>
+                    <p class="mb-1">Malaysia</p>
+                    <p class="mb-1">Email: billing@calmic.com.my</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <p class="mb-1"><strong>Invoice Date:</strong> {{ invoice.issue_date.strftime('%B %d, %Y') }}</p>
+                    {% if invoice.due_date %}
+                    <p class="mb-1"><strong>Due Date:</strong> {{ invoice.due_date.strftime('%B %d, %Y') }}</p>
+                    {% endif %}
+                    <p class="mb-1">
+                        <strong>Status:</strong> 
+                        {% if invoice.is_paid %}
+                            <span class="badge bg-success">PAID</span>
+                        {% elif invoice.is_overdue %}
+                            <span class="badge bg-danger">OVERDUE</span>
+                        {% else %}
+                            <span class="badge bg-warning">{{ invoice.status|upper }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h6>Bill To:</h6>
+                    <p class="mb-1"><strong>{{ invoice.billing_name or invoice.user.username }}</strong></p>
+                    {% if invoice.billing_email %}
+                    <p class="mb-1">{{ invoice.billing_email }}</p>
+                    {% endif %}
+                    {% if invoice.billing_address %}
+                    <p class="mb-1">{{ invoice.billing_address|replace('\n', '<br>')|safe }}</p>
+                    {% endif %}
+                    {% if invoice.company_name %}
+                    <p class="mb-1 mt-2"><strong>Company:</strong> {{ invoice.company_name }}</p>
+                    {% endif %}
+                    {% if invoice.business_registration_number %}
+                    <p class="mb-1"><strong>Business Reg:</strong> {{ invoice.business_registration_number }}</p>
+                    {% endif %}
+                    {% if invoice.sst_registration_number %}
+                    <p class="mb-1"><strong>SST Reg:</strong> {{ invoice.sst_registration_number }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Description</th>
+                            <th>Period</th>
+                            <th class="text-end">Amount (MYR)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <strong>{{ invoice.description }}</strong>
+                                {% if invoice.subscription %}
+                                <br><small class="text-muted">{{ invoice.subscription.plan.display_name }} Subscription</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if invoice.billing_period_start and invoice.billing_period_end %}
+                                {{ invoice.billing_period_start.strftime('%b %d, %Y') }} - {{ invoice.billing_period_end.strftime('%b %d, %Y') }}
+                                {% else %}
+                                Monthly
+                                {% endif %}
+                            </td>
+                            <td class="text-end">RM {{ "%.2f"|format(invoice.subtotal) }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="text-end"><strong>Subtotal:</strong></td>
+                            <td class="text-end">RM {{ "%.2f"|format(invoice.subtotal) }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="text-end">
+                                <strong>SST ({{ invoice.sst_rate }}%):</strong>
+                                <br><small class="text-muted">Malaysian Service Tax</small>
+                            </td>
+                            <td class="text-end">RM {{ "%.2f"|format(invoice.sst_amount) }}</td>
+                        </tr>
+                        <tr class="table-active">
+                            <td colspan="2" class="text-end"><h5 class="mb-0"><strong>Total:</strong></h5></td>
+                            <td class="text-end"><h5 class="mb-0"><strong>RM {{ "%.2f"|format(invoice.total) }}</strong></h5></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            {% if invoice.is_paid %}
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle-fill"></i> 
+                <strong>Payment Received:</strong> This invoice was paid on {{ invoice.paid_date.strftime('%B %d, %Y') }}
+                {% if invoice.payment_method %}
+                via {{ invoice.payment_method|title }}
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="row">
+                <div class="col-md-12">
+                    <h6>Payment Information:</h6>
+                    <p class="mb-1"><small>Payment method: Credit/Debit Card or FPX (Malaysian Online Banking)</small></p>
+                    <p class="mb-1"><small>Processed securely through Stripe</small></p>
+                    {% if invoice.stripe_payment_intent_id %}
+                    <p class="mb-1"><small>Transaction ID: {{ invoice.stripe_payment_intent_id }}</small></p>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if invoice.notes %}
+            <hr>
+            <div class="row">
+                <div class="col-md-12">
+                    <h6>Notes:</h6>
+                    <p>{{ invoice.notes }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <hr>
+            <div class="text-center text-muted">
+                <small>
+                    This is a computer-generated invoice. For questions, please contact billing@calmic.com.my
+                    <br>Calmic Sdn Bhd - Professional Photo Management Solutions
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <a href="{{ url_for('billing.dashboard') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Billing Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .navbar, .btn, .alert { display: none !important; }
+    .card { border: none; box-shadow: none; }
+}
+</style>
+{% endblock %}

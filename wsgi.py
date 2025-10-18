@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+"""
+PhotoVault WSGI Production Entry Point
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
+This is the production entry point for PhotoVault using Gunicorn
+"""
+
+import os
+import sys
+
+# Add the project root to Python path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Force production environment
+os.environ['FLASK_CONFIG'] = 'production'
+os.environ['FLASK_ENV'] = 'production'
+os.environ['FLASK_DEBUG'] = 'False'
+
+# Import the application factory
+from photovault import create_app
+from config import ProductionConfig
+
+# Create the application using the production configuration
+try:
+    app = create_app(ProductionConfig)
+    
+    # Log configuration for deployment verification
+    print(f"PhotoVault WSGI: Environment = {os.environ.get('FLASK_ENV', 'production')}")
+    print(f"PhotoVault WSGI: Debug = {app.debug}")
+    print(f"PhotoVault WSGI: Config = {app.config.__class__.__name__}")
+    print(f"PhotoVault WSGI: Database URI set = {'Yes' if app.config.get('SQLALCHEMY_DATABASE_URI') else 'No'}")
+    
+    # Test basic app creation (non-blocking)
+    # Database connectivity will be tested on first request, not during startup
+    print("PhotoVault WSGI: App created successfully, ready to handle requests")
+            
+except Exception as e:
+    print(f"PhotoVault WSGI: CRITICAL - App creation failed: {e}")
+    import traceback
+    traceback.print_exc()
+    raise
+
+if __name__ == "__main__":
+    # This will only run in development mode
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)

@@ -1,0 +1,426 @@
+<!--
+StoryKeep - Professional Photo Management Platform
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+-->
+
+{% extends "base.html" %}
+{% block title %}Image Sharpening - StoryKeep{% endblock %}
+
+{% block extra_css %}
+<style>
+body {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+}
+
+.sharpening-container {
+    padding: 2rem 0;
+}
+
+.sharpening-header {
+    text-align: center;
+    color: white;
+    margin-bottom: 2rem;
+}
+
+.sharpening-header h1 {
+    font-size: 2.5rem;
+    font-weight: 300;
+    margin-bottom: 0.5rem;
+}
+
+.sharpening-header p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+.preview-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+    margin-bottom: 1.5rem;
+}
+
+.image-preview-section {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+}
+
+.image-column {
+    flex: 1;
+    max-width: 48%;
+    text-align: center;
+}
+
+.image-column h6 {
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #333;
+}
+
+.preview-image {
+    width: 100%;
+    height: auto;
+    max-height: 400px;
+    object-fit: contain;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.controls-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+}
+
+.control-group {
+    margin-bottom: 1.5rem;
+}
+
+.control-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.slider-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.slider-container input[type="range"] {
+    flex: 1;
+}
+
+.slider-value {
+    min-width: 60px;
+    text-align: center;
+    font-weight: 600;
+    color: #667eea;
+}
+
+.btn-sharpen {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.btn-sharpen:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-sharpen:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.photo-selector {
+    background: white;
+    border: 2px solid #667eea;
+    border-radius: 10px;
+    padding: 0.75rem;
+    width: 100%;
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.info-box {
+    background: rgba(102, 126, 234, 0.1);
+    border-left: 4px solid #667eea;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+.info-box i {
+    color: #667eea;
+    margin-right: 0.5rem;
+}
+
+.loading-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+
+.loading-overlay.show {
+    display: flex;
+}
+
+.loading-spinner {
+    background: white;
+    padding: 2rem;
+    border-radius: 15px;
+    text-align: center;
+}
+
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+    border-width: 0.3rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sharpening-container container">
+    <!-- Header -->
+    <div class="sharpening-header">
+        <h1><i class="bi bi-star"></i> Image Sharpening</h1>
+        <p>Enhance photo details and clarity with professional sharpening tools</p>
+    </div>
+
+    <div class="row">
+        <!-- Controls Column -->
+        <div class="col-lg-4">
+            <div class="controls-card">
+                <h5 class="mb-4"><i class="bi bi-sliders"></i> Sharpening Controls</h5>
+
+                <!-- Photo Selection -->
+                <div class="control-group">
+                    <label for="photoSelect">Select Photo</label>
+                    <select id="photoSelect" class="photo-selector">
+                        <option value="">Choose a photo...</option>
+                        {% for photo in photos %}
+                        <option value="{{ photo.id }}" data-url="{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.filename) }}">
+                            {{ photo.filename|truncate(40) }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Sharpening Intensity -->
+                <div class="control-group">
+                    <label for="intensity">Sharpening Intensity</label>
+                    <div class="slider-container">
+                        <input type="range" id="intensity" class="form-range" min="0.5" max="3.0" step="0.1" value="1.5">
+                        <span class="slider-value" id="intensityValue">1.5</span>
+                    </div>
+                    <small class="text-muted">Higher values increase sharpness</small>
+                </div>
+
+                <!-- Sharpening Radius -->
+                <div class="control-group">
+                    <label for="radius">Sharpening Radius</label>
+                    <div class="slider-container">
+                        <input type="range" id="radius" class="form-range" min="1.0" max="5.0" step="0.5" value="2.0">
+                        <span class="slider-value" id="radiusValue">2.0</span>
+                    </div>
+                    <small class="text-muted">Affects the area of sharpening effect</small>
+                </div>
+
+                <!-- Threshold -->
+                <div class="control-group">
+                    <label for="threshold">Threshold</label>
+                    <div class="slider-container">
+                        <input type="range" id="threshold" class="form-range" min="0" max="10" step="1" value="3">
+                        <span class="slider-value" id="thresholdValue">3</span>
+                    </div>
+                    <small class="text-muted">Prevents over-sharpening of smooth areas</small>
+                </div>
+
+                <!-- Method Selection -->
+                <div class="control-group">
+                    <label for="method">Sharpening Method</label>
+                    <select id="method" class="photo-selector">
+                        <option value="unsharp">Unsharp Mask (Recommended)</option>
+                        <option value="laplacian">Laplacian Filter</option>
+                    </select>
+                </div>
+
+                <!-- Apply Button -->
+                <button id="applySharpening" class="btn-sharpen" disabled>
+                    <i class="bi bi-magic"></i> Apply Sharpening
+                </button>
+
+                <!-- Info Box -->
+                <div class="info-box">
+                    <i class="bi bi-info-circle-fill"></i>
+                    <strong>Tip:</strong> Start with default values and adjust gradually for best results.
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Column -->
+        <div class="col-lg-8">
+            <div class="preview-card">
+                <div id="noPhotoSelected" style="text-align: center; padding: 3rem; color: #999;">
+                    <i class="bi bi-image" style="font-size: 4rem; margin-bottom: 1rem;"></i>
+                    <p>Select a photo to begin sharpening</p>
+                </div>
+
+                <div id="imagePreview" style="display: none;">
+                    <div class="image-preview-section">
+                        <!-- Original Image -->
+                        <div class="image-column">
+                            <h6>Original</h6>
+                            <img id="originalImage" class="preview-image" src="" alt="Original">
+                        </div>
+
+                        <!-- Sharpened Image -->
+                        <div class="image-column">
+                            <h6>Sharpened</h6>
+                            <div id="sharpenedPlaceholder" style="text-align: center; padding: 2rem; color: #999;">
+                                <i class="bi bi-arrow-left-circle" style="font-size: 3rem;"></i>
+                                <p>Click "Apply Sharpening" to see result</p>
+                            </div>
+                            <img id="sharpenedImage" class="preview-image" src="" alt="Sharpened" style="display: none;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-spinner">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-3 mb-0">Sharpening image...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedPhotoId = null;
+
+// Update slider values
+document.getElementById('intensity').addEventListener('input', function() {
+    document.getElementById('intensityValue').textContent = this.value;
+});
+
+document.getElementById('radius').addEventListener('input', function() {
+    document.getElementById('radiusValue').textContent = this.value;
+});
+
+document.getElementById('threshold').addEventListener('input', function() {
+    document.getElementById('thresholdValue').textContent = this.value;
+});
+
+// Photo selection
+document.getElementById('photoSelect').addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    selectedPhotoId = this.value;
+    
+    if (selectedPhotoId) {
+        const imageUrl = selectedOption.dataset.url;
+        document.getElementById('originalImage').src = imageUrl;
+        document.getElementById('noPhotoSelected').style.display = 'none';
+        document.getElementById('imagePreview').style.display = 'block';
+        document.getElementById('sharpenedPlaceholder').style.display = 'block';
+        document.getElementById('sharpenedImage').style.display = 'none';
+        document.getElementById('applySharpening').disabled = false;
+    } else {
+        document.getElementById('noPhotoSelected').style.display = 'block';
+        document.getElementById('imagePreview').style.display = 'none';
+        document.getElementById('applySharpening').disabled = true;
+    }
+});
+
+// Apply sharpening
+document.getElementById('applySharpening').addEventListener('click', async function() {
+    if (!selectedPhotoId) {
+        alert('Please select a photo first');
+        return;
+    }
+
+    const intensity = parseFloat(document.getElementById('intensity').value);
+    const radius = parseFloat(document.getElementById('radius').value);
+    const threshold = parseInt(document.getElementById('threshold').value);
+    const method = document.getElementById('method').value;
+
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    loadingOverlay.classList.add('show');
+
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        
+        const response = await fetch('/api/colorization/sharpen', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                photo_id: selectedPhotoId,
+                amount: intensity,
+                radius: radius,
+                threshold: threshold,
+                method: method
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Add cache-busting parameter
+            const cacheBuster = new Date().getTime();
+            const sharpenedUrl = data.enhanced_url + '?t=' + cacheBuster;
+            
+            document.getElementById('sharpenedImage').src = sharpenedUrl;
+            document.getElementById('sharpenedPlaceholder').style.display = 'none';
+            document.getElementById('sharpenedImage').style.display = 'block';
+            
+            // Show success message
+            showMessage('Sharpening applied successfully!', 'success');
+        } else {
+            showMessage('Sharpening failed: ' + (data.error || 'Unknown error'), 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showMessage('Sharpening failed: ' + error.message, 'error');
+    } finally {
+        loadingOverlay.classList.remove('show');
+    }
+});
+
+function showMessage(message, type) {
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    const container = document.querySelector('.sharpening-container');
+    container.insertAdjacentHTML('afterbegin', alertHtml);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        const alert = container.querySelector('.alert');
+        if (alert) {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

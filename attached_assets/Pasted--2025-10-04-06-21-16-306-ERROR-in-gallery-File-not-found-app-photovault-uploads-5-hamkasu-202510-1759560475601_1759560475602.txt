@@ -1,0 +1,11 @@
+[2025-10-04 06:21:16,306] ERROR in gallery: File not found: /app/photovault/uploads/5/hamkasu.20251004.186788.jpg (requested filename: hamkasu.20251004.186788.jpg)
+ERROR:photovault:File not found: /app/photovault/uploads/5/hamkasu.20251004.186788.jpg (requested filename: hamkasu.20251004.186788.jpg)
+[2025-10-04 06:21:16,306] ERROR in gallery: Error serving file hamkasu.20251004.186788.jpg for user 5: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2025-10-04 06:21:16,306 ERROR: Error serving file hamkasu.20251004.186788.jpg for user 5: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again. [in /app/photovault/routes/gallery.py:391]
+ERROR:photovault:Error serving file hamkasu.20251004.186788.jpg for user 5: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2025-10-04 06:21:16,311] ERROR in gallery: File not found: /app/photovault/uploads/5/hamkasu.20251004.337270.jpg (requested filename: hamkasu.20251004.337270.jpg)
+2025-10-04 06:21:16,311 ERROR: File not found: /app/photovault/uploads/5/hamkasu.20251004.337270.jpg (requested filename: hamkasu.20251004.337270.jpg) [in /app/photovault/routes/gallery.py:383]
+ERROR:photovault:File not found: /app/photovault/uploads/5/hamkasu.20251004.337270.jpg (requested filename: hamkasu.20251004.337270.jpg)
+[2025-10-04 06:21:16,311] ERROR in gallery: Error serving file hamkasu.20251004.337270.jpg for user 5: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2025-10-04 06:21:16,311 ERROR: Error serving file hamkasu.20251004.337270.jpg for user 5: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again. [in /app/photovault/routes/gallery.py:391]
+ERROR:photovault:Error serving file hamkasu.20251004.337270.jpg for user 5: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.

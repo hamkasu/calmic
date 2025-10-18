@@ -1,0 +1,90 @@
+RuntimeError: DATABASE_URL environment variable must be set for production
+[2025-10-01 14:08:05,371] CRITICAL in config: CRITICAL: SECRET_KEY not provided! Generated random key for this session only. User sessions WILL NOT persist across Railway restarts. Set SECRET_KEY environment variable in Railway dashboard immediately!
+PhotoVault WSGI: CRITICAL - App creation failed: DATABASE_URL environment variable must be set for production
+[2025-10-01 14:08:05,371] CRITICAL in config: DATABASE_URL not found for Railway deployment. Please set DATABASE_URL or POSTGRES_URL in Railway environment. Alternative: Set ALLOW_SQLITE_IN_PROD=1 for SQLite (data loss risk).
+Traceback (most recent call last):
+  File "/app/wsgi.py", line 26, in <module>
+    app = create_app(ProductionConfig)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/photovault/__init__.py", line 211, in create_app
+    config_class.init_app(app)
+  File "/app/photovault/config.py", line 160, in init_app
+    raise RuntimeError('DATABASE_URL environment variable must be set for production')
+RuntimeError: DATABASE_URL environment variable must be set for production
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/opt/venv/lib/python3.11/site-packages/flask/__main__.py", line 3, in <module>
+    main()
+  File "/opt/venv/lib/python3.11/site-packages/flask/cli.py", line 1105, in main
+    cli.main()
+  File "/opt/venv/lib/python3.11/site-packages/click/core.py", line 1078, in main
+    rv = self.invoke(ctx)
+         ^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/click/core.py", line 1682, in invoke
+    cmd_name, cmd, args = self.resolve_command(ctx, args)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/click/core.py", line 1729, in resolve_command
+    cmd = self.get_command(ctx, cmd_name)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/flask/cli.py", line 611, in get_command
+    app = info.load_app()
+          ^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/flask/cli.py", line 339, in load_app
+    app = locate_app(import_name, None, raise_if_not_found=False)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/flask/cli.py", line 245, in locate_app
+    __import__(module_name)
+  File "/app/wsgi.py", line 26, in <module>
+    app = create_app(ProductionConfig)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/photovault/__init__.py", line 211, in create_app
+    config_class.init_app(app)
+  File "/app/photovault/config.py", line 160, in init_app
+    raise RuntimeError('DATABASE_URL environment variable must be set for production')
+RuntimeError: DATABASE_URL environment variable must be set for production
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2025-10-01 14:08:07,214] CRITICAL in config: CRITICAL: SECRET_KEY not provided! Generated random key for this session only. User sessions WILL NOT persist across Railway restarts. Set SECRET_KEY environment variable in Railway dashboard immediately!
+PhotoVault WSGI: CRITICAL - App creation failed: DATABASE_URL environment variable must be set for production
+[2025-10-01 14:08:07,214] CRITICAL in config: DATABASE_URL not found for Railway deployment. Please set DATABASE_URL or POSTGRES_URL in Railway environment. Alternative: Set ALLOW_SQLITE_IN_PROD=1 for SQLite (data loss risk).
+Traceback (most recent call last):
+  File "/app/wsgi.py", line 26, in <module>
+    app = create_app(ProductionConfig)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/photovault/__init__.py", line 211, in create_app
+    config_class.init_app(app)
+  File "/opt/venv/lib/python3.11/site-packages/click/core.py", line 1729, in resolve_command
+  File "/app/photovault/config.py", line 160, in init_app
+    raise RuntimeError('DATABASE_URL environment variable must be set for production')
+    cmd = self.get_command(ctx, cmd_name)
+RuntimeError: DATABASE_URL environment variable must be set for production
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/opt/venv/lib/python3.11/site-packages/flask/__main__.py", line 3, in <module>
+    main()
+  File "/opt/venv/lib/python3.11/site-packages/flask/cli.py", line 1105, in main
+    cli.main()
+  File "/opt/venv/lib/python3.11/site-packages/click/core.py", line 1078, in main
+    rv = self.invoke(ctx)
+         ^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/click/core.py", line 1682, in invoke
+    cmd_name, cmd, args = self.resolve_command(ctx, args)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/flask/cli.py", line 611, in get_command
+    app = info.load_app()
+          ^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/flask/cli.py", line 339, in load_app
+    app = locate_app(import_name, None, raise_if_not_found=False)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/flask/cli.py", line 245, in locate_app
+    __import__(module_name)
+  File "/app/wsgi.py", line 26, in <module>
+    app = create_app(ProductionConfig)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/photovault/__init__.py", line 211, in create_app
+    config_class.init_app(app)
+  File "/app/photovault/config.py", line 160, in init_app
+    raise RuntimeError('DATABASE_URL environment variable must be set for production')
+RuntimeError: DATABASE_URL environment variable must be set for production

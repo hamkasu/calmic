@@ -1,0 +1,116 @@
+modules = ["web", "python-3.12", "nodejs-20", "bash"]
+
+[nix]
+channel = "stable-25_05"
+packages = ["freetype", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "sqlite", "tcl", "tk", "zlib"]
+
+[agent]
+expertMode = true
+integrations = ["replitmail:1.0.0", "python_sendgrid:1.0.0", "python_database:1.0.0"]
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 35399
+externalPort = 9000
+
+[[ports]]
+localPort = 42427
+externalPort = 6800
+
+[[ports]]
+localPort = 42725
+externalPort = 3003
+
+[[ports]]
+localPort = 42839
+externalPort = 8080
+
+[[ports]]
+localPort = 43071
+externalPort = 6000
+
+[[ports]]
+localPort = 44329
+externalPort = 5173
+
+[[ports]]
+localPort = 44603
+externalPort = 3002
+
+[[ports]]
+localPort = 44751
+externalPort = 3001
+
+[[ports]]
+localPort = 44821
+externalPort = 3000
+
+[[ports]]
+localPort = 45421
+externalPort = 4200
+
+[[ports]]
+localPort = 45599
+externalPort = 8000
+
+[[ports]]
+localPort = 45629
+externalPort = 8081
+
+[[ports]]
+localPort = 45979
+externalPort = 5000
+
+[[ports]]
+localPort = 46027
+externalPort = 8008
+
+[[ports]]
+localPort = 46433
+externalPort = 8099
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "PhotoVault Server"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Expo Server"
+
+[[workflows.workflow]]
+name = "PhotoVault Server"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python dev.py"
+waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Expo Server"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd StoryKeep-iOS && yes | npx expo start --tunnel"
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["gunicorn", "--bind=0.0.0.0:5000", "--workers=2", "--threads=4", "--timeout=60", "--access-logfile=-", "--error-logfile=-", "wsgi:app"]

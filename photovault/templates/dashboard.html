@@ -1,0 +1,886 @@
+<!--
+StoryKeep - Professional Photo Management Platform
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
+This software is proprietary and confidential. Unauthorized copying, distribution,
+modification, or use of this software is strictly prohibited.
+
+Website: https://www.calmic.com.my
+Email: support@calmic.com.my
+
+CALMIC SDN BHD - "Committed to Excellence"
+-->
+
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/voice-memo.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Welcome Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Welcome back, {{ current_user.username }}!</h2>
+                    <p class="text-dark" style="opacity: 0.8;">Here's your StoryKeep overview</p>
+                </div>
+                <div class="btn-group" role="group">
+                    <a href="/upload" class="btn btn-primary" title="Upload Files" data-bs-toggle="tooltip">
+                        <i class="bi bi-cloud-upload"></i><span class="btn-text"> Upload Files</span>
+                    </a>
+                    <a href="/camera/" class="btn btn-success" title="Camera" data-bs-toggle="tooltip">
+                        <i class="bi bi-camera"></i><span class="btn-text"> Camera</span>
+                    </a>
+                    <a href="{{ url_for('main.advanced_enhancement') }}" class="btn btn-info" title="Enhance" data-bs-toggle="tooltip">
+                        <i class="bi bi-magic"></i><span class="btn-text"> Enhance</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card stats-card bg-primary text-white">
+                <div class="card-body text-center">
+                    <div class="stats-number">{{ stats.total_photos }}</div>
+                    <div class="stats-label">Total Photos</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stats-card bg-success text-white">
+                <div class="card-body text-center">
+                    <div class="stats-number">{{ stats.edited_photos }}</div>
+                    <div class="stats-label">Edited Photos</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stats-card bg-info text-white">
+                <div class="card-body text-center">
+                    <div class="stats-number">{{ stats.original_photos }}</div>
+                    <div class="stats-label">Original Photos</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stats-card bg-warning text-white">
+                <div class="card-body text-center">
+                    <div class="stats-number">{{ stats.total_size_mb }}</div>
+                    <div class="stats-label">Storage (MB)</div>
+                </div>
+            </div>
+        </div>
+        
+        {% if current_user.is_admin and stats.total_users %}
+        <div class="col-md-3 mb-3">
+            <div class="card stats-card bg-secondary text-white">
+                <div class="card-body text-center">
+                    <div class="stats-number">{{ stats.total_users }}</div>
+                    <div class="stats-label">Total Users</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Storage Usage Progress -->
+    {% if stats.total_size_mb > 0 %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Storage Usage</h5>
+                </div>
+                <div class="card-body">
+                    <div class="progress mb-2">
+                        <div class="progress-bar" 
+                             role="progressbar" 
+                             style="width: {{ stats.storage_usage_percent }}%;"
+                             aria-valuenow="{{ stats.storage_usage_percent }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            {{ stats.storage_usage_percent|round(1) }}%
+                        </div>
+                    </div>
+                    <small class="text-muted">
+                        {{ stats.total_size_mb }} MB used of 100 MB limit
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Voice Recording Test Section -->
+    {% if photos %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0"><i class="bi bi-mic-fill"></i> Voice Memo Test (Railway Diagnostics)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <p class="mb-3"><strong>Test Photo:</strong> {{ photos[0].filename }}</p>
+                            <div class="d-flex gap-2 align-items-center">
+                                <button id="testRecordBtn" class="btn btn-danger">
+                                    <i class="bi bi-mic-fill"></i> Start Recording
+                                </button>
+                                <button id="testStopBtn" class="btn btn-warning" disabled>
+                                    <i class="bi bi-stop-fill"></i> Stop
+                                </button>
+                                <button id="testUploadBtn" class="btn btn-success" disabled>
+                                    <i class="bi bi-cloud-upload"></i> Upload to Server
+                                </button>
+                                <span id="testTimer" class="badge bg-secondary fs-5">00:00</span>
+                            </div>
+                            <audio id="testAudioPlayer" controls class="w-100 mt-3" style="display: none;"></audio>
+                        </div>
+                        <div class="col-md-4">
+                            <div id="testStatus" class="alert alert-info mb-0">
+                                <small><strong>Status:</strong> Ready to record</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <small class="text-muted"><i class="bi bi-info-circle"></i> This tests voice recording upload to your backend. Check server logs for diagnostic information.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Photos Section -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Recent Photos</h5>
+                    <a href="/gallery" class="btn btn-outline-primary btn-sm">
+                        View All <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if photos %}
+                    <div class="photo-grid">
+                        {% for photo in photos %}
+                        <div class="photo-item" data-photo-id="{{ photo.id }}">
+                            <div class="photo-media position-relative">
+                                <img src="{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.filename) }}" 
+                                     alt="{{ photo.original_name }}" 
+                                     class="img-fluid"
+                                     onclick="showPhotoPreview({{ photo.id }})"
+                                     style="cursor: pointer;"
+                                     data-full-src="{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.edited_filename if photo.edited_filename else photo.filename) }}">
+                                <div class="photo-overlay">
+                                    <h6>{{ photo.original_name }}</h6>
+                                    <small>{{ photo.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                                    <div class="photo-badges mt-1">
+                                        {% if photo.edited_filename %}
+                                        <span class="badge bg-success">Edited</span>
+                                        {% endif %}
+                                        {% if photo.voice_memo_count and photo.voice_memo_count > 0 %}
+                                        <span class="badge bg-info">
+                                            <i class="bi bi-mic-fill"></i> {{ photo.voice_memo_count }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="photo-actions-bottom mt-1 p-0 text-center">
+                                <button onclick="openVoiceMemo({{ photo.id }})" 
+                                        class="btn btn-outline-info btn-sm" style="padding: 1px 4px; margin: 0; font-size: 0.6rem; border-width: 1px;" title="Voice memo">
+                                    <i class="bi bi-mic" style="font-size: 0.6rem;"></i>
+                                </button>
+                                <a href="#" onclick="editPhoto({{ photo.id }})" 
+                                   class="btn btn-outline-secondary btn-sm" style="padding: 1px 4px; margin: 0; font-size: 0.6rem; border-width: 1px;" title="Edit photo">
+                                    <i class="bi bi-pencil" style="font-size: 0.6rem;"></i>
+                                </a>
+                                <a href="#" onclick="markupPhoto({{ photo.id }})" 
+                                   class="btn btn-outline-warning btn-sm" style="padding: 1px 4px; margin: 0; font-size: 0.6rem; border-width: 1px;" title="Edit/Markup">
+                                    <i class="bi bi-brush" style="font-size: 0.6rem;"></i>
+                                </a>
+                                <a href="#" onclick="sharpenPhoto({{ photo.id }})" 
+                                   class="btn btn-outline-success btn-sm" style="padding: 1px 4px; margin: 0; font-size: 0.6rem; border-width: 1px;" title="Sharpen image">
+                                    <i class="bi bi-sliders" style="font-size: 0.6rem;"></i>
+                                </a>
+                                <a href="#" onclick="quickAnnotate({{ photo.id }})" 
+                                   class="btn btn-outline-info btn-sm" style="padding: 1px 4px; margin: 0; font-size: 0.6rem; border-width: 1px;" title="Quick markup/annotation">
+                                    <i class="bi bi-pencil-square" style="font-size: 0.6rem;"></i>
+                                </a>
+                                <button onclick="deletePhoto({{ photo.id }})" 
+                                        class="btn btn-outline-danger btn-sm" style="padding: 1px 4px; margin: 0; font-size: 0.6rem; border-width: 1px;" title="Delete photo">
+                                    <i class="bi bi-trash" style="font-size: 0.6rem;"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-image" style="font-size: 3rem; color: #dee2e6;"></i>
+                        <h4 class="mt-3 text-muted">No Photos Yet</h4>
+                        <p class="text-muted">Upload your first photo to get started!</p>
+                        <div class="btn-group" role="group">
+                            <a href="/upload" class="btn btn-primary">
+                                <i class="bi bi-cloud-upload"></i> Upload Files
+                            </a>
+                            <a href="/camera/" class="btn btn-success">
+                                <i class="bi bi-camera"></i> Camera
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <a href="/upload" class="btn btn-outline-primary w-100" title="Upload Files" data-bs-toggle="tooltip">
+                                <i class="bi bi-cloud-upload"></i><span class="btn-text"> Upload Files</span>
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="/camera/" class="btn btn-outline-success w-100" title="Camera Capture" data-bs-toggle="tooltip">
+                                <i class="bi bi-camera"></i><span class="btn-text"> Camera Capture</span>
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="/gallery" class="btn btn-outline-secondary w-100" title="View Originals" data-bs-toggle="tooltip">
+                                <i class="bi bi-file-image"></i><span class="btn-text"> View Originals</span>
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('family.index') }}" class="btn btn-outline-secondary w-100" title="Family Vault" data-bs-toggle="tooltip">
+                                <i class="bi bi-house-heart"></i><span class="btn-text"> Family Vault</span>
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="/profile" class="btn btn-outline-info w-100" title="Profile" data-bs-toggle="tooltip">
+                                <i class="bi bi-person-circle"></i><span class="btn-text"> Profile</span>
+                            </a>
+                        </div>
+                        {% if current_user.is_admin %}
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-warning w-100">
+                                <i class="bi bi-gear"></i> Admin Panel
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Voice Memo Modal -->
+<div class="modal fade" id="voiceMemoModal" tabindex="-1" aria-labelledby="voiceMemoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="voiceMemoModalLabel">
+                    <i class="bi bi-mic"></i> Voice Memo for <span id="photoName"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="voiceMemoContainer"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Selective Deletion Modal -->
+<div class="modal fade" id="deletePhotoModal" tabindex="-1" aria-labelledby="deletePhotoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deletePhotoModalLabel">Delete Photo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>What would you like to delete for <strong id="photoNameToDelete"></strong>?</p>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="deletionType" id="deleteBoth" value="both" checked>
+                    <label class="form-check-label" for="deleteBoth">
+                        <strong>Delete Both</strong> - Remove original and edited versions (cannot be undone)
+                    </label>
+                </div>
+                <div class="form-check" id="deleteOriginalOption" style="display: none;">
+                    <input class="form-check-input" type="radio" name="deletionType" id="deleteOriginal" value="original">
+                    <label class="form-check-label" for="deleteOriginal">
+                        <strong>Delete Original Only</strong> - Keep edited version as the main photo
+                    </label>
+                </div>
+                <div class="form-check" id="deleteEditedOption" style="display: none;">
+                    <input class="form-check-input" type="radio" name="deletionType" id="deleteEdited" value="edited">
+                    <label class="form-check-label" for="deleteEdited">
+                        <strong>Delete Edited Only</strong> - Keep original and remove edited version
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeletePhoto()">
+                    <i class="bi bi-trash"></i> Delete Selected
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sharpen Image Modal -->
+<div class="modal fade" id="sharpenModal" tabindex="-1" aria-labelledby="sharpenModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="sharpenModalLabel">
+                    <i class="bi bi-sliders"></i> Sharpen Image
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">Enhance image sharpness and clarity</p>
+                
+                <div class="mb-4">
+                    <label for="sharpenStrength" class="form-label">Sharpening Strength</label>
+                    <input type="range" class="form-range" id="sharpenStrength" min="1.0" max="3.0" step="0.1" value="1.5">
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted">Light</small>
+                        <span id="sharpenStrengthValue" class="badge bg-primary">1.5</span>
+                        <small class="text-muted">Strong</small>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="sharpenMethod" class="form-label">Sharpening Method</label>
+                    <select class="form-select" id="sharpenMethod">
+                        <option value="unsharp" selected>Unsharp Mask (Recommended)</option>
+                        <option value="basic">Basic Sharpen</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="applySharpen()">
+                    <i class="bi bi-check-circle"></i> Apply Sharpen
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/voice-memo.js') }}"></script>
+<script>
+let currentPhotoIdToDelete = null;
+
+function showPhotoPreview(photoId) {
+    const photoCard = document.querySelector('[data-photo-id="' + photoId + '"]') || document.querySelector('.photo-item');
+    if (!photoCard) return;
+    
+    const img = photoCard.querySelector('img');
+    if (!img) return;
+    
+    const fullSrc = img.getAttribute('data-full-src') || img.src;
+    const photoName = photoCard.querySelector('h6') ? photoCard.querySelector('h6').textContent : 'Photo';
+    
+    // Create preview modal
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.innerHTML = '<div class="modal-dialog modal-xl">' +
+        '<div class="modal-content">' +
+            '<div class="modal-header">' +
+                '<h5 class="modal-title">' + photoName + '</h5>' +
+                '<button type="button" class="btn-close" data-bs-dismiss="modal"></button>' +
+            '</div>' +
+            '<div class="modal-body text-center p-4">' +
+                '<img src="' + fullSrc + '" class="img-fluid rounded shadow-sm" style="max-height: 70vh; max-width: 100%; object-fit: contain;">' +
+            '</div>' +
+            '<div class="modal-footer justify-content-center">' +
+                '<div class="btn-group">' +
+                    '<button class="btn btn-outline-secondary" onclick="galleryZoomIn(this)" title="Zoom In">' +
+                        '<i class="bi bi-zoom-in"></i>' +
+                    '</button>' +
+                    '<button class="btn btn-outline-secondary" onclick="galleryZoomOut(this)" title="Zoom Out">' +
+                        '<i class="bi bi-zoom-out"></i>' +
+                    '</button>' +
+                    '<button class="btn btn-outline-secondary" onclick="galleryResetZoom(this)" title="Fit to Screen">' +
+                        '<i class="bi bi-aspect-ratio"></i>' +
+                    '</button>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+    '</div>';
+    
+    document.body.appendChild(modal);
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+    
+    modal.addEventListener('hidden.bs.modal', function() {
+        document.body.removeChild(modal);
+    });
+}
+
+function galleryZoomIn(button) {
+    const img = button.closest('.modal-content').querySelector('img');
+    const currentTransform = img.style.transform || 'scale(1)';
+    const scaleMatch = currentTransform.match(/scale\(([^)]+)\)/);
+    const currentScale = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
+    const newScale = Math.min(currentScale * 1.2, 3);
+    img.style.transform = 'scale(' + newScale + ')';
+    img.style.transformOrigin = 'center';
+}
+
+function galleryZoomOut(button) {
+    const img = button.closest('.modal-content').querySelector('img');
+    const currentTransform = img.style.transform || 'scale(1)';
+    const scaleMatch = currentTransform.match(/scale\(([^)]+)\)/);
+    const currentScale = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
+    const newScale = Math.max(currentScale / 1.2, 0.5);
+    img.style.transform = 'scale(' + newScale + ')';
+    img.style.transformOrigin = 'center';
+}
+
+function galleryResetZoom(button) {
+    const img = button.closest('.modal-content').querySelector('img');
+    img.style.transform = 'scale(1)';
+}
+
+function deletePhoto(photoId) {
+    currentPhotoIdToDelete = photoId;
+    
+    // Find the photo element to get its name and check if it has edited version
+    const photoElement = document.querySelector(`[onclick="deletePhoto(${photoId})"]`).closest('.photo-item');
+    const photoName = photoElement.querySelector('h6').textContent;
+    const hasEditedBadge = photoElement.querySelector('.badge.bg-success');
+    const hasEdited = hasEditedBadge && hasEditedBadge.textContent.includes('Edited');
+    
+    // Set photo name in modal
+    document.getElementById('photoNameToDelete').textContent = photoName;
+    
+    // Show/hide options based on whether photo has edited version
+    const deleteOriginalOption = document.getElementById('deleteOriginalOption');
+    const deleteEditedOption = document.getElementById('deleteEditedOption');
+    
+    if (hasEdited) {
+        deleteOriginalOption.style.display = 'block';
+        deleteEditedOption.style.display = 'block';
+    } else {
+        deleteOriginalOption.style.display = 'none';
+        deleteEditedOption.style.display = 'none';
+        document.getElementById('deleteBoth').checked = true;
+    }
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('deletePhotoModal'));
+    modal.show();
+}
+
+function confirmDeletePhoto() {
+    if (!currentPhotoIdToDelete) return;
+    
+    const selectedOption = document.querySelector('input[name="deletionType"]:checked');
+    const deletionType = selectedOption ? selectedOption.value : 'both';
+    
+    fetch(`/api/photos/${currentPhotoIdToDelete}/delete`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            deletion_type: deletionType
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message || 'Photo deleted successfully!');
+            location.reload();
+        } else {
+            alert('Error deleting photo: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error deleting photo. Please try again.');
+    })
+    .finally(() => {
+        // Hide modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('deletePhotoModal'));
+        if (modal) modal.hide();
+        currentPhotoIdToDelete = null;
+    });
+}
+
+function editPhoto(photoId) {
+    // Open photo editor - this will be implemented next
+    window.open(`/photos/${photoId}/edit`, '_blank');
+}
+
+function markupPhoto(photoId) {
+    // Open photo markup editor
+    window.location.href = `/photos/${photoId}/edit`;
+}
+
+let currentPhotoIdToSharpen = null;
+
+function sharpenPhoto(photoId) {
+    // Store photo ID and open sharpen modal
+    currentPhotoIdToSharpen = photoId;
+    const modal = new bootstrap.Modal(document.getElementById('sharpenModal'));
+    modal.show();
+}
+
+function applySharpen() {
+    if (!currentPhotoIdToSharpen) return;
+    
+    const strength = parseFloat(document.getElementById('sharpenStrength').value);
+    const method = document.getElementById('sharpenMethod').value;
+    
+    // Show loading state
+    const applyBtn = event.target;
+    const originalText = applyBtn.innerHTML;
+    applyBtn.disabled = true;
+    applyBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Applying...';
+    
+    // Get CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    const headers = {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+    };
+    
+    if (csrfToken) {
+        headers['X-CSRFToken'] = csrfToken;
+    }
+    
+    // Call sharpen API
+    fetch(`/api/photos/${currentPhotoIdToSharpen}/enhance`, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({
+            enhancement_type: 'sharpen',
+            amount: strength,
+            method: method,
+            radius: 2.0,
+            threshold: 3
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Image sharpened successfully!');
+            location.reload();
+        } else {
+            alert('Error sharpening image: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error sharpening image. Please try again.');
+    })
+    .finally(() => {
+        applyBtn.disabled = false;
+        applyBtn.innerHTML = originalText;
+        const modal = bootstrap.Modal.getInstance(document.getElementById('sharpenModal'));
+        if (modal) modal.hide();
+        currentPhotoIdToSharpen = null;
+    });
+}
+
+function quickAnnotate(photoId) {
+    // Open quick annotation tool
+    window.location.href = `/photos/${photoId}/edit`;
+}
+
+// Update slider value display
+document.addEventListener('DOMContentLoaded', function() {
+    const slider = document.getElementById('sharpenStrength');
+    const valueDisplay = document.getElementById('sharpenStrengthValue');
+    
+    if (slider && valueDisplay) {
+        slider.addEventListener('input', function() {
+            valueDisplay.textContent = this.value;
+        });
+    }
+});
+
+let currentVoiceMemoRecorder = null;
+
+function openVoiceMemo(photoId) {
+    // Find the photo name from the dashboard
+    const photoElement = document.querySelector(`[onclick="deletePhoto(${photoId})"]`).closest('.photo-item');
+    const photoName = photoElement.querySelector('h6').textContent;
+    
+    // Set modal title
+    document.getElementById('photoName').textContent = photoName;
+    
+    // Clean up previous recorder if exists
+    if (currentVoiceMemoRecorder) {
+        currentVoiceMemoRecorder = null;
+    }
+    
+    // Clear container
+    document.getElementById('voiceMemoContainer').innerHTML = '';
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('voiceMemoModal'));
+    modal.show();
+    
+    // Initialize voice memo recorder after modal is shown
+    modal._element.addEventListener('shown.bs.modal', function() {
+        try {
+            currentVoiceMemoRecorder = new VoiceMemoRecorder(photoId, 'voiceMemoContainer');
+        } catch (error) {
+            console.error('Error initializing voice memo recorder:', error);
+            document.getElementById('voiceMemoContainer').innerHTML = 
+                '<div class="alert alert-danger">Error initializing voice recorder. Please try again.</div>';
+        }
+    }, { once: true });
+    
+    // Clean up when modal is hidden
+    modal._element.addEventListener('hidden.bs.modal', function() {
+        if (currentVoiceMemoRecorder) {
+            // Stop any ongoing recording
+            if (currentVoiceMemoRecorder.isRecording) {
+                currentVoiceMemoRecorder.stopRecording();
+            }
+            currentVoiceMemoRecorder = null;
+        }
+        document.getElementById('voiceMemoContainer').innerHTML = '';
+    }, { once: true });
+}
+
+// Voice Recording Test
+let testMediaRecorder;
+let testAudioChunks = [];
+let testRecordedBlob;
+let testStartTime;
+let testTimerInterval;
+let testDuration = 0;
+
+const testRecordBtn = document.getElementById('testRecordBtn');
+const testStopBtn = document.getElementById('testStopBtn');
+const testUploadBtn = document.getElementById('testUploadBtn');
+const testAudioPlayer = document.getElementById('testAudioPlayer');
+const testTimer = document.getElementById('testTimer');
+const testStatus = document.getElementById('testStatus');
+
+function updateTestStatus(message, type = 'info') {
+    testStatus.className = `alert alert-${type} mb-0`;
+    testStatus.innerHTML = `<small><strong>Status:</strong> ${message}</small>`;
+}
+
+if (testRecordBtn) {
+    testRecordBtn.addEventListener('click', async () => {
+        try {
+            updateTestStatus('Requesting microphone...', 'info');
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            
+            const mimeType = 'audio/mp4';
+            testMediaRecorder = new MediaRecorder(stream, { mimeType: mimeType });
+            testAudioChunks = [];
+            
+            testMediaRecorder.ondataavailable = (event) => {
+                testAudioChunks.push(event.data);
+            };
+            
+            testMediaRecorder.onstop = () => {
+                testRecordedBlob = new Blob(testAudioChunks, { type: mimeType });
+                const audioUrl = URL.createObjectURL(testRecordedBlob);
+                testAudioPlayer.src = audioUrl;
+                testAudioPlayer.style.display = 'block';
+                testUploadBtn.disabled = false;
+                
+                const sizeMB = (testRecordedBlob.size / 1024 / 1024).toFixed(2);
+                updateTestStatus(`Recording complete! Duration: ${formatTestTime(testDuration)} | Size: ${sizeMB} MB`, 'success');
+            };
+            
+            testMediaRecorder.start();
+            testStartTime = Date.now();
+            updateTestTimer();
+            
+            testRecordBtn.disabled = true;
+            testStopBtn.disabled = false;
+            testUploadBtn.disabled = true;
+            testAudioPlayer.style.display = 'none';
+            
+            updateTestStatus('Recording in progress...', 'danger');
+            
+        } catch (error) {
+            updateTestStatus(`Error: ${error.message}`, 'danger');
+        }
+    });
+
+    testStopBtn.addEventListener('click', () => {
+        if (testMediaRecorder && testMediaRecorder.state !== 'inactive') {
+            clearInterval(testTimerInterval);
+            testDuration = Math.floor((Date.now() - testStartTime) / 1000);
+            testMediaRecorder.stop();
+            testMediaRecorder.stream.getTracks().forEach(track => track.stop());
+            
+            testRecordBtn.disabled = false;
+            testStopBtn.disabled = true;
+        }
+    });
+
+    testUploadBtn.addEventListener('click', async () => {
+        if (!testRecordedBlob) {
+            updateTestStatus('No recording to upload', 'danger');
+            return;
+        }
+        
+        updateTestStatus('Uploading...', 'warning');
+        
+        const formData = new FormData();
+        formData.append('audio', testRecordedBlob, 'voice_memo.m4a');
+        formData.append('duration', testDuration);
+        
+        try {
+            testUploadBtn.disabled = true;
+            testUploadBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Uploading...';
+            
+            const firstPhotoId = {{ photos[0].id if photos else 0 }};
+            const response = await fetch(`/test-recording/${firstPhotoId}/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                updateTestStatus(`✅ ${result.message} (ID: ${result.voice_memo.id}, Size: ${result.voice_memo.file_size_mb} MB)`, 'success');
+            } else {
+                updateTestStatus(`❌ Upload failed: ${result.error}`, 'danger');
+            }
+            
+        } catch (error) {
+            updateTestStatus(`Upload error: ${error.message}`, 'danger');
+        } finally {
+            testUploadBtn.disabled = false;
+            testUploadBtn.innerHTML = '<i class="bi bi-cloud-upload"></i> Upload to Server';
+        }
+    });
+}
+
+function updateTestTimer() {
+    testTimerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - testStartTime) / 1000);
+        testTimer.textContent = formatTestTime(elapsed);
+    }, 1000);
+}
+
+function formatTestTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Initialize Bootstrap tooltips for mobile accessibility
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl, {
+            trigger: 'hover focus'
+        });
+    });
+    
+    // ⚡ PRELOAD ON LOGIN - Silently load AI models in background while user browses dashboard
+    preloadAIModels();
+});
+
+// ⚡ PRELOAD AI MODELS - Load models in background so camera opens instantly
+function preloadAIModels() {
+    // Check if TensorFlow.js is available (from camera page)
+    if (typeof tf === 'undefined') {
+        console.log('📦 Loading TensorFlow.js library for preloading...');
+        
+        // Load TensorFlow.js and models in background
+        const tfScript = document.createElement('script');
+        tfScript.src = 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.0/dist/tf.min.js';
+        tfScript.onload = function() {
+            loadModelScripts();
+        };
+        document.head.appendChild(tfScript);
+    } else {
+        // TF.js already loaded, start preloading models
+        initializePreloading();
+    }
+}
+
+function loadModelScripts() {
+    console.log('📦 Loading AI model libraries...');
+    
+    const scripts = [
+        'https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.min.js',
+        'https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js'
+    ];
+    
+    let loaded = 0;
+    scripts.forEach(src => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = function() {
+            loaded++;
+            if (loaded === scripts.length) {
+                // All scripts loaded, start preloading
+                setTimeout(() => initializePreloading(), 500);
+            }
+        };
+        document.head.appendChild(script);
+    });
+}
+
+async function initializePreloading() {
+    try {
+        console.log('🚀 Preloading AI models in background...');
+        
+        // Initialize TensorFlow backend
+        await tf.setBackend('webgl');
+        await tf.enableProdMode();
+        
+        // Preload BlazeFace (fast - ~4 seconds)
+        console.log('⏳ Preloading BlazeFace...');
+        const blazeFaceModel = await blazeface.load();
+        console.log('✅ BlazeFace preloaded - camera will open faster!');
+        
+        // Preload COCO-SSD LITE in background (slower - but won't block user)
+        setTimeout(async () => {
+            try {
+                console.log('⏳ Preloading COCO-SSD LITE...');
+                const cocoSSDModel = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
+                console.log('✅ COCO-SSD LITE preloaded - object detection ready!');
+            } catch (error) {
+                console.warn('⚠️ COCO-SSD preload failed:', error);
+            }
+        }, 2000);
+        
+    } catch (error) {
+        console.warn('⚠️ AI preloading failed (non-critical):', error);
+    }
+}
+
+</script>
+{% endblock %}

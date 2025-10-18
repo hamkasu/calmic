@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Share Photo{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="mb-4"><i class="bi bi-share-fill"></i> Share Photo</h1>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Photo Preview</h5>
+                    <img src="{{ url_for('gallery.uploaded_file', filename=photo.filename) }}" 
+                         alt="{{ photo.original_name }}" 
+                         class="img-fluid rounded">
+                    <p class="mt-3 text-muted">{{ photo.original_name }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Share to Social Media</h5>
+                    
+                    {% if not connections %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> 
+                        You haven't connected any social media accounts yet. 
+                        <a href="{{ url_for('social_media.connect_accounts') }}" class="alert-link">Connect accounts</a>
+                    </div>
+                    {% else %}
+                    
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Select Platforms:</label>
+                            {% for connection in connections %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="platforms" value="{{ connection.platform }}" id="platform_{{ connection.platform }}">
+                                <label class="form-check-label" for="platform_{{ connection.platform }}">
+                                    {% if connection.platform == 'instagram' %}
+                                    <i class="bi bi-instagram text-danger"></i> Instagram
+                                    {% elif connection.platform == 'facebook' %}
+                                    <i class="bi bi-facebook text-primary"></i> Facebook
+                                    {% elif connection.platform == 'twitter' %}
+                                    <i class="bi bi-twitter-x"></i> Twitter / X
+                                    {% elif connection.platform == 'pinterest' %}
+                                    <i class="bi bi-pinterest text-danger"></i> Pinterest
+                                    {% endif %}
+                                    {% if connection.platform_username %}
+                                    <small class="text-muted">({{ connection.platform_username }})</small>
+                                    {% endif %}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="caption" class="form-label">Caption / Message:</label>
+                            <textarea class="form-control" id="caption" name="caption" rows="4" placeholder="Add a caption for your photo...">{% if photo.description %}{{ photo.description }}{% endif %}</textarea>
+                            <small class="text-muted">Add hashtags and mentions to increase engagement</small>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-send-fill"></i> Share Now
+                        </button>
+                    </form>
+                    
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6>Share Tips</h6>
+                    <ul class="small text-muted mb-0">
+                        <li>Use relevant hashtags to reach more people</li>
+                        <li>Tag people and locations where appropriate</li>
+                        <li>Each platform has character limits for captions</li>
+                        <li>Your photo will be posted immediately</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

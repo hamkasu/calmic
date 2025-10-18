@@ -1,0 +1,115 @@
+<!--
+StoryKeep - Photo Card Macro
+Reusable photo card component for consistent display across all gallery pages
+-->
+
+{% macro photo_card(photo, show_checkbox=False, show_badges=True) %}
+<div class="photo-item" data-photo-id="{{ photo.id }}">
+    <div class="photo-media position-relative">
+        {% if show_checkbox %}
+        <div class="photo-checkbox">
+            <input type="checkbox" class="form-check-input photo-select" value="{{ photo.id }}" onchange="updateSelection()">
+        </div>
+        {% endif %}
+        
+        {% if photo.thumbnail_path %}
+            <img src="{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.thumbnail_path.split('/')[-1]) }}" 
+                 class="img-fluid photo-preview-trigger" 
+                 alt="{{ photo.original_name }}"
+                 onclick="showPhotoPreview({{ photo.id }})"
+                 style="cursor: pointer;"
+                 data-full-src="{% if photo.edited_filename %}{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.edited_filename) }}{% else %}{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.filename) }}{% endif %}">
+        {% elif photo.edited_filename %}
+            <img src="{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.edited_filename) }}" 
+                 class="img-fluid photo-preview-trigger" 
+                 alt="{{ photo.original_name }} (Edited)"
+                 onclick="showPhotoPreview({{ photo.id }})"
+                 style="cursor: pointer;"
+                 data-full-src="{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.edited_filename) }}">
+        {% else %}
+            <img src="{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.filename) }}" 
+                 class="img-fluid photo-preview-trigger" 
+                 alt="{{ photo.original_name }}"
+                 onclick="showPhotoPreview({{ photo.id }})"
+                 style="cursor: pointer;"
+                 data-full-src="{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.filename) }}"
+                 onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22300%22/%3E%3Ctext fill=%22%23999%22 font-family=%22Arial%22 font-size=%2218%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22%3EPhoto Not Available%3C/text%3E%3C/svg%3E';">
+        {% endif %}
+        
+        <div class="photo-overlay">
+            <h6>{{ photo.original_name }}</h6>
+            <small>{{ photo.created_at.strftime('%Y-%m-%d %H:%M') if photo.created_at else 'Unknown date' }}</small>
+            {% if show_badges %}
+            <div class="photo-badges mt-1">
+                {% if photo.edited_filename %}
+                <span class="badge bg-success">Edited</span>
+                {% endif %}
+                {% if photo.auto_enhanced %}
+                <span class="badge bg-info">Enhanced</span>
+                {% endif %}
+                {% if photo.upload_source == 'camera' %}
+                <span class="badge bg-warning">Camera</span>
+                {% endif %}
+                {% if photo.voice_memo_count and photo.voice_memo_count > 0 %}
+                <span class="badge bg-info">
+                    <i class="fas fa-microphone"></i> {{ photo.voice_memo_count }}
+                </span>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="photo-actions-bottom mt-1 p-0 text-center">
+        <div class="d-flex justify-content-center flex-nowrap" style="gap: 0;" role="toolbar">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-success btn-sm dropdown-toggle" 
+                        style="padding: 1px 4px; font-size: 0.6rem; border-width: 1px;" 
+                        data-bs-toggle="dropdown" data-bs-auto-close="true" title="Download">
+                    <i class="bi bi-download" style="font-size: 0.6rem;"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    {% if photo.edited_filename %}
+                    <li><a class="dropdown-item" 
+                           href="{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.edited_filename) }}" 
+                           download="{{ photo.edited_filename }}">
+                        <i class="bi bi-image"></i> Download Edited
+                    </a></li>
+                    <li><a class="dropdown-item" 
+                           href="{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.filename) }}" 
+                           download="{{ photo.filename }}">
+                        <i class="bi bi-camera"></i> Download Original
+                    </a></li>
+                    {% else %}
+                    <li><a class="dropdown-item" 
+                           href="{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.filename) }}" 
+                           download="{{ photo.original_name }}">
+                        <i class="bi bi-download"></i> Download Photo
+                    </a></li>
+                    {% endif %}
+                </ul>
+            </div>
+            <a href="{{ url_for('main.edit_photo', photo_id=photo.id) }}" 
+               class="btn btn-outline-warning btn-sm" 
+               style="padding: 1px 4px; font-size: 0.6rem; border-width: 1px;" 
+               title="Edit photo">
+                <i class="bi bi-pencil" style="font-size: 0.6rem;"></i>
+            </a>
+            {% if photo.edited_filename %}
+            <a href="{{ url_for('gallery.compare_single_photo', photo_id=photo.id) }}" 
+               class="btn btn-outline-info btn-sm" 
+               style="padding: 1px 4px; font-size: 0.6rem; border-width: 1px;" 
+               title="Compare versions">
+                <i class="bi bi-compare" style="font-size: 0.6rem;"></i>
+            </a>
+            {% endif %}
+            <button class="btn btn-outline-danger btn-sm" 
+                    style="padding: 1px 4px; font-size: 0.6rem; border-width: 1px;" 
+                    onclick="deletePhoto({{ photo.id }})" 
+                    title="Delete photo">
+                <i class="bi bi-trash" style="font-size: 0.6rem;"></i>
+            </button>
+        </div>
+    </div>
+</div>
+{% endmacro %}

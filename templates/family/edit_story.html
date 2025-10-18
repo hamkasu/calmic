@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Edit Story - {{ vault.name }} - StoryKeep{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="bi bi-pencil"></i> Edit Story: {{ story.title }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" novalidate>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Story Title <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="title" name="title" required
+                                   placeholder="Enter story title" value="{{ story.title }}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="story_type" class="form-label">Story Type</label>
+                            <select class="form-control" id="story_type" name="story_type">
+                                <option value="memory" {% if story.story_type == 'memory' %}selected{% endif %}>Memory</option>
+                                <option value="milestone" {% if story.story_type == 'milestone' %}selected{% endif %}>Milestone</option>
+                                <option value="tradition" {% if story.story_type == 'tradition' %}selected{% endif %}>Family Tradition</option>
+                                <option value="recipe" {% if story.story_type == 'recipe' %}selected{% endif %}>Recipe</option>
+                                <option value="other" {% if story.story_type == 'other' %}selected{% endif %}>Other</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="content" class="form-label">Story Content <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="content" name="content" rows="8" required
+                                      placeholder="Tell your story...">{{ story.content }}</textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="is_published" name="is_published" {% if story.is_published %}checked{% endif %}>
+                                <label class="form-check-label" for="is_published">
+                                    Publish this story (make it visible to vault members)
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('family.view_story', story_id=story.id) }}" class="btn btn-outline-secondary me-md-2">
+                                <i class="bi bi-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,390 @@
+<!--
+StoryKeep - Professional Photo Management Platform
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
+This software is proprietary and confidential. Unauthorized copying, distribution,
+modification, or use of this software is strictly prohibited.
+
+Website: https://www.calmic.com.my
+Email: support@calmic.com.my
+
+CALMIC SDN BHD - "Committed to Excellence"
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - StoryKeep</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body, html {
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+        
+        .login-container {
+            display: flex;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        .hero-section {
+            flex: 1;
+            background: linear-gradient(135deg, rgba(44, 44, 44, 0.95) 0%, rgba(44, 44, 44, 0.7) 100%), 
+                        url('{{ url_for('static', filename='img/login-hero.jpg') }}') center/cover;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 4rem;
+            color: white;
+            position: relative;
+        }
+        
+        .hero-content {
+            max-width: 600px;
+        }
+        
+        .hero-content h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 1.5rem;
+        }
+        
+        .hero-content p {
+            font-size: 1.25rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+        }
+        
+        .hero-stats {
+            display: flex;
+            gap: 3rem;
+            margin-top: 3rem;
+        }
+        
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #ff6b6b;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        
+        .login-section {
+            flex: 0 0 480px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 3rem;
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .login-form-container {
+            max-width: 400px;
+            width: 100%;
+        }
+        
+        .logo-section {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+        
+        .logo-section img {
+            height: 50px;
+            margin-bottom: 1rem;
+        }
+        
+        .logo-section h2 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: #2c2c2c;
+            margin-bottom: 0.5rem;
+        }
+        
+        .logo-section p {
+            color: #6c757d;
+            font-size: 0.95rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: #2c2c2c;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        
+        .form-control {
+            padding: 0.875rem 1rem;
+            font-size: 1rem;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            transition: all 0.2s;
+            width: 100%;
+        }
+        
+        .form-control:focus {
+            border-color: #2c2c2c;
+            box-shadow: 0 0 0 0.2rem rgba(44, 44, 44, 0.1);
+            outline: none;
+        }
+        
+        .form-check {
+            margin-bottom: 1rem;
+        }
+        
+        .form-check-input:checked {
+            background-color: #2c2c2c;
+            border-color: #2c2c2c;
+        }
+        
+        .btn-login {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            background: #ff6b6b;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            transition: all 0.3s;
+            margin-top: 1rem;
+            cursor: pointer;
+        }
+        
+        .btn-login:hover {
+            background: #ff5252;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+        }
+        
+        .divider {
+            text-align: center;
+            margin: 1.5rem 0;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .links-section {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+        
+        .links-section a {
+            color: #2c2c2c;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        
+        .links-section a:hover {
+            color: #ff6b6b;
+        }
+        
+        .forgot-password {
+            text-align: center;
+            margin-top: 1rem;
+        }
+        
+        .forgot-password a {
+            color: #6c757d;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        
+        .forgot-password a:hover {
+            color: #2c2c2c;
+        }
+        
+        .back-home {
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .back-home:hover {
+            color: #ff6b6b;
+        }
+        
+        .alert {
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            border-radius: 8px;
+            border: none;
+        }
+        
+        .alert-danger {
+            background-color: #fee;
+            color: #c33;
+        }
+        
+        .alert-success {
+            background-color: #efe;
+            color: #3c3;
+        }
+        
+        @media (max-width: 992px) {
+            .login-container {
+                flex-direction: column;
+            }
+            
+            .hero-section {
+                min-height: 40vh;
+                padding: 2rem;
+            }
+            
+            .hero-content h1 {
+                font-size: 2.5rem;
+            }
+            
+            .hero-stats {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+            
+            .login-section {
+                flex: 1;
+                padding: 2rem;
+            }
+            
+            .back-home {
+                top: 1rem;
+                left: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="hero-section">
+            <a href="{{ url_for('main.index') }}" class="back-home">
+                <i class="fas fa-arrow-left"></i>
+                Back to Home
+            </a>
+            
+            <div class="hero-content">
+                <h1>Preserve your memories forever</h1>
+                <p>The perfect platform for organizing, enhancing, and sharing your family's precious moments. Professional photo management with advanced features.</p>
+                
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <div class="stat-number">100K+</div>
+                        <div class="stat-label">Photos stored</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">5K+</div>
+                        <div class="stat-label">Happy users</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="login-section">
+            <div class="login-form-container">
+                <div class="logo-section">
+                    <img src="{{ url_for('static', filename='img/calmic-logo.png') }}" 
+                         alt="StoryKeep Logo"
+                         onerror="this.style.display='none';">
+                    <h2>Welcome back</h2>
+                    <p>Sign in to continue to StoryKeep</p>
+                </div>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else category }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    
+                    <div class="form-group">
+                        <label for="username" class="form-label">Username or Email</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="username" 
+                               name="username" 
+                               placeholder="Enter your username or email"
+                               required 
+                               autocomplete="username">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" 
+                               class="form-control" 
+                               id="password" 
+                               name="password" 
+                               placeholder="Enter your password"
+                               required 
+                               autocomplete="current-password">
+                    </div>
+                    
+                    <div class="form-check">
+                        <input type="checkbox" 
+                               class="form-check-input" 
+                               id="remember" 
+                               name="remember">
+                        <label class="form-check-label" for="remember">
+                            Remember me on this device
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="btn-login">
+                        Sign in
+                    </button>
+                </form>
+                
+                <div class="forgot-password">
+                    <a href="{{ url_for('auth.forgot_password') }}">Forgot your password?</a>
+                </div>
+                
+                <div class="divider">or</div>
+                
+                <div class="links-section">
+                    <p style="color: #6c757d; margin-bottom: 0.5rem;">Don't have an account?</p>
+                    <a href="{{ url_for('auth.register') }}">Create one for free</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

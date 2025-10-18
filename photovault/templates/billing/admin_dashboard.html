@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Billing Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="mb-4"><i class="bi bi-graph-up"></i> Admin Billing Dashboard</h1>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-people"></i> Active Subscriptions</h5>
+                    <h2 class="display-4">{{ total_subscriptions }}</h2>
+                    <p class="mb-0"><small>{{ total_users }} users</small></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-currency-dollar"></i> Total Revenue</h5>
+                    <h2 class="display-4">RM {{ "%.2f"|format(total_revenue) }}</h2>
+                    <p class="mb-0"><small>All time</small></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-calendar-month"></i> This Month</h5>
+                    <h2 class="display-4">RM {{ "%.2f"|format(this_month_revenue) }}</h2>
+                    <p class="mb-0"><small>Revenue</small></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-check-circle"></i> Payments</h5>
+                    <h2 class="display-4">{{ successful_payments }}</h2>
+                    <p class="mb-0"><small>{{ failed_payments }} failed</small></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Plan Distribution</h5>
+                </div>
+                <div class="card-body">
+                    {% if plan_stats %}
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Plan</th>
+                                <th class="text-end">Subscribers</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for plan_name, count in plan_stats %}
+                            <tr>
+                                <td>{{ plan_name }}</td>
+                                <td class="text-end"><strong>{{ count }}</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-muted">No active subscriptions</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Subscriptions</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_subscriptions %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Plan</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sub in recent_subscriptions %}
+                                <tr>
+                                    <td>{{ sub.user.username }}</td>
+                                    <td>{{ sub.plan.display_name }}</td>
+                                    <td>{{ sub.start_date.strftime('%Y-%m-%d') }}</td>
+                                    <td><span class="badge bg-success">{{ sub.status|title }}</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <a href="{{ url_for('billing.admin_subscriptions') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                    {% else %}
+                    <p class="text-muted">No subscriptions yet</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-receipt"></i> Recent Invoices</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_invoices %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>User</th>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for invoice in recent_invoices %}
+                                <tr>
+                                    <td>{{ invoice.invoice_number }}</td>
+                                    <td>{{ invoice.user.username }}</td>
+                                    <td>{{ invoice.issue_date.strftime('%Y-%m-%d') }}</td>
+                                    <td>RM {{ "%.2f"|format(invoice.total) }}</td>
+                                    <td>
+                                        {% if invoice.status == 'paid' %}
+                                            <span class="badge bg-success">Paid</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">{{ invoice.status|title }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <a href="{{ url_for('billing.admin_invoices') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                    {% else %}
+                    <p class="text-muted">No invoices yet</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a href="{{ url_for('billing.admin_revenue') }}" class="btn btn-primary">
+            <i class="bi bi-graph-up"></i> View Revenue Analytics
+        </a>
+        <a href="{{ url_for('billing.admin_subscriptions') }}" class="btn btn-outline-primary">
+            <i class="bi bi-people"></i> Manage Subscriptions
+        </a>
+        <a href="{{ url_for('billing.admin_invoices') }}" class="btn btn-outline-primary">
+            <i class="bi bi-receipt"></i> Manage Invoices
+        </a>
+    </div>
+</div>
+{% endblock %}

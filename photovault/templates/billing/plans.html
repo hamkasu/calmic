@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Subscription Plans{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-md-12 text-center">
+            <h1 class="display-4">Choose Your Plan</h1>
+            <p class="lead">Select the perfect plan for your photo management needs</p>
+            <p class="text-muted">All prices include 6% SST (Malaysian Service Tax)</p>
+        </div>
+    </div>
+
+    {% if current_subscription %}
+    <div class="alert alert-info text-center">
+        <i class="bi bi-info-circle"></i> You are currently on the <strong>{{ current_subscription.plan.display_name }}</strong> plan.
+        <a href="{{ url_for('billing.dashboard') }}" class="alert-link">Manage subscription</a>
+    </div>
+    {% endif %}
+
+    <div class="row justify-content-center">
+        {% for plan in plans %}
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 shadow-sm {% if plan.is_featured %}border-primary{% endif %}">
+                {% if plan.is_featured %}
+                <div class="card-header bg-primary text-white text-center">
+                    <i class="bi bi-star-fill"></i> MOST POPULAR
+                </div>
+                {% endif %}
+                
+                <div class="card-body d-flex flex-column">
+                    <h3 class="card-title text-center mb-3">{{ plan.display_name }}</h3>
+                    
+                    <div class="text-center mb-4">
+                        <div class="display-4 fw-bold">
+                            RM {{ "%.2f"|format(plan.total_price_myr) }}
+                        </div>
+                        <div class="text-muted">per month</div>
+                        <small class="text-muted">
+                            (RM {{ "%.2f"|format(plan.price_myr) }} + RM {{ "%.2f"|format(plan.sst_amount) }} SST)
+                        </small>
+                    </div>
+
+                    <p class="text-center text-muted mb-4">{{ plan.description }}</p>
+
+                    <ul class="list-unstyled mb-4">
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            {% if plan.storage_gb >= 999999 %}
+                            <strong>Unlimited</strong> storage
+                            {% elif plan.name == 'free' %}
+                            <strong>100MB</strong> storage
+                            {% elif plan.storage_gb < 1 %}
+                            <strong>{{ (plan.storage_gb * 1024)|int }}MB</strong> storage
+                            {% else %}
+                            <strong>{{ plan.storage_gb|int }}GB</strong> storage
+                            {% endif %}
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <strong>{{ plan.max_family_vaults }}</strong> family vault{% if plan.max_family_vaults != 1 %}s{% endif %}
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-{% if plan.face_detection %}check-circle-fill text-success{% else %}x-circle text-muted{% endif %}"></i>
+                            Face detection
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-{% if plan.photo_enhancement %}check-circle-fill text-success{% else %}x-circle text-muted{% endif %}"></i>
+                            Photo enhancement
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-{% if plan.smart_tagging %}check-circle-fill text-success{% else %}x-circle text-muted{% endif %}"></i>
+                            Smart tagging
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-{% if plan.api_access %}check-circle-fill text-success{% else %}x-circle text-muted{% endif %}"></i>
+                            API access
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-{% if plan.priority_support %}check-circle-fill text-success{% else %}x-circle text-muted{% endif %}"></i>
+                            Priority support
+                        </li>
+                    </ul>
+
+                    <div class="mt-auto">
+                        {% if current_user.is_authenticated %}
+                            {% if current_subscription and current_subscription.plan_id == plan.id %}
+                                <button class="btn btn-secondary w-100" disabled>
+                                    <i class="bi bi-check-circle"></i> Current Plan
+                                </button>
+                            {% elif current_subscription %}
+                                <form method="POST" action="{{ url_for('billing.upgrade_plan', plan_id=plan.id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    {% if plan.price_myr > current_subscription.plan.price_myr %}
+                                        <button type="submit" class="btn btn-success w-100">
+                                            <i class="bi bi-arrow-up-circle"></i> Upgrade Now (Prorated)
+                                        </button>
+                                        <small class="text-muted d-block mt-2">You'll only pay the difference</small>
+                                    {% else %}
+                                        <button type="submit" class="btn btn-outline-secondary w-100">
+                                            <i class="bi bi-envelope"></i> Contact Support to Switch
+                                        </button>
+                                        <small class="text-muted d-block mt-2">Changes processed at period end</small>
+                                    {% endif %}
+                                </form>
+                            {% else %}
+                                <form method="POST" action="{{ url_for('billing.subscribe', plan_id=plan.id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn {% if plan.is_featured %}btn-primary{% else %}btn-outline-primary{% endif %} w-100">
+                                        <i class="bi bi-credit-card"></i> Subscribe Now
+                                    </button>
+                                </form>
+                            {% endif %}
+                        {% else %}
+                            <a href="{{ url_for('auth.login', next=url_for('billing.plans')) }}" class="btn btn-outline-primary w-100">
+                                <i class="bi bi-box-arrow-in-right"></i> Sign in to Subscribe
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-info-circle"></i> Payment Information</h5>
+                    <ul>
+                        <li>All prices are in Malaysian Ringgit (MYR)</li>
+                        <li>6% SST (Service Tax) is included in the total price</li>
+                        <li>Payment is processed securely through Stripe</li>
+                        <li>We accept credit/debit cards and Malaysian FPX banking</li>
+                        <li>Cancel anytime - no long-term contracts</li>
+                        <li>Invoices are automatically generated for all payments</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

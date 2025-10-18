@@ -1,0 +1,61 @@
+# PhotoVault Dependencies
+# Python 3.11+ Compatibility
+setuptools>=68.0.0
+
+# Core Flask Framework
+Flask==3.0.3
+Werkzeug==3.0.3
+
+# Flask Extensions
+Flask-Login==0.6.3
+Flask-Migrate==4.1.0
+Flask-SQLAlchemy==3.1.1
+Flask-WTF==1.2.1
+
+# Database
+SQLAlchemy==2.0.25
+psycopg2-binary==2.9.9
+alembic==1.13.1
+
+# Image Processing
+Pillow>=11.1.0
+pillow-heif==1.1.1
+opencv-python-headless==4.12.0.88
+opencv-contrib-python-headless==4.12.0.88
+numpy>=2.0
+scikit-image>=0.24.0
+
+# Security and Forms
+WTForms==3.1.1
+email-validator==2.1.0
+PyJWT
+
+# Utilities
+python-dotenv==1.0.0
+python-decouple==3.8
+click==8.1.7
+itsdangerous==2.2.0
+Jinja2==3.1.4
+MarkupSafe==2.1.5
+blinker==1.7.0
+exifread
+requests
+
+# Production Server
+gunicorn==21.2.0
+
+# Email & Communication
+sendgrid==6.12.5
+
+# Payment Processing
+stripe==11.1.1
+
+# Replit Services
+replit-object-storage==1.0.2
+
+# AI Integration
+openai>=1.0.0
+google-genai
+
+# Excel Export
+openpyxl

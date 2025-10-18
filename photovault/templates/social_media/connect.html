@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Social Media Connections{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="mb-4"><i class="bi bi-share"></i> Social Media Connections</h1>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Connected Accounts</h5>
+                    <p class="text-muted">Connect your social media accounts to easily share your photos</p>
+                    
+                    {% if not available_platforms %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> Social media integrations are not configured. Please contact support.
+                    </div>
+                    {% else %}
+                    
+                    <div class="list-group mt-4">
+                        {% for platform in available_platforms %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">
+                                    {% if platform == 'instagram' %}
+                                    <i class="bi bi-instagram text-danger"></i> Instagram
+                                    {% elif platform == 'facebook' %}
+                                    <i class="bi bi-facebook text-primary"></i> Facebook
+                                    {% elif platform == 'twitter' %}
+                                    <i class="bi bi-twitter-x"></i> Twitter / X
+                                    {% elif platform == 'pinterest' %}
+                                    <i class="bi bi-pinterest text-danger"></i> Pinterest
+                                    {% endif %}
+                                </h6>
+                                {% if platform in connected_platforms %}
+                                <small class="text-success">
+                                    <i class="bi bi-check-circle-fill"></i> Connected
+                                    {% if connected_platforms[platform].platform_username %}
+                                    as {{ connected_platforms[platform].platform_username }}
+                                    {% endif %}
+                                </small>
+                                {% else %}
+                                <small class="text-muted">Not connected</small>
+                                {% endif %}
+                            </div>
+                            
+                            <div>
+                                {% if platform in connected_platforms and connected_platforms[platform].is_active %}
+                                <form method="POST" action="{{ url_for('social_media.disconnect', platform=platform) }}" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-x-circle"></i> Disconnect
+                                    </button>
+                                </form>
+                                {% else %}
+                                <a href="{{ url_for('social_media.authorize', platform=platform) }}" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-plug"></i> Connect
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    {% endif %}
+                    
+                    <div class="mt-4">
+                        <h6>About Social Media Connections</h6>
+                        <ul class="small text-muted">
+                            <li>Your credentials are stored securely and never shared</li>
+                            <li>You can disconnect any account at any time</li>
+                            <li>We only post content when you explicitly choose to share</li>
+                            <li>Platform requirements may vary (e.g., Instagram requires Business/Creator accounts)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Need Help?</h5>
+                    <p class="small">
+                        <strong>Instagram:</strong> Requires a Business or Creator account linked to a Facebook Page.
+                    </p>
+                    <p class="small">
+                        <strong>Facebook:</strong> You'll need to manage a Facebook Page to post photos.
+                    </p>
+                    <p class="small">
+                        <strong>Twitter/X:</strong> Standard Twitter account works with our integration.
+                    </p>
+                    <p class="small">
+                        <strong>Pinterest:</strong> Any Pinterest account can create Pins.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

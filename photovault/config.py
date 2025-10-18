@@ -1,0 +1,236 @@
+import os
+from datetime import timedelta
+
+class Config:
+    """Base configuration class"""
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    
+    @staticmethod
+    def get_engine_options(database_uri):
+        """Get SQLAlchemy engine options based on database type"""
+        base_options = {
+            'pool_pre_ping': True,  # Validates connections before use
+            'pool_recycle': 180,    # Recycle connections every 3 minutes (more aggressive)
+            'pool_timeout': 30,     # Longer timeout for connection checkout
+            'pool_size': 3,         # Smaller pool for Replit environment
+            'max_overflow': 5,      # Reduced overflow connections
+            'pool_reset_on_return': 'rollback',  # Reset connections on return
+        }
+        
+        if database_uri and 'postgresql' in database_uri:
+            # PostgreSQL-specific settings - robust SSL configuration for Replit
+            base_options['connect_args'] = {
+                'connect_timeout': 15,  # Longer connect timeout
+                'sslmode': 'require',   # Force SSL but more tolerant of disconnects
+                'sslcert': None,
+                'sslkey': None,
+                'sslrootcert': None,
+                'keepalives_idle': '600',      # TCP keepalive settings
+                'keepalives_interval': '30',   # Check every 30 seconds
+                'keepalives_count': '3',       # Retry 3 times before giving up
+                'tcp_user_timeout': '10000',   # 10 second TCP timeout
+                'options': '-c statement_timeout=45s -c idle_in_transaction_session_timeout=600s'
+            }
+        
+        return base_options
+    
+    # File upload settings
+    # For Railway: Use mounted volume path if available (Railway Volumes)
+    # Example: Set UPLOAD_FOLDER=/data/uploads in Railway environment
+    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER') or os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+    MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50MB max file size (for photos and voice memos)
+    
+    # Camera-specific settings
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'}
+    CAMERA_QUALITY = 0.85  # JPEG quality for camera captures
+    MAX_IMAGE_DIMENSION = 3600  # Maximum width/height for saved images (hardcopy photo size)
+    
+    # Session configuration
+    PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
+    SESSION_COOKIE_SECURE = True  # Set to True in production with HTTPS
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    
+    # Security settings
+    WTF_CSRF_TIME_LIMIT = None
+    WTF_CSRF_SSL_STRICT = False  # Set to True in production with HTTPS
+    
+    # Mail settings (for user registration/password reset)
+    MAIL_SERVER = os.environ.get('MAIL_SERVER')
+    MAIL_PORT = int(os.environ.get('MAIL_PORT') or 587)
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', 'on', '1']
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
+    
+    @staticmethod
+    def init_app(app):
+        """Initialize app-specific configuration"""
+        # Create upload directory
+        os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
+
+class DevelopmentConfig(Config):
+    """Development configuration"""
+    DEBUG = True
+    SQLALCHEMY_DATABASE_URI = (os.environ.get('RAILWAY_DATABASE_URL') or 
+                              os.environ.get('DEV_DATABASE_URL') or 
+                              os.environ.get('DATABASE_URL') or 
+                              'sqlite:///' + os.path.join(os.path.dirname(os.path.abspath(__file__)), 'photovault_dev.db'))
+    
+    # Replit-compatible session settings for development
+    SESSION_COOKIE_SECURE = False  # Must be False for HTTP in development
+    SESSION_COOKIE_SAMESITE = 'Lax'  # Compatible with Replit proxy
+    WTF_CSRF_SSL_STRICT = False
+    
+    # URL generation configuration for external links (email invitations)
+    REPLIT_DOMAIN = os.environ.get('REPLIT_DEV_DOMAIN') or os.environ.get('REPLIT_DOMAINS')
+    # Don't set SERVER_NAME in development to avoid host verification issues
+    # Flask will be more flexible with host headers this way
+    PREFERRED_URL_SCHEME = 'https'
+    APPLICATION_ROOT = '/'
+    
+    def __init__(self):
+        super().__init__()
+        self.SQLALCHEMY_ENGINE_OPTIONS = self.get_engine_options(self.SQLALCHEMY_DATABASE_URI)
+
+class ProductionConfig(Config):
+    """Production configuration"""
+    DEBUG = False
+    
+    def __init__(self):
+        super().__init__()
+        self.SQLALCHEMY_ENGINE_OPTIONS = self.get_engine_options(getattr(self, 'SQLALCHEMY_DATABASE_URI', None))
+    
+    # Production SECRET_KEY - generate random if not provided but log critical warning
+    _secret_key = os.environ.get('SECRET_KEY') or os.environ.get('RAILWAY_SECRET_KEY')
+    if not _secret_key:
+        import secrets
+        _secret_key = secrets.token_urlsafe(32)
+        # This will be logged as a critical error in init_app
+    SECRET_KEY = _secret_key
+    
+    # Handle Railway's DATABASE_URL format (postgresql:// vs postgres://)
+    # Railway may use different variable names, check multiple sources
+    database_url = (os.environ.get('DATABASE_URL') or 
+                   os.environ.get('RAILWAY_DATABASE_URL') or 
+                   os.environ.get('POSTGRES_URL') or 
+                   os.environ.get('DATABASE_PRIVATE_URL'))
+    
+    if database_url and database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    
+    # CRITICAL: Do NOT use SQLite in production - it loses data on restart
+    # If you see this error, add PostgreSQL database to Railway project
+    if not database_url:
+        # Set to None to trigger fail-fast error message in init_app
+        database_url = None
+    
+    SQLALCHEMY_DATABASE_URI = database_url
+    
+    # Railway-compatible security settings
+    SESSION_COOKIE_SECURE = os.environ.get('HTTPS', 'true').lower() == 'true'
+    SESSION_COOKIE_SAMESITE = 'Lax'  # Required for Railway HTTPS environment
+    WTF_CSRF_SSL_STRICT = os.environ.get('HTTPS', 'true').lower() == 'true'
+    
+    # Production logging
+    LOG_TO_STDOUT = os.environ.get('LOG_TO_STDOUT', '1')
+    
+    @staticmethod
+    def init_app(app):
+        Config.init_app(app)
+        
+        # Critical security checks
+        if not (os.environ.get('SECRET_KEY') or os.environ.get('RAILWAY_SECRET_KEY')):
+            app.logger.critical('CRITICAL: SECRET_KEY not provided! Generated random key for this session only. '
+                              'User sessions WILL NOT persist across Railway restarts. '
+                              'Set SECRET_KEY environment variable in Railway dashboard immediately!')
+        
+        # Check if we're running on Railway by looking for Railway-specific env vars
+        is_railway = bool(os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('RAILWAY_PROJECT_ID'))
+        
+        # Fail-fast if no database configured in production
+        if not app.config.get('SQLALCHEMY_DATABASE_URI'):
+            if is_railway:
+                app.logger.critical(
+                    '🔴 CRITICAL: No PostgreSQL database configured! '
+                    'Your data will be LOST on every restart without a database. '
+                    '\n'
+                    'TO FIX: Add PostgreSQL to Railway project:\n'
+                    '  1. Go to Railway dashboard → Your project\n'
+                    '  2. Click "+ New" → Database → PostgreSQL\n'
+                    '  3. Railway will auto-set DATABASE_URL\n'
+                    '  4. Redeploy your app\n'
+                )
+            else:
+                app.logger.critical(
+                    '🔴 CRITICAL: DATABASE_URL environment variable not set! '
+                    'Add PostgreSQL database to your deployment platform.'
+                )
+            raise RuntimeError('DATABASE_URL environment variable must be set for production')
+        
+        # Warn about ephemeral file storage on Railway
+        upload_folder = app.config.get('UPLOAD_FOLDER', '')
+        if is_railway and upload_folder and not upload_folder.startswith('/data'):
+            app.logger.warning(
+                '⚠️  WARNING: Uploaded files are stored in ephemeral directory! '
+                'Files will be LOST on Railway restart. '
+                '\n'
+                'TO FIX: Mount a Railway Volume:\n'
+                '  1. Go to Railway → Your service → Settings → Volumes\n'
+                '  2. Click "New Volume" → Mount path: /data\n'
+                '  3. Set environment variable: UPLOAD_FOLDER=/data/uploads\n'
+                '  4. Redeploy your app\n'
+            )
+        
+        # Log configuration for debugging (without exposing credentials)
+        db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', 'Not set')
+        if db_uri != 'Not set':
+            if 'sqlite' in db_uri:
+                app.logger.info("Database: SQLite")
+            elif 'postgresql' in db_uri:
+                app.logger.info("Database: PostgreSQL")
+            else:
+                app.logger.info("Database: Configured")
+        else:
+            app.logger.info("Database: Not set")
+        
+        # Configure logging for production
+        import logging
+        import sys
+        from logging.handlers import RotatingFileHandler
+        
+        if not app.debug:
+            # Use stdout/stderr logging for containerized environments (Replit Autoscale)
+            if os.environ.get('LOG_TO_STDOUT', '').lower() in ['true', '1', 'yes']:
+                stream_handler = logging.StreamHandler(sys.stdout)
+                stream_handler.setFormatter(logging.Formatter(
+                    '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+                ))
+                stream_handler.setLevel(logging.INFO)
+                app.logger.addHandler(stream_handler)
+            else:
+                # Default to stdout for production deployments like Replit Autoscale
+                stream_handler = logging.StreamHandler(sys.stdout)
+                stream_handler.setFormatter(logging.Formatter(
+                    '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+                ))
+                stream_handler.setLevel(logging.INFO)
+                app.logger.addHandler(stream_handler)
+            
+            app.logger.setLevel(logging.INFO)
+            app.logger.info('PhotoVault startup')
+
+class TestingConfig(Config):
+    """Testing configuration"""
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    WTF_CSRF_ENABLED = False
+    SESSION_COOKIE_SECURE = False
+
+# Configuration dictionary
+config = {
+    'development': DevelopmentConfig,
+    'production': ProductionConfig,
+    'testing': TestingConfig,
+    'default': DevelopmentConfig
+}
