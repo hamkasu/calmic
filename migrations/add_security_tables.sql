@@ -75,7 +75,8 @@ CREATE TABLE IF NOT EXISTS oauth_provider (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_login_at TIMESTAMP,
-    CONSTRAINT _user_oauth_provider_uc UNIQUE (user_id, provider)
+    CONSTRAINT _user_oauth_provider_uc UNIQUE (user_id, provider),
+    CONSTRAINT _provider_user_id_uc UNIQUE (provider, provider_user_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_provider_user_id ON oauth_provider(provider, provider_user_id);

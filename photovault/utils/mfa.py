@@ -8,6 +8,7 @@ import base64
 import json
 import secrets
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 from photovault.extensions import db
 from photovault.models import MFASecret
 import logging
@@ -54,15 +55,18 @@ def generate_mfa_secret(user_id, username, app_name="StoryKeep"):
         img_data = base64.b64encode(buffer.getvalue()).decode()
         qr_data_uri = f"data:image/png;base64,{img_data}"
         
-        # Generate backup codes
-        backup_codes = generate_backup_codes()
+        # Generate backup codes (plaintext for user display)
+        backup_codes_plaintext = generate_backup_codes()
+        
+        # Hash backup codes for secure storage
+        backup_codes_hashed = [generate_password_hash(code, method='scrypt') for code in backup_codes_plaintext]
         
         # Save to database (but don't enable yet)
         existing_secret = MFASecret.query.filter_by(user_id=user_id).first()
         if existing_secret:
             # Update existing
             existing_secret.secret = secret
-            existing_secret.backup_codes = json.dumps(backup_codes)
+            existing_secret.backup_codes = json.dumps(backup_codes_hashed)  # Store hashes
             existing_secret.created_at = datetime.utcnow()
             existing_secret.is_enabled = False  # Require verification before enabling
         else:
@@ -70,7 +74,7 @@ def generate_mfa_secret(user_id, username, app_name="StoryKeep"):
             mfa_secret = MFASecret(
                 user_id=user_id,
                 secret=secret,
-                backup_codes=json.dumps(backup_codes),
+                backup_codes=json.dumps(backup_codes_hashed),  # Store hashes
                 is_enabled=False,
                 created_at=datetime.utcnow()
             )
@@ -79,7 +83,8 @@ def generate_mfa_secret(user_id, username, app_name="StoryKeep"):
         db.session.commit()
         logger.info(f"Generated MFA secret for user {user_id}")
         
-        return secret, qr_data_uri, backup_codes
+        # Return plaintext codes to user (they need to save them), hashed versions are in DB
+        return secret, qr_data_uri, backup_codes_plaintext
     except Exception as e:
         logger.error(f"Failed to generate MFA secret: {str(e)}")
         db.session.rollback()
@@ -223,11 +228,11 @@ def generate_backup_codes(count=10):
 
 def verify_backup_code(user_id, code):
     """
-    Verify and consume a backup code
+    Verify and consume a backup code (uses constant-time comparison)
     
     Args:
         user_id: User ID
-        code: Backup code to verify
+        code: Backup code to verify (plaintext)
     
     Returns: (is_valid, message)
     """
@@ -237,16 +242,23 @@ def verify_backup_code(user_id, code):
         if not mfa_secret or not mfa_secret.backup_codes:
             return False, "No backup codes found"
         
-        backup_codes = json.loads(mfa_secret.backup_codes)
+        backup_code_hashes = json.loads(mfa_secret.backup_codes)
         
-        if code in backup_codes:
-            # Remove used code
-            backup_codes.remove(code)
-            mfa_secret.backup_codes = json.dumps(backup_codes)
+        # Check each hashed code using constant-time comparison
+        matched_index = None
+        for idx, code_hash in enumerate(backup_code_hashes):
+            if check_password_hash(code_hash, code):
+                matched_index = idx
+                break
+        
+        if matched_index is not None:
+            # Remove used code hash
+            backup_code_hashes.pop(matched_index)
+            mfa_secret.backup_codes = json.dumps(backup_code_hashes)
             mfa_secret.last_used_at = datetime.utcnow()
             db.session.commit()
             
-            logger.info(f"Backup code used for user {user_id}. {len(backup_codes)} codes remaining")
+            logger.info(f"Backup code used for user {user_id}. {len(backup_code_hashes)} codes remaining")
             return True, "Backup code accepted"
         
         return False, "Invalid backup code"
@@ -263,7 +275,7 @@ def regenerate_backup_codes(user_id):
     Args:
         user_id: User ID
     
-    Returns: (success, backup_codes_list)
+    Returns: (success, backup_codes_plaintext_list)
     """
     try:
         mfa_secret = MFASecret.query.filter_by(user_id=user_id).first()
@@ -271,12 +283,18 @@ def regenerate_backup_codes(user_id):
         if not mfa_secret:
             return False, []
         
-        new_codes = generate_backup_codes()
-        mfa_secret.backup_codes = json.dumps(new_codes)
+        # Generate new codes (plaintext for user)
+        new_codes_plaintext = generate_backup_codes()
+        
+        # Hash for storage
+        new_codes_hashed = [generate_password_hash(code, method='scrypt') for code in new_codes_plaintext]
+        
+        mfa_secret.backup_codes = json.dumps(new_codes_hashed)
         db.session.commit()
         
         logger.info(f"Regenerated backup codes for user {user_id}")
-        return True, new_codes
+        # Return plaintext codes (user needs to save them)
+        return True, new_codes_plaintext
     except Exception as e:
         logger.error(f"Failed to regenerate backup codes: {str(e)}")
         db.session.rollback()

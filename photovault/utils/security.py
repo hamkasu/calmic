@@ -347,3 +347,170 @@ def generate_backup_codes(count=10):
         formatted_code = f"{code[:4]}-{code[4:]}"  # Format as XXXX-XXXX
         codes.append(formatted_code)
     return codes
+
+
+# ============================================================================
+# Refresh Token Management (Secure)
+# ============================================================================
+
+def create_refresh_token(user_id, device_info=None, expires_days=30):
+    """
+    Create a new refresh token for a user (token is hashed before storage)
+    
+    Args:
+        user_id: User ID
+        device_info: Optional device information
+        expires_days: Token expiration in days (default: 30)
+    
+    Returns: (token_string, RefreshToken object) or (None, None) on failure
+    """
+    try:
+        from werkzeug.security import generate_password_hash
+        
+        # Generate random token
+        token_string = secrets.token_urlsafe(64)
+        
+        # Hash the token for storage
+        token_hash = generate_password_hash(token_string, method='scrypt')
+        
+        # Create database record
+        refresh_token = RefreshToken(
+            user_id=user_id,
+            token=token_hash,  # Store hashed version
+            expires_at=datetime.utcnow() + timedelta(days=expires_days),
+            created_at=datetime.utcnow(),
+            device_info=device_info[:500] if device_info else None,
+            ip_address=get_client_ip()
+        )
+        
+        db.session.add(refresh_token)
+        db.session.commit()
+        
+        logger.info(f"Created refresh token for user {user_id}")
+        
+        # Return the plaintext token (user needs this) and the DB object
+        return token_string, refresh_token
+    except Exception as e:
+        logger.error(f"Failed to create refresh token: {str(e)}")
+        db.session.rollback()
+        return None, None
+
+
+def verify_refresh_token(token_string):
+    """
+    Verify a refresh token and return the user_id if valid
+    Uses constant-time comparison to prevent timing attacks
+    
+    Args:
+        token_string: The plaintext token to verify
+    
+    Returns: (user_id, RefreshToken object) or (None, None) if invalid
+    """
+    try:
+        from werkzeug.security import check_password_hash
+        
+        # Get all non-revoked, non-expired tokens
+        # We need to check each one since we can't query by hashed value
+        now = datetime.utcnow()
+        active_tokens = RefreshToken.query.filter(
+            RefreshToken.revoked_at.is_(None),
+            RefreshToken.expires_at > now
+        ).all()
+        
+        # Check each token using constant-time comparison
+        for token_obj in active_tokens:
+            if check_password_hash(token_obj.token, token_string):
+                # Token is valid
+                return token_obj.user_id, token_obj
+        
+        # No matching token found
+        return None, None
+    except Exception as e:
+        logger.error(f"Failed to verify refresh token: {str(e)}")
+        return None, None
+
+
+def revoke_refresh_token(token_id=None, token_string=None):
+    """
+    Revoke a refresh token (by ID or by token string)
+    
+    Args:
+        token_id: RefreshToken ID (faster)
+        token_string: Plaintext token (slower, requires verification)
+    
+    Returns: bool (success)
+    """
+    try:
+        if token_id:
+            token_obj = RefreshToken.query.get(token_id)
+        elif token_string:
+            _, token_obj = verify_refresh_token(token_string)
+        else:
+            return False
+        
+        if not token_obj:
+            return False
+        
+        token_obj.revoked_at = datetime.utcnow()
+        db.session.commit()
+        
+        logger.info(f"Revoked refresh token {token_obj.id}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to revoke refresh token: {str(e)}")
+        db.session.rollback()
+        return False
+
+
+def revoke_all_user_tokens(user_id):
+    """
+    Revoke all refresh tokens for a user (useful for logout all devices)
+    
+    Args:
+        user_id: User ID
+    
+    Returns: int (number of tokens revoked)
+    """
+    try:
+        count = RefreshToken.query.filter_by(
+            user_id=user_id,
+            revoked_at=None
+        ).update({'revoked_at': datetime.utcnow()})
+        
+        db.session.commit()
+        logger.info(f"Revoked {count} refresh tokens for user {user_id}")
+        return count
+    except Exception as e:
+        logger.error(f"Failed to revoke all user tokens: {str(e)}")
+        db.session.rollback()
+        return 0
+
+
+def cleanup_expired_tokens():
+    """
+    Clean up expired and revoked refresh tokens (should be run periodically)
+    
+    Returns: int (number of tokens deleted)
+    """
+    try:
+        # Delete tokens that expired more than 7 days ago or were revoked more than 30 days ago
+        cutoff_expired = datetime.utcnow() - timedelta(days=7)
+        cutoff_revoked = datetime.utcnow() - timedelta(days=30)
+        
+        count = RefreshToken.query.filter(
+            db.or_(
+                RefreshToken.expires_at < cutoff_expired,
+                db.and_(
+                    RefreshToken.revoked_at.isnot(None),
+                    RefreshToken.revoked_at < cutoff_revoked
+                )
+            )
+        ).delete()
+        
+        db.session.commit()
+        logger.info(f"Cleaned up {count} expired/revoked refresh tokens")
+        return count
+    except Exception as e:
+        logger.error(f"Failed to cleanup expired tokens: {str(e)}")
+        db.session.rollback()
+        return 0
