@@ -168,7 +168,7 @@ export default function SettingsScreen({ navigation }) {
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
 
-      <Text style={styles.footer}>StoryKeep by CALMIC SDN BHD</Text>
+      <Text style={styles.footer}>StoryVault by CALMIC SDN BHD</Text>
     </ScrollView>
   );
 }

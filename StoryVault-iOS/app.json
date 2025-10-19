@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "StoryKeep",
-    "slug": "storykeep",
+    "name": "StoryVault",
+    "slug": "storyvault",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,13 +13,13 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.calmic.storykeep",
+      "bundleIdentifier": "com.calmic.storyvault",
       "infoPlist": {
-        "NSCameraUsageDescription": "StoryKeep needs access to your camera to digitize physical photos.",
-        "NSMicrophoneUsageDescription": "StoryKeep needs access to your microphone to record voice memos.",
-        "NSPhotoLibraryUsageDescription": "StoryKeep needs access to your photo library to save and import photos.",
-        "NSPhotoLibraryAddUsageDescription": "StoryKeep needs permission to save photos to your library.",
-        "NSFaceIDUsageDescription": "StoryKeep uses Face ID to secure your account."
+        "NSCameraUsageDescription": "StoryVault needs access to your camera to digitize physical photos.",
+        "NSMicrophoneUsageDescription": "StoryVault needs access to your microphone to record voice memos.",
+        "NSPhotoLibraryUsageDescription": "StoryVault needs access to your photo library to save and import photos.",
+        "NSPhotoLibraryAddUsageDescription": "StoryVault needs permission to save photos to your library.",
+        "NSFaceIDUsageDescription": "StoryVault uses Face ID to secure your account."
       }
     },
     "android": {
@@ -28,7 +28,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.calmic.storykeep",
+      "package": "com.calmic.storyvault",
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO",
@@ -51,20 +51,20 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow StoryKeep to access your camera to digitize photos."
+          "cameraPermission": "Allow StoryVault to access your camera to digitize photos."
         }
       ],
       [
         "expo-media-library",
         {
-          "photosPermission": "Allow StoryKeep to access your photos.",
-          "savePhotosPermission": "Allow StoryKeep to save photos."
+          "photosPermission": "Allow StoryVault to access your photos.",
+          "savePhotosPermission": "Allow StoryVault to save photos."
         }
       ],
       [
         "expo-av",
         {
-          "microphonePermission": "Allow StoryKeep to record voice memos."
+          "microphonePermission": "Allow StoryVault to record voice memos."
         }
       ]
     ]

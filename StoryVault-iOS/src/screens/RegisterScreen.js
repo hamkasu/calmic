@@ -63,7 +63,7 @@ export default function RegisterScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
           <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Join StoryKeep today</Text>
+          <Text style={styles.subtitle}>Join StoryVault today</Text>
 
           <View style={styles.form}>
             <TextInput

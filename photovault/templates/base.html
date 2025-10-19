@@ -1,5 +1,5 @@
 <!--
-StoryKeep - Professional Photo Management Platform
+StoryVault - Professional Photo Management Platform
 Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
 
 This software is proprietary and confidential. Unauthorized copying, distribution,
@@ -16,7 +16,7 @@ CALMIC SDN BHD - "Committed to Excellence"
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="StoryKeep - Save your family stories with photos, voices, and memories by Calmic Sdn Bhd">
+    <meta name="description" content="StoryVault - Save your family stories with photos, voices, and memories by Calmic Sdn Bhd">
     <meta name="author" content="Calmic Sdn Bhd">
     
     <!-- Security Headers -->
@@ -29,7 +29,7 @@ CALMIC SDN BHD - "Committed to Excellence"
     <meta name="csrf-token" content="{{ csrf_token() }}">
     {% endif %}
     
-    <title>{% block title %}StoryKeep{% endblock %} - {{ company_info.name if company_info else 'Calmic Sdn Bhd' }}</title>
+    <title>{% block title %}StoryVault{% endblock %} - {{ company_info.name if company_info else 'Calmic Sdn Bhd' }}</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}" onerror="this.style.display='none'">
@@ -49,7 +49,7 @@ CALMIC SDN BHD - "Committed to Excellence"
     <nav class="navbar navbar-expand-lg navbar-dark" role="navigation" aria-label="Main navigation">
         <div class="container">
             <!-- Company Brand with Improved Logo Handling -->
-            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('main.index') }}" aria-label="StoryKeep Home">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('main.index') }}" aria-label="StoryVault Home">
                 <!-- Logo with improved fallback handling -->
                 <div class="logo-container me-2 d-flex align-items-center">
                     <img src="{{ url_for('static', filename='img/calmic-logo.png') }}" 
@@ -68,7 +68,7 @@ CALMIC SDN BHD - "Committed to Excellence"
                 </div>
                 
                 <div class="brand-text">
-                    <div class="brand-name">{{ app_title if app_title else 'StoryKeep' }}</div>
+                    <div class="brand-name">{{ app_title if app_title else 'StoryVault' }}</div>
                     <div class="company-name">{{ company_info.name if company_info else 'Calmic Sdn Bhd' }}</div>
                 </div>
             </a>
