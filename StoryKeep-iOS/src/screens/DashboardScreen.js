@@ -28,7 +28,7 @@ export default function DashboardScreen({ navigation }) {
   const [profileImageUri, setProfileImageUri] = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const { startLoading, stopLoading } = useLoading();
-  const BASE_URL = 'https://web-production-535bd.up.railway.app';
+  const BASE_URL = 'https://storykeep.calmic.com.my';
 
   useEffect(() => {
     loadDashboardData();
@@ -347,10 +347,10 @@ export default function DashboardScreen({ navigation }) {
           <Text style={styles.diagnosticText}>Auth Token: {authToken ? 'Present' : 'Missing'}</Text>
           {stats.recent_photo.original_url && authToken && (
             <>
-              <Text style={styles.diagnosticText}>Loading from: https://web-production-535bd.up.railway.app{stats.recent_photo.original_url}</Text>
+              <Text style={styles.diagnosticText}>Loading from: {BASE_URL}{stats.recent_photo.original_url}</Text>
               <Image
                 source={{ 
-                  uri: `https://web-production-535bd.up.railway.app${stats.recent_photo.original_url}`,
+                  uri: `${BASE_URL}${stats.recent_photo.original_url}`,
                   headers: {
                     Authorization: `Bearer ${authToken}`
                   }

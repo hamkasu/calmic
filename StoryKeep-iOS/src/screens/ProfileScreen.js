@@ -22,7 +22,7 @@ export default function ProfileScreen({ navigation }) {
   const [uploading, setUploading] = useState(false);
   const [authToken, setAuthToken] = useState(null);
   const [profileImageUri, setProfileImageUri] = useState(null);
-  const BASE_URL = 'https://web-production-535bd.up.railway.app';
+  const BASE_URL = 'https://storykeep.calmic.com.my';
 
   useEffect(() => {
     loadProfileData();

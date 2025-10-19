@@ -17,7 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { photoAPI } from '../services/api';
 
 const { width } = Dimensions.get('window');
-const BASE_URL = 'https://web-production-535bd.up.railway.app';
+const BASE_URL = 'https://storykeep.calmic.com.my';
 
 export default function EnhancePhotoScreen({ route, navigation }) {
   const { photo } = route.params;

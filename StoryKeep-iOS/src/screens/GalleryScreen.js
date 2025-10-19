@@ -24,7 +24,7 @@ import { useLoading } from '../contexts/LoadingContext';
 const { width } = Dimensions.get('window');
 const COLUMN_COUNT = 3;
 const ITEM_WIDTH = (width - 6) / COLUMN_COUNT; // 2px gap between items
-const BASE_URL = 'https://web-production-535bd.up.railway.app';
+const BASE_URL = 'https://storykeep.calmic.com.my';
 
 export default function GalleryScreen({ navigation }) {
   const [allPhotos, setAllPhotos] = useState([]);

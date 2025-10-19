@@ -2,7 +2,7 @@ import { Alert } from 'react-native';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 
-const BASE_URL = 'https://web-production-535bd.up.railway.app';
+const BASE_URL = 'https://storykeep.calmic.com.my';
 
 export const sharePhoto = async (photo, authToken, preferEnhanced = false) => {
   try {

@@ -22,7 +22,7 @@ import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { sharePhoto } from '../utils/sharePhoto';
 
 const { width } = Dimensions.get('window');
-const BASE_URL = 'https://web-production-535bd.up.railway.app';
+const BASE_URL = 'https://storykeep.calmic.com.my';
 
 export default function PhotoDetailScreen({ route, navigation }) {
   const { photo: initialPhoto } = route.params;
