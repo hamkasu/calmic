@@ -466,84 +466,76 @@ def update_avatar(current_user):
 @mobile_api_bp.route('/photos', methods=['GET'])
 @token_required
 def get_photos(current_user):
-    """Get photos for mobile app gallery - USES SAME PATTERN AS DASHBOARD"""
+    """
+    ULTRA-SIMPLE Gallery Endpoint - Get photos for iOS app
+    Mirrors dashboard endpoint for reliability
+    """
     try:
-        # Parse parameters
-        page = max(1, request.args.get('page', 1, type=int))
-        per_page = max(1, min(100, request.args.get('limit', 20, type=int)))
-        filter_type = request.args.get('filter', 'all')
+        logger.info(f"📸 Gallery request from user {current_user.id} ({current_user.username})")
         
-        # Get all photos for this user - SAME AS DASHBOARD
+        # Step 1: Get ALL photos for this user (same as dashboard)
         all_photos = Photo.query.filter_by(user_id=current_user.id).all()
+        logger.info(f"📊 Found {len(all_photos)} total photos in database")
         
-        # Apply filter if needed
-        if filter_type == 'enhanced':
-            filtered_photos = [p for p in all_photos if p.edited_filename is not None]
+        # Step 2: Get filter parameter
+        filter_type = request.args.get('filter', 'all').lower()
+        logger.info(f"🔍 Filter requested: {filter_type}")
+        
+        # Step 3: Apply simple filtering
+        if filter_type == 'all' or not filter_type:
+            filtered_photos = all_photos
+        elif filter_type == 'enhanced':
+            filtered_photos = [p for p in all_photos if p.edited_filename]
         elif filter_type == 'originals':
-            filtered_photos = [p for p in all_photos if p.edited_filename is None]
-        elif filter_type == 'dnn':
-            # Photos colorized with DNN method
-            filtered_photos = [p for p in all_photos if p.enhancement_metadata and p.enhancement_metadata.get('colorization', {}).get('method') == 'dnn']
-        elif filter_type == 'ai':
-            # Photos colorized with AI method
-            filtered_photos = [p for p in all_photos if p.enhancement_metadata and p.enhancement_metadata.get('colorization', {}).get('method') == 'ai_guided_dnn']
-        elif filter_type == 'uncolorized':
-            # Photos without colorization
-            filtered_photos = [p for p in all_photos if not p.enhancement_metadata]
+            filtered_photos = [p for p in all_photos if not p.edited_filename]
         else:
+            # For any other filter, return all photos
             filtered_photos = all_photos
         
-        # Sort by creation date (newest first) - SAME AS DASHBOARD
+        logger.info(f"✅ After filter: {len(filtered_photos)} photos")
+        
+        # Step 4: Sort by date (newest first)
         filtered_photos.sort(key=lambda x: x.created_at if x.created_at else datetime.min, reverse=True)
         
-        # Manual pagination
-        total = len(filtered_photos)
-        offset = (page - 1) * per_page
-        paginated_photos = filtered_photos[offset:offset + per_page]
-        has_more = (offset + len(paginated_photos)) < total
-        
-        # Build photo list - EXACT SAME URL PATTERN AS DASHBOARD
+        # Step 5: Build simple photo list (EXACT SAME URL PATTERN AS DASHBOARD)
         photos_list = []
-        for photo in paginated_photos:
-            photo_data = {
+        for photo in filtered_photos:
+            photo_dict = {
                 'id': photo.id,
                 'filename': photo.filename,
                 'url': f'/uploads/{current_user.id}/{photo.filename}' if photo.filename else None,
                 'thumbnail_url': f'/uploads/{current_user.id}/{photo.filename}' if photo.filename else None,
                 'created_at': photo.created_at.isoformat() if photo.created_at else None,
-                'file_size': photo.file_size,
-                'has_edited': photo.edited_filename is not None,
-                # Annotation data for iOS app display
-                'enhancement_metadata': photo.enhancement_metadata,
-                'processing_notes': photo.processing_notes,
-                'back_text': photo.back_text,
-                'date_text': photo.date_text,
-                'location_text': photo.location_text,
-                'occasion': photo.occasion,
-                'photo_date': photo.photo_date.isoformat() if photo.photo_date else None,
-                'condition': photo.condition,
-                'photo_source': photo.photo_source,
-                'needs_restoration': photo.needs_restoration,
-                'auto_enhanced': photo.auto_enhanced
+                'file_size': photo.file_size or 0,
+                'has_edited': bool(photo.edited_filename)
             }
             
+            # Add edited URL if it exists (SAME AS DASHBOARD)
             if photo.edited_filename:
-                photo_data['edited_url'] = f'/uploads/{current_user.id}/{photo.edited_filename}'
+                photo_dict['edited_url'] = f'/uploads/{current_user.id}/{photo.edited_filename}'
             
-            photos_list.append(photo_data)
+            photos_list.append(photo_dict)
         
-        return jsonify({
+        # Step 6: Return simple response
+        response = {
             'success': True,
             'photos': photos_list,
-            'page': page,
-            'per_page': per_page,
-            'total': total,
-            'has_more': has_more
-        })
+            'total': len(photos_list),
+            'filter': filter_type
+        }
+        
+        logger.info(f"✅ Returning {len(photos_list)} photos to iOS app")
+        return jsonify(response), 200
         
     except Exception as e:
-        logger.error(f"Gallery error: {str(e)}")
-        return jsonify({'error': str(e), 'success': False}), 500
+        logger.error(f"❌ Gallery error: {str(e)}")
+        logger.error(f"❌ Error details: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'photos': [],
+            'total': 0
+        }), 500
 
 @mobile_api_bp.route('/photos/<int:photo_id>', methods=['GET'])
 @token_required
