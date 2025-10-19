@@ -100,7 +100,7 @@ CALMIC SDN BHD - "Committed to Excellence"
                         <i class="bi bi-images"></i> Gallery
                     </a>
                     <div class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {{ 'active' if request.endpoint in ['main.advanced_enhancement', 'main.enhance_photo', 'main.montage', 'main.sharpening'] }}" 
+                        <a class="nav-link dropdown-toggle {{ 'active' if request.endpoint in ['main.advanced_enhancement', 'main.enhance_photo', 'main.montage', 'main.sharpening', 'main.photo_animation'] }}" 
                            href="#" id="toolkitDropdown" role="button" 
                            data-bs-toggle="dropdown" aria-expanded="false" aria-label="Toolkit menu"
                            style="display: flex; flex-direction: column; align-items: center; text-align: center;">
@@ -118,6 +118,12 @@ CALMIC SDN BHD - "Committed to Excellence"
                                 <a class="dropdown-item {{ 'active' if request.endpoint == 'main.sharpening' }}" 
                                    href="{{ url_for('main.sharpening') }}">
                                     <i class="bi bi-star"></i> Sharpening
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {{ 'active' if request.endpoint == 'main.photo_animation' }}" 
+                                   href="{{ url_for('main.photo_animation') }}">
+                                    <i class="bi bi-play-circle"></i> Photo Animation
                                 </a>
                             </li>
                             <li>
