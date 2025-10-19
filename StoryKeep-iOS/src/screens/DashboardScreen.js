@@ -21,12 +21,12 @@ import { useLoading } from '../contexts/LoadingContext';
 
 export default function DashboardScreen({ navigation }) {
   const [stats, setStats] = useState(null);
-  const [recentPhotos, setRecentPhotos] = useState([]);
   const [userData, setUserData] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [authToken, setAuthToken] = useState(null);
   const [profileImageUri, setProfileImageUri] = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [dailyQuote, setDailyQuote] = useState(null);
   const { startLoading, stopLoading } = useLoading();
   const BASE_URL = 'https://storykeep.calmic.com.my';
 
@@ -114,12 +114,25 @@ export default function DashboardScreen({ navigation }) {
     }
   };
 
+  const fetchDailyQuote = async () => {
+    try {
+      // Use dad joke API for humorous quotes
+      const response = await fetch('https://icanhazdadjoke.com/', {
+        headers: { Accept: 'application/json' },
+      });
+      const data = await response.json();
+      setDailyQuote(data.joke);
+    } catch (error) {
+      console.log('Failed to fetch quote:', error);
+      setDailyQuote('Why do programmers prefer dark mode? Because light attracts bugs! 🐛');
+    }
+  };
+
   const loadDashboardData = async () => {
     const loadingId = startLoading('Loading dashboard...');
     try {
-      const [statsData, photosData, profileData, token] = await Promise.all([
+      const [statsData, profileData, token] = await Promise.all([
         dashboardAPI.getStats(),
-        photoAPI.getPhotos('all'),
         authAPI.getProfile(),
         AsyncStorage.getItem('authToken'),
       ]);
@@ -131,9 +144,11 @@ export default function DashboardScreen({ navigation }) {
       });
 
       setStats(statsData);
-      setRecentPhotos(photosData.photos?.slice(0, 6) || []);
       setUserData(profileData);
       setAuthToken(token);
+      
+      // Fetch daily quote
+      fetchDailyQuote();
       
       // Load profile picture from fresh database data
       if (profileData.profile_picture && token) {
@@ -335,63 +350,27 @@ export default function DashboardScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* DIAGNOSTIC SECTION */}
-      {stats?.recent_photo && (
-        <View style={styles.diagnosticSection}>
-          <Text style={styles.sectionTitle}>🔍 Diagnostic Info</Text>
-          <Text style={styles.diagnosticText}>Debug Photos Count: {stats?.debug_photos_count || 0}</Text>
-          <Text style={styles.diagnosticText}>All Photos Array: {stats?.all_photos?.length || 0}</Text>
-          <Text style={styles.diagnosticText}>Recent Photo ID: {stats.recent_photo.id}</Text>
-          <Text style={styles.diagnosticText}>Filename: {stats.recent_photo.filename}</Text>
-          <Text style={styles.diagnosticText}>URL: {stats.recent_photo.original_url || 'NULL'}</Text>
-          <Text style={styles.diagnosticText}>Auth Token: {authToken ? 'Present' : 'Missing'}</Text>
-          {stats.recent_photo.original_url && authToken && (
-            <>
-              <Text style={styles.diagnosticText}>Loading from: {BASE_URL}{stats.recent_photo.original_url}</Text>
-              <Image
-                source={{ 
-                  uri: `${BASE_URL}${stats.recent_photo.original_url}`,
-                  headers: {
-                    Authorization: `Bearer ${authToken}`
-                  }
-                }}
-                style={styles.diagnosticImage}
-                resizeMode="contain"
-                onError={(error) => console.error('📷 Image load error:', error.nativeEvent.error)}
-                onLoad={() => console.log('✅ Image loaded successfully')}
-              />
-            </>
-          )}
-          {stats?.all_photos && stats.all_photos.length > 0 && (
-            <View style={{marginTop: 15}}>
-              <Text style={styles.diagnosticText}>First Photo from all_photos Array:</Text>
-              <Text style={styles.diagnosticText}>- ID: {stats.all_photos[0].id}</Text>
-              <Text style={styles.diagnosticText}>- URL: {stats.all_photos[0].url || 'NULL'}</Text>
-              <Text style={styles.diagnosticText}>- Filename: {stats.all_photos[0].filename}</Text>
-            </View>
-          )}
+      {/* QUOTE OF THE DAY */}
+      <View style={styles.quoteSection}>
+        <View style={styles.quoteHeader}>
+          <Ionicons name="happy-outline" size={28} color="#E85D75" />
+          <Text style={styles.quoteTitle}>Dad Joke of the Day</Text>
         </View>
-      )}
-
-      {recentPhotos.length > 0 && (
-        <View style={styles.recentSection}>
-          <Text style={styles.sectionTitle}>Recent Photos</Text>
-          <View style={styles.photoGrid}>
-            {recentPhotos.map((photo) => (
-              <TouchableOpacity
-                key={photo.id}
-                style={styles.photoCard}
-                onPress={() => navigation.navigate('PhotoDetail', { photo })}
-              >
-                <Image
-                  source={{ uri: photo.thumbnail_url || photo.url }}
-                  style={styles.photoThumbnail}
-                />
-              </TouchableOpacity>
-            ))}
+        {dailyQuote ? (
+          <View style={styles.quoteCard}>
+            <Text style={styles.quoteText}>{dailyQuote}</Text>
+            <TouchableOpacity 
+              style={styles.refreshQuoteButton}
+              onPress={fetchDailyQuote}
+            >
+              <Ionicons name="refresh" size={20} color="#E85D75" />
+              <Text style={styles.refreshQuoteText}>Get Another Joke</Text>
+            </TouchableOpacity>
           </View>
-        </View>
-      )}
+        ) : (
+          <ActivityIndicator size="small" color="#E85D75" />
+        )}
+      </View>
     </ScrollView>
   );
 }
@@ -553,42 +532,52 @@ const styles = StyleSheet.create({
   actionButtonTextSecondary: {
     color: '#E85D75',
   },
-  diagnosticSection: {
+  quoteSection: {
     padding: 20,
-    backgroundColor: '#FFF9E6',
-    margin: 15,
-    borderRadius: 10,
+    marginHorizontal: 20,
+    marginBottom: 20,
   },
-  diagnosticText: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-    fontFamily: 'monospace',
-  },
-  diagnosticImage: {
-    width: '100%',
-    height: 200,
-    marginTop: 10,
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
-  },
-  recentSection: {
-    padding: 20,
-  },
-  photoGrid: {
+  quoteHeader: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
   },
-  photoCard: {
-    width: '48%',
-    aspectRatio: 1,
-    marginBottom: 10,
-    borderRadius: 10,
-    overflow: 'hidden',
+  quoteTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginLeft: 10,
   },
-  photoThumbnail: {
-    width: '100%',
-    height: '100%',
+  quoteCard: {
+    backgroundColor: '#FFF9E6',
+    padding: 20,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#E85D75',
+  },
+  quoteText: {
+    fontSize: 16,
+    color: '#333',
+    lineHeight: 24,
+    fontStyle: 'italic',
+    marginBottom: 15,
+  },
+  refreshQuoteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E85D75',
+    alignSelf: 'center',
+  },
+  refreshQuoteText: {
+    color: '#E85D75',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
   },
 });
