@@ -1,5 +1,5 @@
 <!--
-StoryVault - Professional Photo Management Platform
+StoryBox - Professional Photo Management Platform
 Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
 
 This software is proprietary and confidential. Unauthorized copying, distribution,
@@ -16,7 +16,7 @@ CALMIC SDN BHD - "Committed to Excellence"
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StoryVault - Save Your Family Stories</title>
+    <title>StoryBox - Save Your Family Stories</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
@@ -259,12 +259,12 @@ CALMIC SDN BHD - "Committed to Excellence"
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="{{ url_for('main.index') }}">
                 <img src="{{ url_for('static', filename='img/calmic-logo.png') }}" 
-                     alt="StoryVault Logo" 
+                     alt="StoryBox Logo" 
                      height="35" 
                      class="me-2"
                      onerror="this.style.display='none';">
                 <div>
-                    <div style="font-size: 1.2rem; font-weight: 600;">StoryVault</div>
+                    <div style="font-size: 1.2rem; font-weight: 600;">StoryBox</div>
                     <small style="font-size: 0.65rem; opacity: 0.8; text-transform: uppercase;">CALMIC SDN BHD</small>
                 </div>
             </a>
@@ -301,7 +301,7 @@ CALMIC SDN BHD - "Committed to Excellence"
         <div class="container">
             <div class="hero-content">
                 <h1 class="hero-title">Don't Just Scan the Photo. Save the Story.</h1>
-                <p class="hero-subtitle">StoryVault: The app that brings your family's history to life with photos, voices, and memories.</p>
+                <p class="hero-subtitle">StoryBox: The app that brings your family's history to life with photos, voices, and memories.</p>
                 
                 {% if not current_user.is_authenticated %}
                 <div class="cta-buttons">
@@ -401,12 +401,12 @@ CALMIC SDN BHD - "Committed to Excellence"
                 <div class="col-md-6">
                     <div class="d-flex align-items-center mb-3">
                         <img src="{{ url_for('static', filename='img/calmic-logo.png') }}" 
-                             alt="StoryVault Logo" 
+                             alt="StoryBox Logo" 
                              height="30" 
                              class="me-2"
                              onerror="this.style.display='none';">
                         <div>
-                            <div style="font-weight: 600;">StoryVault</div>
+                            <div style="font-weight: 600;">StoryBox</div>
                             <small style="font-size: 0.75rem; opacity: 0.8;">by Calmic Sdn Bhd</small>
                         </div>
                     </div>

@@ -134,7 +134,7 @@ export default function LoginScreen({ navigation }) {
           resizeMode="contain"
         />
         
-        <Text style={styles.title}>Welcome to StoryVault</Text>
+        <Text style={styles.title}>Welcome to StoryBox</Text>
         <Text style={styles.subtitle}>Save Your Family Stories</Text>
 
         <View style={styles.form}>

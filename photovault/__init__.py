@@ -1,5 +1,5 @@
 """
-StoryVault Application Factory
+StoryBox Application Factory
 Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
 """
 # photovault/__init__.py

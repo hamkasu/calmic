@@ -33,7 +33,7 @@ export default function SplashScreen({ onFinish }) {
         // To add a gentle chime:
         // 1. Download a free chime from https://pixabay.com/sound-effects/search/chime/
         //    Recommended: "Chime sound" (1 second) or "Silver chime" (2 seconds)
-        // 2. Save the .mp3 file as 'chime.mp3' in: StoryVault-iOS/src/assets/sounds/
+        // 2. Save the .mp3 file as 'chime.mp3' in: StoryBox-iOS/src/assets/sounds/
         // 3. Uncomment the lines below:
         
         const { sound: chimeSound } = await Audio.Sound.createAsync(
@@ -136,7 +136,7 @@ export default function SplashScreen({ onFinish }) {
             },
           ]}
         >
-          StoryVault
+          StoryBox
         </Animated.Text>
 
         {/* Tagline Animation */}

@@ -28,7 +28,7 @@ export default function DashboardScreen({ navigation }) {
   const [profileLoading, setProfileLoading] = useState(false);
   const [dailyQuote, setDailyQuote] = useState(null);
   const { startLoading, stopLoading } = useLoading();
-  const BASE_URL = 'https://storyvault.calmic.com.my';
+  const BASE_URL = 'https://storybox.calmic.com.my';
 
   useEffect(() => {
     loadDashboardData();
