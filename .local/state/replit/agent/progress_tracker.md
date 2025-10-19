@@ -858,3 +858,13 @@ Fixed web sharpening failing with "Authorization token is missing" error:
 [x] 257. Final verification - COMPLETED: Both servers running successfully with no critical errors
     - PhotoVault Server: Running on port 5000 with database initialized
     - Expo Server: Running with tunnel at exp://abiur9w-anonymous-8081.exp.direct and QR code displayed
+
+## iOS APP RAILWAY CONNECTION ISSUE - 500 ERRORS
+[x] 258. Update iOS app to connect to correct Railway server - COMPLETED: Changed BASE_URL to https://extraordinary-contentment-production.up.railway.app
+[x] 259. Test Railway server accessibility - COMPLETED: Server responding with HTTP 200, endpoints exist
+[x] 260. Diagnose 500 errors on dashboard and profile - COMPLETED: Railway has outdated code or missing database columns
+[x] 261. Create deployment guide - COMPLETED: Created RAILWAY_DEPLOY_MOBILE_FIX.md with push instructions
+    - **Issue**: iOS app gets 500 errors when accessing /api/dashboard and /api/auth/profile
+    - **Root Cause**: Railway production server has outdated code or missing database schema changes
+    - **Solution**: User needs to git push to Railway to deploy latest mobile API code
+    - **Next Step**: User must deploy to Railway using git push origin main
