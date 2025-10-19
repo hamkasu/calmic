@@ -336,13 +336,13 @@ CALMIC SDN BHD - "Committed to Excellence"
             <div class="row">
                 <div class="col-md-4">
                     <div class="stat-item">
-                        <div class="stat-number">100K+</div>
+                        <div class="stat-number">{{ "{:,}".format(stats.total_photos) if stats else '0' }}+</div>
                         <div class="stat-label">Photos Stored</div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="stat-item">
-                        <div class="stat-number">5K+</div>
+                        <div class="stat-number">{{ "{:,}".format(stats.total_users) if stats else '0' }}+</div>
                         <div class="stat-label">Happy Users</div>
                     </div>
                 </div>

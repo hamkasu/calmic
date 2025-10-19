@@ -128,7 +128,21 @@ def login():
                 flash(f'Welcome back, {user.username}!', 'success')
                 return redirect(url_for('main.dashboard'))
     
-    return render_template('login.html')
+    # Get actual stats from database for login page
+    try:
+        from photovault.models import Photo, User
+        total_photos = Photo.query.count()
+        total_users = User.query.count()
+        
+        stats = {
+            'total_photos': total_photos,
+            'total_users': total_users
+        }
+    except Exception as e:
+        print(f"Stats error: {str(e)}")
+        stats = {'total_photos': 0, 'total_users': 0}
+    
+    return render_template('login.html', stats=stats)
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 @csrf.exempt
