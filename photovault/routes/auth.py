@@ -195,18 +195,18 @@ def register():
             flash('Please enter a valid email address.', 'error')
             return render_template('register.html')
         
-        # Password validation (skip for API since mobile doesn't have strict requirements)
-        if not is_api_request:
-            is_valid, message = validate_password(password)
-            if not is_valid:
-                flash(message, 'error')
-                return render_template('register.html')
-            
-            if password != confirm_password:
-                flash('Passwords do not match.', 'error')
-                return render_template('register.html')
-        elif len(password) < 6:
-            return jsonify({'error': 'Password must be at least 6 characters long'}), 400
+        # Password validation using centralized security function
+        from photovault.utils.security import validate_password_strength
+        is_valid, message = validate_password_strength(password)
+        if not is_valid:
+            if is_api_request:
+                return jsonify({'error': message}), 400
+            flash(message, 'error')
+            return render_template('register.html')
+        
+        if not is_api_request and password != confirm_password:
+            flash('Passwords do not match.', 'error')
+            return render_template('register.html')
         
         # Check if user already exists with retry logic
         def check_existing_user():

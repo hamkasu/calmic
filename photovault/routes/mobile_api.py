@@ -101,8 +101,11 @@ def mobile_register():
         if not validate_email(email):
             return jsonify({'error': 'Invalid email format'}), 400
         
-        if len(password) < 8:
-            return jsonify({'error': 'Password must be at least 8 characters long'}), 400
+        # Validate password strength using centralized security function
+        from photovault.utils.security import validate_password_strength
+        is_valid, message = validate_password_strength(password)
+        if not is_valid:
+            return jsonify({'error': message}), 400
         
         # Check if user already exists
         existing_user = User.query.filter(

@@ -32,8 +32,8 @@ export default function RegisterScreen({ navigation }) {
       return;
     }
 
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+    if (password.length < 12) {
+      Alert.alert('Error', 'Password must be at least 12 characters with uppercase, lowercase, digit, and special character');
       return;
     }
 
