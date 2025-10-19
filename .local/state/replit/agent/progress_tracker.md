@@ -864,7 +864,10 @@ Fixed web sharpening failing with "Authorization token is missing" error:
 [x] 259. Test Railway server accessibility - COMPLETED: Server responding with HTTP 200, endpoints exist
 [x] 260. Diagnose 500 errors on dashboard and profile - COMPLETED: Railway has outdated code or missing database columns
 [x] 261. Create deployment guide - COMPLETED: Created RAILWAY_DEPLOY_MOBILE_FIX.md with push instructions
-    - **Issue**: iOS app gets 500 errors when accessing /api/dashboard and /api/auth/profile
-    - **Root Cause**: Railway production server has outdated code or missing database schema changes
-    - **Solution**: User needs to git push to Railway to deploy latest mobile API code
-    - **Next Step**: User must deploy to Railway using git push origin main
+[x] 262. Call architect to debug exact cause - COMPLETED: Found Railway database missing 14+ columns
+[x] 263. Create SQL migration script - COMPLETED: Created railway_add_missing_columns.sql with all missing columns
+[x] 264. Create step-by-step fix guide - COMPLETED: Created FIX_IOS_500_ERRORS.md with Railway dashboard instructions
+    - **Root Cause Identified**: Railway PostgreSQL database missing columns (profile_picture, file_size, edited_filename, etc.)
+    - **Why It Happens**: Mobile API queries these columns, Railway database doesn't have them yet
+    - **Solution Created**: SQL migration file that adds all 14 missing columns safely
+    - **Next Step**: User must run railway_add_missing_columns.sql on Railway database via Railway dashboard
