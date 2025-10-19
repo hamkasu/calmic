@@ -207,8 +207,8 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.statLabel}>Colorized</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{stats?.albums || 0}</Text>
-          <Text style={styles.statLabel}>Albums</Text>
+          <Text style={styles.statNumber}>{stats?.vaults || 0}</Text>
+          <Text style={styles.statLabel}>Vaults</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statNumber}>
@@ -252,7 +252,10 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.actionText}>Edit Profile</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('ChangePassword')}
+        >
           <Ionicons name="lock-closed" size={24} color="#E85D75" />
           <Text style={styles.actionText}>Change Password</Text>
         </TouchableOpacity>

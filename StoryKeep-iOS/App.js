@@ -21,6 +21,7 @@ import FamilyVaultsScreen from './src/screens/FamilyVaultsScreen';
 import VaultDetailScreen from './src/screens/VaultDetailScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import ChangePasswordScreen from './src/screens/ChangePasswordScreen';
 import EnhancePhotoScreen from './src/screens/EnhancePhotoScreen';
 
 const Stack = createStackNavigator();
@@ -145,6 +146,7 @@ export default function App() {
                 <Stack.Screen name="PhotoDetail" component={PhotoDetailScreen} />
                 <Stack.Screen name="VaultDetail" component={VaultDetailScreen} />
                 <Stack.Screen name="Profile" component={ProfileScreen} />
+                <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
                 <Stack.Screen name="EnhancePhoto" component={EnhancePhotoScreen} />
               </>
             )}
