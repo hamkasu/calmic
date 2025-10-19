@@ -111,7 +111,11 @@ CALMIC SDN BHD - "Committed to Excellence"
                         </div>
                     </div>
                     <small class="text-muted">
-                        {{ stats.total_size_mb }} MB used of 100 MB limit
+                        {% if stats.storage_limit_mb == -1 or stats.storage_limit_mb >= 999999 %}
+                            {{ stats.total_size_mb }} MB used (Unlimited storage)
+                        {% else %}
+                            {{ stats.total_size_mb }} MB used of {{ stats.storage_limit_mb }} MB allocated
+                        {% endif %}
                     </small>
                 </div>
             </div>

@@ -272,10 +272,9 @@ export default function DashboardScreen({ navigation }) {
             <View style={styles.storageHeader}>
               <Text style={styles.storageLabel}>Storage</Text>
               <Text style={styles.storageAmount}>
-                {stats.storage_used.toFixed(1)} MB
                 {stats.storage_limit_mb === -1 
-                  ? ' / Unlimited' 
-                  : ` / ${(stats.storage_limit_mb / 1024).toFixed(1)} GB`
+                  ? `${stats.storage_used.toFixed(1)} MB used (Unlimited)` 
+                  : `${stats.storage_used.toFixed(1)} MB used of ${stats.storage_limit_mb} MB allocated`
                 }
               </Text>
             </View>
