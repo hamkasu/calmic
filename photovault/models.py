@@ -486,3 +486,145 @@ class SocialMediaConnection(db.Model):
     def __repr__(self):
         return f'<SocialMediaConnection {self.user_id} - {self.platform}>'
 
+
+
+# ============================================================================
+# SECURITY MODELS - Authentication & Authorization
+# ============================================================================
+
+class LoginAttempt(db.Model):
+    """Track login attempts for rate limiting and account lockout"""
+    __tablename__ = 'login_attempt'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    username_or_email = db.Column(db.String(255), nullable=False, index=True)
+    ip_address = db.Column(db.String(45))  # IPv6 support
+    user_agent = db.Column(db.String(500))
+    success = db.Column(db.Boolean, default=False, nullable=False)
+    failure_reason = db.Column(db.String(255))  # e.g., "invalid_password", "account_locked"
+    attempted_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    
+    def __repr__(self):
+        return f'<LoginAttempt {self.username_or_email} at {self.attempted_at}>'
+
+
+class AccountLockout(db.Model):
+    """Track account lockouts due to failed login attempts"""
+    __tablename__ = 'account_lockout'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    locked_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    unlock_at = db.Column(db.DateTime, nullable=False, index=True)
+    reason = db.Column(db.String(255))  # e.g., "too_many_failed_attempts"
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    unlocked_at = db.Column(db.DateTime)  # When manually unlocked
+    
+    # Relationships
+    user = db.relationship('User', backref='lockouts')
+    
+    def __repr__(self):
+        return f'<AccountLockout user_id={self.user_id} until {self.unlock_at}>'
+
+
+class RefreshToken(db.Model):
+    """Store refresh tokens for token refresh mechanism"""
+    __tablename__ = 'refresh_token'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    token = db.Column(db.String(500), unique=True, nullable=False, index=True)
+    expires_at = db.Column(db.DateTime, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    revoked_at = db.Column(db.DateTime)  # When token was revoked
+    device_info = db.Column(db.String(500))  # Device fingerprint for security
+    ip_address = db.Column(db.String(45))
+    
+    # Relationships
+    user = db.relationship('User', backref='refresh_tokens')
+    
+    @property
+    def is_valid(self):
+        """Check if token is still valid"""
+        if self.revoked_at:
+            return False
+        return datetime.utcnow() < self.expires_at
+    
+    def revoke(self):
+        """Revoke this token"""
+        self.revoked_at = datetime.utcnow()
+    
+    def __repr__(self):
+        return f'<RefreshToken user_id={self.user_id}>'
+
+
+class MFASecret(db.Model):
+    """Store MFA/2FA TOTP secrets for users"""
+    __tablename__ = 'mfa_secret'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True, index=True)
+    secret = db.Column(db.String(32), nullable=False)  # Base32 encoded secret
+    is_enabled = db.Column(db.Boolean, default=False, nullable=False)
+    backup_codes = db.Column(db.Text)  # JSON array of backup codes
+    enabled_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    last_used_at = db.Column(db.DateTime)
+    
+    # Relationships
+    user = db.relationship('User', backref=db.backref('mfa_secret', uselist=False))
+    
+    def __repr__(self):
+        return f'<MFASecret user_id={self.user_id} enabled={self.is_enabled}>'
+
+
+class OAuthProvider(db.Model):
+    """OAuth provider connections for social login (Google, Apple, etc.)"""
+    __tablename__ = 'oauth_provider'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    provider = db.Column(db.String(50), nullable=False)  # 'google', 'apple', 'facebook'
+    provider_user_id = db.Column(db.String(255), nullable=False)  # Provider's unique user ID
+    email = db.Column(db.String(255))  # Email from provider
+    display_name = db.Column(db.String(255))
+    profile_picture_url = db.Column(db.String(500))
+    access_token = db.Column(db.Text)  # OAuth access token (encrypted in production)
+    refresh_token = db.Column(db.Text)  # OAuth refresh token (encrypted in production)
+    token_expires_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_login_at = db.Column(db.DateTime)
+    
+    # Relationships
+    user = db.relationship('User', backref='oauth_providers')
+    
+    # Composite unique constraint - one provider connection per user per provider
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'provider', name='_user_oauth_provider_uc'),
+        db.Index('idx_provider_user_id', 'provider', 'provider_user_id'),
+    )
+    
+    def __repr__(self):
+        return f'<OAuthProvider {self.provider} for user_id={self.user_id}>'
+
+
+class SecurityLog(db.Model):
+    """Security event logging for auditing and monitoring"""
+    __tablename__ = 'security_log'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True)  # Nullable for pre-auth events
+    event_type = db.Column(db.String(100), nullable=False, index=True)  # e.g., 'login_success', 'mfa_enabled', 'password_changed'
+    severity = db.Column(db.String(20), nullable=False, index=True)  # 'info', 'warning', 'critical'
+    description = db.Column(db.Text)
+    ip_address = db.Column(db.String(45))
+    user_agent = db.Column(db.String(500))
+    metadata = db.Column(db.JSON)  # Additional event-specific data
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    
+    # Relationships
+    user = db.relationship('User', backref='security_logs')
+    
+    def __repr__(self):
+        return f'<SecurityLog {self.event_type} at {self.created_at}>'
