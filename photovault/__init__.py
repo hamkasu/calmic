@@ -5,7 +5,7 @@ Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
 # photovault/__init__.py
 
 from flask import Flask
-from photovault.extensions import db, login_manager, migrate, csrf
+from photovault.extensions import db, login_manager, migrate, csrf, limiter
 from photovault.config import config
 import os
 
@@ -229,6 +229,7 @@ def create_app(config_class=None):
     login_manager.init_app(app)
     migrate.init_app(app, db)
     csrf.init_app(app)
+    limiter.init_app(app)
     
     # Login manager configuration
     login_manager.login_view = 'auth.login'
