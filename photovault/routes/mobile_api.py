@@ -42,6 +42,7 @@ def mobile_login():
         # Support both email and username for login
         email = data.get('email', '').strip()
         password = data.get('password', '')
+        remember_me = data.get('remember_me', True)  # Default to True for convenience
         
         if not email or not password:
             return jsonify({'error': 'Email and password are required'}), 400
@@ -55,11 +56,35 @@ def mobile_login():
             logger.warning(f"Failed login attempt for: {email}")
             return jsonify({'error': 'Invalid email or password'}), 401
         
-        # Generate JWT token
+        # Check if MFA is enabled for this user
+        from photovault.utils.mfa import is_mfa_enabled
+        mfa_enabled = is_mfa_enabled(user.id)
+        
+        if mfa_enabled:
+            # Generate temporary token for MFA verification (short expiry)
+            temp_token = jwt.encode({
+                'user_id': user.id,
+                'type': 'mfa_temp',
+                'exp': datetime.utcnow() + timedelta(minutes=5)
+            }, current_app.config['SECRET_KEY'], algorithm='HS256')
+            
+            logger.info(f"MFA required for mobile login: {user.username}")
+            
+            return jsonify({
+                'success': True,
+                'mfa_required': True,
+                'temp_token': temp_token,
+                'email': user.email,
+                'message': 'Please enter your MFA code'
+            }), 200
+        
+        # No MFA - generate normal JWT token
+        # Token expiration: 30 days if remember_me, 7 days otherwise
+        token_expiry_days = 30 if remember_me else 7
         token = jwt.encode({
             'user_id': user.id,
             'username': user.username,
-            'exp': datetime.utcnow() + timedelta(days=30)
+            'exp': datetime.utcnow() + timedelta(days=token_expiry_days)
         }, current_app.config['SECRET_KEY'], algorithm='HS256')
         
         logger.info(f"Successful mobile login for user: {user.username}")
@@ -127,11 +152,13 @@ def mobile_register():
         db.session.add(new_user)
         db.session.commit()
         
-        # Generate JWT token
+        # Generate JWT token (default to remember_me=True for new registrations)
+        remember_me = data.get('remember_me', True)
+        token_expiry_days = 30 if remember_me else 7
         token = jwt.encode({
             'user_id': new_user.id,
             'username': new_user.username,
-            'exp': datetime.utcnow() + timedelta(days=30)
+            'exp': datetime.utcnow() + timedelta(days=token_expiry_days)
         }, current_app.config['SECRET_KEY'], algorithm='HS256')
         
         logger.info(f"New mobile user registered: {username}")

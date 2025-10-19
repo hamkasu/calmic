@@ -171,7 +171,7 @@ def log_security_event(user_id, event_type, severity='info', description=None, m
             description=description,
             ip_address=request.remote_addr if request else None,
             user_agent=request.headers.get('User-Agent', '')[:500] if request else None,
-            metadata=metadata,
+            event_metadata=event_metadata,
             created_at=datetime.utcnow()
         )
         db.session.add(log_entry)

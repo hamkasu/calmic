@@ -29,16 +29,9 @@ def validate_email(email):
     return re.match(pattern, email) is not None
 
 def validate_password(password):
-    """Validate password strength"""
-    if len(password) < 8:
-        return False, "Password must be at least 8 characters long"
-    if not re.search(r'[A-Z]', password):
-        return False, "Password must contain at least one uppercase letter"
-    if not re.search(r'[a-z]', password):
-        return False, "Password must contain at least one lowercase letter"
-    if not re.search(r'\d', password):
-        return False, "Password must contain at least one number"
-    return True, "Password is valid"
+    """Validate password strength - uses centralized security policy (12 chars minimum)"""
+    from photovault.utils.security import validate_password_strength
+    return validate_password_strength(password)
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 @csrf.exempt
@@ -96,6 +89,33 @@ def login():
                 return jsonify({'error': 'Invalid username or password'}), 401
             flash('Invalid username or password.', 'error')
         else:
+            # Check if MFA is enabled for this user
+            from photovault.utils.mfa import is_mfa_enabled
+            mfa_enabled = is_mfa_enabled(user.id)
+            
+            if mfa_enabled:
+                # MFA is enabled - don't login yet, redirect to MFA verification
+                if is_api_request:
+                    # Generate temporary token for MFA verification (short expiry)
+                    temp_token = jwt.encode({
+                        'user_id': user.id,
+                        'type': 'mfa_temp',
+                        'exp': datetime.utcnow() + timedelta(minutes=5)
+                    }, current_app.config['SECRET_KEY'], algorithm='HS256')
+                    
+                    return jsonify({
+                        'success': True,
+                        'mfa_required': True,
+                        'temp_token': temp_token,
+                        'message': 'Please enter your MFA code'
+                    }), 200
+                else:
+                    # Web: Store user ID in session for MFA verification
+                    session['mfa_user_id'] = user.id
+                    session['mfa_remember_me'] = remember
+                    return redirect(url_for('mfa.verify'))
+            
+            # No MFA - proceed with normal login
             login_user(user, remember=remember)
             
             # Return JSON response for API requests

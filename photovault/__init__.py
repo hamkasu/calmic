@@ -257,10 +257,18 @@ def create_app(config_class=None):
     from photovault.routes.smart_tagging import smart_tagging_bp
     from photovault.routes.social_media import social_media_bp
     from photovault.routes.colorization import colorization_bp
+    from photovault.routes.mfa import mfa_bp
+    from photovault.routes.oauth import oauth_bp
     from photovault.billing import billing_bp
+    
+    # Initialize OAuth
+    from photovault.utils.oauth import init_oauth
+    init_oauth(app)
     
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(mfa_bp)
+    app.register_blueprint(oauth_bp)
     app.register_blueprint(upload_bp)
     app.register_blueprint(photo_detection_bp)
     app.register_blueprint(camera_bp)
