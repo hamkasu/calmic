@@ -274,7 +274,9 @@ export default function DashboardScreen({ navigation }) {
               <Text style={styles.storageAmount}>
                 {stats.storage_limit_mb === -1 
                   ? `${stats.storage_used.toFixed(1)} MB used (Unlimited)` 
-                  : `${stats.storage_used.toFixed(1)} MB used of ${stats.storage_limit_mb} MB allocated`
+                  : stats.storage_limit_mb >= 1024
+                    ? `${stats.storage_used.toFixed(1)} MB used of ${Math.round(stats.storage_limit_mb / 1024)} GB allocated`
+                    : `${stats.storage_used.toFixed(1)} MB used of ${stats.storage_limit_mb} MB allocated`
                 }
               </Text>
             </View>
