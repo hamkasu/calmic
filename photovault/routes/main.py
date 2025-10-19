@@ -59,8 +59,12 @@ def terms():
 @main_bp.route('/dashboard')
 @login_required
 def dashboard():
-    """User dashboard"""
+    """User dashboard with pagination"""
     try:
+        # Get page number from query parameter (default to 1)
+        page = request.args.get('page', 1, type=int)
+        per_page = 25  # Show 25 photos per page
+        
         # Calculate photo statistics for the current user
         from photovault.models import Photo
         
@@ -100,26 +104,46 @@ def dashboard():
             'storage_usage_percent': storage_usage_percent
         }
         
-        # Get recent photos for dashboard display (limit to 12 most recent)
+        # Get photos with pagination (25 per page)
         from photovault.models import VoiceMemo
         from photovault.extensions import db
         from sqlalchemy import func
         
+        # Calculate offset for pagination
+        offset = (page - 1) * per_page
+        
         # Get photos with voice memo counts
-        recent_photos = db.session.query(
+        photos_query = db.session.query(
             Photo,
             func.count(VoiceMemo.id).label('voice_memo_count')
         ).outerjoin(VoiceMemo).filter(
             Photo.user_id == current_user.id
-        ).group_by(Photo.id).order_by(Photo.created_at.desc()).limit(12).all()
+        ).group_by(Photo.id).order_by(Photo.created_at.desc())
+        
+        # Get paginated photos
+        paginated_photos = photos_query.limit(per_page).offset(offset).all()
         
         # Convert to a format the template expects
         photos_with_memos = []
-        for photo, memo_count in recent_photos:
+        for photo, memo_count in paginated_photos:
             photo.voice_memo_count = memo_count
             photos_with_memos.append(photo)
         
-        return render_template('dashboard.html', stats=stats, photos=photos_with_memos)
+        # Calculate pagination info
+        total_pages = (total_photos + per_page - 1) // per_page  # Ceiling division
+        
+        pagination = {
+            'page': page,
+            'per_page': per_page,
+            'total_photos': total_photos,
+            'total_pages': total_pages,
+            'has_prev': page > 1,
+            'has_next': page < total_pages,
+            'prev_num': page - 1 if page > 1 else None,
+            'next_num': page + 1 if page < total_pages else None
+        }
+        
+        return render_template('dashboard.html', stats=stats, photos=photos_with_memos, pagination=pagination)
     except Exception as e:
         # Simple fallback for errors - just log to console
         print(f"Dashboard error: {str(e)}")

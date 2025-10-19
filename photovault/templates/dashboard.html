@@ -166,14 +166,18 @@ CALMIC SDN BHD - "Committed to Excellence"
     </div>
     {% endif %}
 
-    <!-- Recent Photos Section -->
+    <!-- My Photos Section -->
     <div class="row">
         <div class="col-12">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">Recent Photos</h5>
+                    <h5 class="card-title mb-0">My Photos 
+                        {% if pagination %}
+                        <span class="text-muted small">({{ pagination.total_photos }} total - Page {{ pagination.page }} of {{ pagination.total_pages }})</span>
+                        {% endif %}
+                    </h5>
                     <a href="/gallery" class="btn btn-outline-primary btn-sm">
-                        View All <i class="bi bi-arrow-right"></i>
+                        Gallery View <i class="bi bi-arrow-right"></i>
                     </a>
                 </div>
                 <div class="card-body">
@@ -232,6 +236,39 @@ CALMIC SDN BHD - "Committed to Excellence"
                         </div>
                         {% endfor %}
                     </div>
+                    
+                    <!-- Pagination Controls -->
+                    {% if pagination and pagination.total_pages > 1 %}
+                    <nav aria-label="Photo pagination" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            <!-- Previous Button -->
+                            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                                <a class="page-link" href="{% if pagination.has_prev %}{{ url_for('main.dashboard', page=pagination.prev_num) }}{% else %}#{% endif %}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                            
+                            <!-- Page Numbers -->
+                            {% for page_num in range(1, pagination.total_pages + 1) %}
+                                {% if page_num == pagination.page %}
+                                    <li class="page-item active"><a class="page-link" href="#">{{ page_num }}</a></li>
+                                {% elif page_num <= 3 or page_num > pagination.total_pages - 3 or (page_num >= pagination.page - 1 and page_num <= pagination.page + 1) %}
+                                    <li class="page-item"><a class="page-link" href="{{ url_for('main.dashboard', page=page_num) }}">{{ page_num }}</a></li>
+                                {% elif page_num == 4 or page_num == pagination.total_pages - 3 %}
+                                    <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            <!-- Next Button -->
+                            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                                <a class="page-link" href="{% if pagination.has_next %}{{ url_for('main.dashboard', page=pagination.next_num) }}{% else %}#{% endif %}" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    
                     {% else %}
                     <div class="text-center py-5">
                         <i class="bi bi-image" style="font-size: 3rem; color: #dee2e6;"></i>
