@@ -340,19 +340,35 @@ export default function DashboardScreen({ navigation }) {
         <View style={styles.diagnosticSection}>
           <Text style={styles.sectionTitle}>🔍 Diagnostic Info</Text>
           <Text style={styles.diagnosticText}>Debug Photos Count: {stats?.debug_photos_count || 0}</Text>
+          <Text style={styles.diagnosticText}>All Photos Array: {stats?.all_photos?.length || 0}</Text>
           <Text style={styles.diagnosticText}>Recent Photo ID: {stats.recent_photo.id}</Text>
           <Text style={styles.diagnosticText}>Filename: {stats.recent_photo.filename}</Text>
+          <Text style={styles.diagnosticText}>URL: {stats.recent_photo.original_url || 'NULL'}</Text>
+          <Text style={styles.diagnosticText}>Auth Token: {authToken ? 'Present' : 'Missing'}</Text>
           {stats.recent_photo.original_url && authToken && (
-            <Image
-              source={{ 
-                uri: `https://web-production-535bd.up.railway.app${stats.recent_photo.original_url}`,
-                headers: {
-                  Authorization: `Bearer ${authToken}`
-                }
-              }}
-              style={styles.diagnosticImage}
-              resizeMode="contain"
-            />
+            <>
+              <Text style={styles.diagnosticText}>Loading from: https://web-production-535bd.up.railway.app{stats.recent_photo.original_url}</Text>
+              <Image
+                source={{ 
+                  uri: `https://web-production-535bd.up.railway.app${stats.recent_photo.original_url}`,
+                  headers: {
+                    Authorization: `Bearer ${authToken}`
+                  }
+                }}
+                style={styles.diagnosticImage}
+                resizeMode="contain"
+                onError={(error) => console.error('📷 Image load error:', error.nativeEvent.error)}
+                onLoad={() => console.log('✅ Image loaded successfully')}
+              />
+            </>
+          )}
+          {stats?.all_photos && stats.all_photos.length > 0 && (
+            <View style={{marginTop: 15}}>
+              <Text style={styles.diagnosticText}>First Photo from all_photos Array:</Text>
+              <Text style={styles.diagnosticText}>- ID: {stats.all_photos[0].id}</Text>
+              <Text style={styles.diagnosticText}>- URL: {stats.all_photos[0].url || 'NULL'}</Text>
+              <Text style={styles.diagnosticText}>- Filename: {stats.all_photos[0].filename}</Text>
+            </View>
           )}
         </View>
       )}
