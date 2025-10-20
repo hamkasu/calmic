@@ -287,11 +287,18 @@ def advanced_enhancement():
         from photovault.models import Photo
         from photovault.utils.image_enhancement import OPENCV_AVAILABLE
         
-        # Get user's photos for selection
-        photos = Photo.query.filter_by(user_id=current_user.id).order_by(Photo.created_at.desc()).limit(20).all()
+        # Get pagination parameters
+        page = request.args.get('page', 1, type=int)
+        per_page = 50  # Show 50 photos per page
+        
+        # Get user's photos with pagination
+        photos_pagination = Photo.query.filter_by(user_id=current_user.id).order_by(Photo.created_at.desc()).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
         
         return render_template('advanced_enhancement.html', 
-                             photos=photos,
+                             photos=photos_pagination.items,
+                             pagination=photos_pagination,
                              opencv_available=OPENCV_AVAILABLE)
     except Exception as e:
         print(f"Advanced enhancement error: {str(e)}")

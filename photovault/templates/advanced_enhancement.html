@@ -313,11 +313,47 @@ body {
                 </div>
                 {% endfor %}
             </div>
+            
+            {% if pagination and pagination.pages > 1 %}
+            <!-- Pagination -->
+            <nav aria-label="Photo pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if pagination.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.advanced_enhancement', page=pagination.prev_num) }}">
+                            <i class="bi bi-chevron-left"></i> Previous
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="bi bi-chevron-left"></i> Previous</span>
+                    </li>
+                    {% endif %}
+                    
+                    <li class="page-item active">
+                        <span class="page-link">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+                    </li>
+                    
+                    {% if pagination.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.advanced_enhancement', page=pagination.next_num) }}">
+                            Next <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">Next <i class="bi bi-chevron-right"></i></span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            
             {% if not photos %}
             <div class="text-center py-5">
                 <i class="bi bi-image" style="font-size: 3rem; color: #ccc;"></i>
                 <p class="text-muted mt-3">No photos available. Upload some photos first!</p>
-                <a href="{{ url_for('main.upload') }}" class="btn btn-enhance mt-2">
+                <a href="{{ url_for('upload.upload_page') }}" class="btn btn-enhance mt-2">
                     <i class="bi bi-upload"></i> Upload Photos
                 </a>
             </div>
