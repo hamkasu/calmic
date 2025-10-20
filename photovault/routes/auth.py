@@ -63,9 +63,8 @@ def login():
         
         # Try to find user by username or email with retry logic
         def find_user():
-            from photovault.models import User as UserModel
-            return UserModel.query.filter(
-                (UserModel.username == username) | (UserModel.email == username)
+            return User.query.filter(
+                (User.username == username) | (User.email == username)
             ).first()
         
         try:
@@ -231,9 +230,8 @@ def register():
         
         # Check if user already exists with retry logic
         def check_existing_user():
-            from photovault.models import User as UserModel
-            return UserModel.query.filter(
-                (UserModel.username == username) | (UserModel.email == email)
+            return User.query.filter(
+                (User.username == username) | (User.email == email)
             ).first()
         
         try:
@@ -257,14 +255,13 @@ def register():
         
         @retry_db_operation(max_retries=3)
         def create_user():
-            from photovault.models import User as UserModel, db as database
-            user = UserModel(
+            user = User(
                 username=username,
                 email=email
             )
             user.set_password(password)
-            database.session.add(user)
-            database.session.commit()
+            db.session.add(user)
+            db.session.commit()
             return user
         
         try:
@@ -418,13 +415,9 @@ def forgot_password():
             return render_template('auth/forgot_password.html')
         
         # Find user by email with retry logic for SSL disconnections
-        def find_user_by_email():
-            from photovault.models import User as UserModel
-            return UserModel.query.filter_by(email=email).first()
-        
         try:
             user = safe_db_query(
-                find_user_by_email,
+                lambda: User.query.filter_by(email=email).first(),
                 operation_name="user lookup by email"
             )
         except TransientDBError:
@@ -436,15 +429,14 @@ def forgot_password():
             try:
                 # Clean up old tokens for this user with retry logic
                 def create_reset_token():
-                    from photovault.models import PasswordResetToken as ResetToken, db as database
-                    old_tokens = ResetToken.query.filter_by(user_id=user.id).all()
+                    old_tokens = PasswordResetToken.query.filter_by(user_id=user.id).all()
                     for token in old_tokens:
-                        database.session.delete(token)
+                        db.session.delete(token)
                     
                     # Create new reset token
-                    reset_token = ResetToken(user.id)
-                    database.session.add(reset_token)
-                    database.session.commit()
+                    reset_token = PasswordResetToken(user.id)
+                    db.session.add(reset_token)
+                    db.session.commit()
                     return reset_token
                 
                 reset_token = safe_db_query(
