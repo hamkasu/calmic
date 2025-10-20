@@ -363,6 +363,20 @@ def sharpening():
         flash('Error loading sharpening page.', 'error')
         return redirect(url_for('main.dashboard'))
 
+@main_bp.route('/photo-animation')
+@login_required
+def photo_animation():
+    """Photo animation page - bring photos to life with AI"""
+    try:
+        from photovault.models import Photo
+        # Get user's photos for animation
+        photos = Photo.query.filter_by(user_id=current_user.id).order_by(Photo.created_at.desc()).limit(20).all()
+        return render_template('photo_animation.html', photos=photos)
+    except Exception as e:
+        print(f"Photo animation page error: {str(e)}")
+        flash('Error loading photo animation page.', 'error')
+        return redirect(url_for('main.dashboard'))
+
 @main_bp.route('/people/add', methods=['POST'])
 @login_required
 def add_person():
