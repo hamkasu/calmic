@@ -1,0 +1,583 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+import * as FileSystem from 'expo-file-system/legacy';
+import { dashboardAPI, photoAPI, authAPI } from '../services/api';
+import api from '../services/api';
+import { useLoading } from '../contexts/LoadingContext';
+
+export default function DashboardScreen({ navigation }) {
+  const [stats, setStats] = useState(null);
+  const [userData, setUserData] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [authToken, setAuthToken] = useState(null);
+  const [profileImageUri, setProfileImageUri] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [dailyQuote, setDailyQuote] = useState(null);
+  const { startLoading, stopLoading } = useLoading();
+  const BASE_URL = 'https://storybox.calmic.com.my';
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  // ALWAYS reload profile picture when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('📱 Dashboard focused - reloading profile picture...');
+      refreshProfilePicture();
+    }, [])
+  );
+
+  const refreshProfilePicture = async () => {
+    try {
+      setProfileLoading(true);
+      
+      // ALWAYS fetch fresh profile data from database
+      const profileData = await authAPI.getProfile();
+      const token = await AsyncStorage.getItem('authToken');
+      
+      console.log('👤 Fresh profile data from database:', {
+        username: profileData.username,
+        profile_picture: profileData.profile_picture,
+        hasToken: !!token
+      });
+      
+      setUserData(profileData);
+      
+      // Clear any existing profile image first
+      setProfileImageUri(null);
+      
+      // Download fresh profile picture from server
+      if (profileData.profile_picture && token) {
+        console.log('📥 Downloading fresh profile picture from database...');
+        await loadProfileImage(profileData.profile_picture, token);
+      } else {
+        console.log('⚠️ No profile picture in database or no token');
+      }
+    } catch (error) {
+      console.error('❌ Error refreshing profile:', error);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const loadProfileImage = async (imageUrl, token) => {
+    try {
+      // Use unique filename with timestamp to avoid cache
+      const timestamp = Date.now();
+      const fileUri = `${FileSystem.cacheDirectory}dashboard_profile_${timestamp}.jpg`;
+      const fullUrl = `${BASE_URL}${imageUrl}`;
+      
+      console.log('🖼️ Downloading profile image from:', fullUrl);
+      console.log('💾 Saving to cache:', fileUri);
+      
+      const downloadResult = await FileSystem.downloadAsync(
+        fullUrl,
+        fileUri,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log('📦 Download result:', {
+        status: downloadResult.status,
+        uri: downloadResult.uri
+      });
+
+      if (downloadResult.status === 200) {
+        // Set image URI without timestamp (file is already unique)
+        setProfileImageUri(downloadResult.uri);
+        console.log('✅ Profile image loaded successfully');
+      } else {
+        console.error('❌ Download failed with status:', downloadResult.status);
+        setProfileImageUri(null);
+      }
+    } catch (error) {
+      console.error('❌ Failed to load profile image:', error);
+      setProfileImageUri(null);
+    }
+  };
+
+  const fetchDailyQuote = async () => {
+    try {
+      // Use dad joke API for humorous quotes
+      const response = await fetch('https://icanhazdadjoke.com/', {
+        headers: { Accept: 'application/json' },
+      });
+      const data = await response.json();
+      setDailyQuote(data.joke);
+    } catch (error) {
+      console.log('Failed to fetch quote:', error);
+      setDailyQuote('Why do programmers prefer dark mode? Because light attracts bugs! 🐛');
+    }
+  };
+
+  const loadDashboardData = async () => {
+    const loadingId = startLoading('Loading dashboard...');
+    try {
+      const [statsData, profileData, token] = await Promise.all([
+        dashboardAPI.getStats(),
+        authAPI.getProfile(),
+        AsyncStorage.getItem('authToken'),
+      ]);
+
+      console.log('📊 Dashboard data loaded:', {
+        total_photos: statsData.total_photos,
+        username: profileData.username,
+        profile_picture: profileData.profile_picture
+      });
+
+      setStats(statsData);
+      setUserData(profileData);
+      setAuthToken(token);
+      
+      // Fetch daily quote
+      fetchDailyQuote();
+      
+      // Load profile picture from fresh database data
+      if (profileData.profile_picture && token) {
+        console.log('📥 Loading profile picture from database...');
+        await loadProfileImage(profileData.profile_picture, token);
+      } else {
+        console.log('⚠️ No profile picture or token');
+      }
+    } catch (error) {
+      console.error('❌ Dashboard error:', error);
+      Alert.alert('Error', 'Failed to load dashboard data');
+    } finally {
+      stopLoading(loadingId);
+      setRefreshing(false);
+    }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    // Clear existing image before refresh
+    setProfileImageUri(null);
+    loadDashboardData();
+  };
+
+  const handleLogout = async () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Clear all storage and biometric credentials
+              await AsyncStorage.clear();
+              await SecureStore.deleteItemAsync('userEmail').catch(() => {});
+              await SecureStore.deleteItemAsync('userPassword').catch(() => {});
+              
+              // App.js will automatically detect token removal and navigate to Login
+            } catch (error) {
+              console.error('Logout error:', error);
+              Alert.alert('Error', 'Failed to logout. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  if (!stats || !userData) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#E85D75" />
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.greeting}>Welcome back,</Text>
+          <Text style={styles.username}>{userData?.username || 'User'}</Text>
+        </View>
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={styles.profileButton}
+            onPress={() => navigation.navigate('Profile')}
+          >
+            {profileLoading ? (
+              <ActivityIndicator size="small" color="#E85D75" />
+            ) : profileImageUri ? (
+              <Image
+                source={{ uri: profileImageUri }}
+                style={styles.profileImage}
+              />
+            ) : (
+              <Ionicons name="person-circle" size={62} color="#E85D75" />
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={handleLogout}
+          >
+            <Ionicons name="log-out-outline" size={28} color="#E85D75" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.statsContainer}>
+        <View style={styles.statCard}>
+          <Ionicons name="images" size={42} color="#E85D75" />
+          <Text style={styles.statNumber}>{stats?.total_photos || 0}</Text>
+          <Text style={styles.statLabel}>Total Photos</Text>
+        </View>
+
+        <View style={styles.statCard}>
+          <Ionicons name="sparkles" size={42} color="#E85D75" />
+          <Text style={styles.statNumber}>{stats?.enhanced_photos || 0}</Text>
+          <Text style={styles.statLabel}>Colorized</Text>
+        </View>
+
+        <View style={[styles.statCard, styles.highlightedStat]}>
+          <Ionicons name="people" size={42} color="#E85D75" />
+          <Text style={styles.statNumber}>{stats?.vaults || 0}</Text>
+          <Text style={styles.statLabel}>Vaults</Text>
+        </View>
+
+        <View style={styles.statCard}>
+          <Ionicons name="cloud" size={42} color="#E85D75" />
+          <Text style={styles.statNumber}>
+            {stats?.storage_used ? `${stats.storage_used}MB` : '0MB'}
+          </Text>
+          <Text style={styles.statLabel}>Storage</Text>
+        </View>
+      </View>
+
+      {stats?.subscription_plan && (
+        <View style={styles.subscriptionCard}>
+          <View style={styles.subscriptionHeader}>
+            <Ionicons name="shield-checkmark" size={24} color="#E85D75" />
+            <Text style={styles.subscriptionText}>
+              {stats.subscription_plan} Plan
+            </Text>
+          </View>
+          
+          {/* Storage Quota */}
+          <View style={styles.storageQuota}>
+            <View style={styles.storageHeader}>
+              <Text style={styles.storageLabel}>Storage</Text>
+              <Text style={styles.storageAmount}>
+                {stats.storage_limit_mb === -1 
+                  ? `${stats.storage_used.toFixed(1)} MB used (Unlimited)` 
+                  : stats.storage_limit_mb >= 1024
+                    ? `${stats.storage_used.toFixed(1)} MB used of ${Math.round(stats.storage_limit_mb / 1024)} GB allocated`
+                    : `${stats.storage_used.toFixed(1)} MB used of ${stats.storage_limit_mb} MB allocated`
+                }
+              </Text>
+            </View>
+            
+            {stats.storage_limit_mb !== -1 && (
+              <>
+                <View style={styles.progressBarContainer}>
+                  <View 
+                    style={[
+                      styles.progressBar, 
+                      { 
+                        width: `${Math.min(stats.storage_usage_percent, 100)}%`,
+                        backgroundColor: 
+                          stats.storage_usage_percent >= 90 ? '#F44336' :
+                          stats.storage_usage_percent >= 70 ? '#FFC107' :
+                          '#4CAF50'
+                      }
+                    ]} 
+                  />
+                </View>
+                <Text style={[
+                  styles.storagePercent,
+                  { color: 
+                    stats.storage_usage_percent >= 90 ? '#F44336' :
+                    stats.storage_usage_percent >= 70 ? '#FFC107' :
+                    '#4CAF50'
+                  }
+                ]}>
+                  {stats.storage_usage_percent.toFixed(1)}% used
+                </Text>
+              </>
+            )}
+          </View>
+        </View>
+      )}
+
+      <View style={styles.quickActions}>
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('Camera')}
+        >
+          <Ionicons name="camera" size={24} color="#fff" />
+          <Text style={styles.actionButtonText}>Digitize Photos</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.actionButton, styles.actionButtonSecondary]}
+          onPress={() => navigation.navigate('Gallery')}
+        >
+          <Ionicons name="images" size={24} color="#E85D75" />
+          <Text style={[styles.actionButtonText, styles.actionButtonTextSecondary]}>
+            View Gallery
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* QUOTE OF THE DAY */}
+      <View style={styles.quoteSection}>
+        <View style={styles.quoteHeader}>
+          <Ionicons name="happy-outline" size={28} color="#E85D75" />
+          <Text style={styles.quoteTitle}>Dad Joke of the Day</Text>
+        </View>
+        {dailyQuote ? (
+          <View style={styles.quoteCard}>
+            <Text style={styles.quoteText}>{dailyQuote}</Text>
+            <TouchableOpacity 
+              style={styles.refreshQuoteButton}
+              onPress={fetchDailyQuote}
+            >
+              <Ionicons name="refresh" size={20} color="#E85D75" />
+              <Text style={styles.refreshQuoteText}>Get Another Joke</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <ActivityIndicator size="small" color="#E85D75" />
+        )}
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    paddingTop: 60,
+    backgroundColor: '#f8f8f8',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  greeting: {
+    fontSize: 16,
+    color: '#666',
+  },
+  username: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  profileButton: {
+    marginRight: 10,
+    width: 62,
+    height: 62,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileImage: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: '#FFF0F3',
+  },
+  logoutButton: {
+    padding: 5,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    padding: 20,
+  },
+  statCard: {
+    alignItems: 'center',
+  },
+  highlightedStat: {
+    borderWidth: 3,
+    borderColor: '#00FF9D',
+    borderRadius: 20,
+    padding: 10,
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 8,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
+  subscriptionCard: {
+    backgroundColor: '#FFF0F3',
+    padding: 15,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 10,
+  },
+  subscriptionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  subscriptionText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#E85D75',
+    marginLeft: 10,
+  },
+  storageQuota: {
+    marginTop: 5,
+  },
+  storageHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  storageLabel: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '600',
+  },
+  storageAmount: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: 'bold',
+  },
+  progressBarContainer: {
+    height: 8,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  storagePercent: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'right',
+  },
+  quickActions: {
+    padding: 20,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+  },
+  actionButton: {
+    backgroundColor: '#E85D75',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  actionButtonSecondary: {
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#E85D75',
+  },
+  actionButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 10,
+  },
+  actionButtonTextSecondary: {
+    color: '#E85D75',
+  },
+  quoteSection: {
+    padding: 20,
+    marginHorizontal: 20,
+    marginBottom: 20,
+  },
+  quoteHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  quoteTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginLeft: 10,
+  },
+  quoteCard: {
+    backgroundColor: '#FFF9E6',
+    padding: 20,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#E85D75',
+  },
+  quoteText: {
+    fontSize: 16,
+    color: '#333',
+    lineHeight: 24,
+    fontStyle: 'italic',
+    marginBottom: 15,
+  },
+  refreshQuoteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E85D75',
+    alignSelf: 'center',
+  },
+  refreshQuoteText: {
+    color: '#E85D75',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+});
