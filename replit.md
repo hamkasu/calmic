@@ -4,7 +4,15 @@
 StoryKeep is a comprehensive photo management and enhancement platform offering a professional-grade experience. It includes a professional camera interface, automatic photo upload and organization, secure storage, face detection and recognition, advanced photo enhancement and restoration, AI-powered smart tagging, family vault sharing, and social media integration. The platform uses a subscription-based model and aims to provide advanced photo management solutions to a broad market.
 
 ## Recent Changes
-**October 20, 2025** - Environment Restored After System Restart:
+**October 20, 2025** - Fixed People Page Flashing Issue on Railway:
+- Fixed SQLAlchemy 2.0 pagination bug causing People page to flash/flicker on Railway
+- Replaced deprecated `Query.paginate()` with `db.paginate(select(Person).where()...)` 
+- Updated People route to use proper SQLAlchemy 2.0 syntax with `.where()` instead of `.filter_by()`
+- Created comprehensive deployment guide (RAILWAY_PEOPLE_PAGE_FIX.md) with step-by-step instructions
+- Verified fix locally - server running without errors
+- Ready for Railway deployment to resolve production flashing issue
+
+**Earlier Today** - Environment Restored After System Restart:
 - Reinstalled all Python dependencies from requirements.txt (Flask, SQLAlchemy, Pillow, OpenCV, etc.)
 - Reinstalled Expo and 744 npm packages in StoryKeep-iOS directory
 - Restarted both workflows: PhotoVault Server (port 5000) and Expo Server (Metro Bundler with tunnel)
