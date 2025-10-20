@@ -1,21 +1,42 @@
-# Login Crash Fix - Variable Scoping Issue
+# Railway Production Deployment Fix
 
-## Problem
+## Problems Fixed
+
+### 1. Login/Registration Crash - Variable Scoping Issue
 Login and registration were crashing on Railway with this error:
 ```
 NameError: cannot access free variable 'User' where it is not associated with a value in enclosing scope
 ```
 
-## Root Cause
+### 2. Missing AI Package - Import Error
+Server failing to start on Railway with this error:
+```
+ModuleNotFoundError: No module named 'google.generativeai'
+```
+
+## Root Causes
+
+### Issue 1: Variable Scoping
 Python nested functions inside route handlers were trying to access models (`User`, `PasswordResetToken`, `db`) from the outer scope, causing a scoping error when the code was deployed to Railway.
 
-## Solution
+### Issue 2: Wrong Package Name
+The `requirements.txt` had the wrong package name: `google-genai` instead of `google-generativeai`
+
+## Solutions
+
+### Fix 1: Variable Scoping
 Fixed all nested functions in `photovault/routes/auth.py` by importing models **inside** each nested function instead of relying on outer scope imports.
 
-### Files Changed
-- `photovault/routes/auth.py`
+### Fix 2: AI Package Name
+Changed `google-genai` to `google-generativeai` in `requirements.txt` (line 65)
 
-### Changes Made
+## Files Changed
+- `photovault/routes/auth.py` - Fixed nested function scoping
+- `requirements.txt` - Fixed AI package name
+
+## Detailed Changes
+
+### Auth Route Changes
 
 1. **Login route** - `find_user()` function (line 68-72):
    - Added: `from photovault.models import User as UserModel`
@@ -46,8 +67,8 @@ Fixed all nested functions in `photovault/routes/auth.py` by importing models **
 
 ### Step 1: Push to GitHub
 ```bash
-git add photovault/routes/auth.py
-git commit -m "Fix login crash - nested function scoping issue"
+git add photovault/routes/auth.py requirements.txt
+git commit -m "Fix Railway crashes: scoping issue + AI package name"
 git push origin main
 ```
 
