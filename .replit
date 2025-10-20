@@ -109,7 +109,7 @@ outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd StoryBox-iOS && yes | npx expo start --tunnel"
+args = "cd StoryKeep-iOS && yes | npx expo start --tunnel"
 
 [deployment]
 deploymentTarget = "autoscale"
