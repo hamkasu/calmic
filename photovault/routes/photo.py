@@ -110,7 +110,6 @@ def process_uploaded_file(file, upload_source='file'):
         
         safe_filename = f"{safe_username}.{date}.{random_number}.{file_extension}"
         original_name = safe_filename  # Use the new format for display
-        thumbnail_filename = f"{current_user.username}_thumb_{safe_filename}"
         
         # Create upload directories if they don't exist
         upload_dir = current_app.config.get('UPLOAD_FOLDER', 'uploads')
@@ -121,7 +120,6 @@ def process_uploaded_file(file, upload_source='file'):
         
         # File paths
         file_path = os.path.join(upload_dir, safe_filename)
-        thumbnail_path = os.path.join(thumbnails_dir, thumbnail_filename)
         
         # Save original file
         file.save(file_path)
@@ -136,10 +134,34 @@ def process_uploaded_file(file, upload_source='file'):
         if image_info['width'] > MAX_IMAGE_DIMENSION or image_info['height'] > MAX_IMAGE_DIMENSION:
             raise ValueError(f"Image dimensions too large. Max: {MAX_IMAGE_DIMENSION}px")
         
-        # Create thumbnail
+        # Save to database first to get photo.id (use flush to get ID without committing)
+        from photovault.models import Photo
+        photo = Photo()
+        photo.user_id = current_user.id if current_user.is_authenticated else None
+        photo.filename = safe_filename
+        photo.original_name = original_name
+        photo.file_path = file_path
+        photo.file_size = image_info['size_bytes']
+        photo.width = image_info['width']
+        photo.height = image_info['height']
+        photo.mime_type = mimetypes.guess_type(file_path)[0]
+        photo.upload_source = upload_source
+        db.session.add(photo)
+        db.session.flush()  # Flush to get photo.id without committing transaction
+        
+        # Set unique_id after flush so we have the photo.id
+        unique_id = str(photo.id)
+        
+        # Create thumbnail with ID-based naming (must be after flush to have photo.id)
+        thumbnail_filename = f"thumb_{photo.id}_{safe_filename}"
+        thumbnail_path = os.path.join(thumbnails_dir, thumbnail_filename)
         thumbnail_created = create_thumbnail_local(file_path, thumbnail_path)
         
-        # Prepare file metadata
+        # Update photo with thumbnail path
+        if thumbnail_created:
+            photo.thumbnail_path = thumbnail_path
+        
+        # Prepare file metadata (must be after commit to have photo.id)
         file_metadata = {
             'id': unique_id,
             'original_name': original_name,
@@ -155,22 +177,6 @@ def process_uploaded_file(file, upload_source='file'):
             'image_format': image_info['format'],
             'mime_type': mimetypes.guess_type(file_path)[0]
         }
-        
-        # Save to database  
-        from photovault.models import Photo
-        photo = Photo()
-        photo.user_id = current_user.id if current_user.is_authenticated else None
-        photo.filename = safe_filename
-        photo.original_name = original_name
-        photo.file_path = file_path
-        photo.thumbnail_path = thumbnail_path if thumbnail_created else None
-        photo.file_size = image_info['size_bytes']
-        photo.width = image_info['width']
-        photo.height = image_info['height']
-        photo.mime_type = mimetypes.guess_type(file_path)[0]
-        photo.upload_source = upload_source
-        db.session.add(photo)
-        db.session.commit()
         
         face_processing_result = {}
         try:
@@ -189,6 +195,9 @@ def process_uploaded_file(file, upload_source='file'):
         
         file_metadata['faces_detected'] = face_processing_result.get('faces_detected', 0)
         file_metadata['tags_created'] = face_processing_result.get('tags_created', 0)
+        
+        # Commit the transaction only after all processing succeeds
+        db.session.commit()
         
         logger.info(f"Successfully processed {upload_source} upload: {original_name}")
         return file_metadata
