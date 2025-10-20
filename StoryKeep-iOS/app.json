@@ -1,0 +1,72 @@
+{
+  "expo": {
+    "name": "StoryKeep",
+    "slug": "storykeep",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.calmic.storykeep",
+      "infoPlist": {
+        "NSCameraUsageDescription": "StoryKeep needs access to your camera to digitize physical photos.",
+        "NSMicrophoneUsageDescription": "StoryKeep needs access to your microphone to record voice memos.",
+        "NSPhotoLibraryUsageDescription": "StoryKeep needs access to your photo library to save and import photos.",
+        "NSPhotoLibraryAddUsageDescription": "StoryKeep needs permission to save photos to your library.",
+        "NSFaceIDUsageDescription": "StoryKeep uses Face ID to secure your account."
+      }
+    },
+    "android": {
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.calmic.storykeep",
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT"
+      ],
+      "userInterfaceStyle": "automatic",
+      "splash": {
+        "image": "./assets/splash.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow StoryKeep to access your camera to digitize photos."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow StoryKeep to access your photos.",
+          "savePhotosPermission": "Allow StoryKeep to save photos."
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow StoryKeep to record voice memos."
+        }
+      ]
+    ]
+  }
+}
