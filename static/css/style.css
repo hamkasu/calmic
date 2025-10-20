@@ -26,7 +26,7 @@ body {
     font-size: 15px;
     line-height: 1.7;
     color: #2d3748;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
     background-attachment: fixed;
     font-weight: 400;
     min-height: 100vh;
@@ -38,21 +38,21 @@ body {
         "footer";
 }
 
-/* Modern Vibrant Color Palette */
+/* Modern Black & White Color Palette */
 :root {
-    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    --info-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-    --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-    --danger-gradient: linear-gradient(135deg, #f857a6 0%, #ff5858 100%);
+    --primary-gradient: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+    --secondary-gradient: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+    --success-gradient: linear-gradient(135deg, #e2e8f0 0%, #cbd5e0 100%);
+    --info-gradient: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    --warning-gradient: linear-gradient(135deg, #718096 0%, #4a5568 100%);
+    --danger-gradient: linear-gradient(135deg, #1a202c 0%, #000000 100%);
     
-    --primary-color: #667eea;
-    --secondary-color: #f093fb;
-    --success-color: #4facfe;
-    --info-color: #43e97b;
-    --warning-color: #fa709a;
-    --danger-color: #f857a6;
+    --primary-color: #2d3748;
+    --secondary-color: #4a5568;
+    --success-color: #cbd5e0;
+    --info-color: #edf2f7;
+    --warning-color: #718096;
+    --danger-color: #1a202c;
     
     --light-bg: #f7fafc;
     --lighter-bg: #ffffff;
@@ -495,27 +495,32 @@ body {
 
 .stats-card.bg-primary {
     background: var(--primary-gradient);
-    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 10px 30px rgba(45, 55, 72, 0.3);
+    color: #ffffff;
 }
 
 .stats-card.bg-success {
     background: var(--success-gradient);
-    box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3);
+    box-shadow: 0 10px 30px rgba(203, 213, 224, 0.3);
+    color: #2d3748;
 }
 
 .stats-card.bg-info {
     background: var(--info-gradient);
-    box-shadow: 0 10px 30px rgba(67, 233, 123, 0.3);
+    box-shadow: 0 10px 30px rgba(237, 242, 247, 0.3);
+    color: #2d3748;
 }
 
 .stats-card.bg-warning {
     background: var(--warning-gradient);
-    box-shadow: 0 10px 30px rgba(250, 112, 154, 0.3);
+    box-shadow: 0 10px 30px rgba(113, 128, 150, 0.3);
+    color: #ffffff;
 }
 
 .stats-card.bg-secondary {
     background: var(--secondary-gradient);
-    box-shadow: 0 10px 30px rgba(240, 147, 251, 0.3);
+    box-shadow: 0 10px 30px rgba(74, 85, 104, 0.3);
+    color: #ffffff;
 }
 
 .stats-number {
