@@ -324,16 +324,24 @@ def people():
     """People management page"""
     try:
         from photovault.models import Person
+        from photovault.extensions import db
+        from sqlalchemy import select
         
-        # Get all people for the current user with pagination
+        # Get all people for the current user with pagination (SQLAlchemy 2.0 compatible)
         page = request.args.get('page', 1, type=int)
-        people = Person.query.filter_by(user_id=current_user.id).order_by(Person.name.asc()).paginate(
-            page=page, per_page=12, error_out=False
-        )
+        per_page = 12
+        
+        # Build the query using SQLAlchemy 2.0 select() syntax with where() clause
+        stmt = select(Person).where(Person.user_id == current_user.id).order_by(Person.name.asc())
+        
+        # Use db.paginate() instead of Query.paginate() for SQLAlchemy 2.0
+        people = db.paginate(stmt, page=page, per_page=per_page, error_out=False)
         
         return render_template('people.html', people=people)
     except Exception as e:
         print(f"People page error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return render_template('people.html', people=None)
 
 @main_bp.route('/montage')
