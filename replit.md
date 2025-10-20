@@ -3,6 +3,15 @@
 ## Overview
 StoryKeep is a comprehensive photo management and enhancement platform offering a professional-grade experience. It includes a professional camera interface, automatic photo upload and organization, secure storage, face detection and recognition, advanced photo enhancement and restoration, AI-powered smart tagging, family vault sharing, and social media integration. The platform uses a subscription-based model and aims to provide advanced photo management solutions to a broad market.
 
+## Recent Changes
+**October 20, 2025** - Codebase Optimization & Bug Fixes:
+- Removed duplicate imports and blueprint declarations in photovault/routes/photo.py
+- Eliminated shadow directories (/routes, /utils, /StoryBox-iOS, /photovault/static) to prevent code drift
+- Fixed critical NameError bug in upload flow where unique_id was undefined
+- Corrected thumbnail naming to use `thumb_{photo.id}_{filename}` format for API endpoint compatibility
+- Implemented transactional integrity in photo upload using db.session.flush() to prevent orphaned database records on upload failures
+- Upload flow now maintains atomicity: all processing (thumbnail, face detection) completes before commit, ensuring rollback properly cleans up on failures
+
 ## User Preferences
 None configured yet (will be added as needed)
 
