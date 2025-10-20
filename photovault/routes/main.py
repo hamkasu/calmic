@@ -374,97 +374,120 @@ def sharpening():
 @main_bp.route('/people/add', methods=['POST'])
 @login_required
 def add_person():
-    """Add a new person"""
+    """Add a new person - Robust implementation"""
+    from photovault.models import Person
+    from photovault.extensions import db
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    
     try:
-        from photovault.models import Person, db
-        
+        # Get form data
         name = request.form.get('name', '').strip()
         nickname = request.form.get('nickname', '').strip()
         relationship = request.form.get('relationship', '').strip()
-        birth_year = request.form.get('birth_year')
+        birth_year_str = request.form.get('birth_year', '').strip()
         notes = request.form.get('notes', '').strip()
         
+        # Validate name (required)
         if not name:
             flash('Name is required.', 'error')
             return redirect(url_for('main.people'))
         
-        # Convert birth_year to int if provided
-        birth_year_int = None
-        if birth_year:
+        # Validate birth year (optional)
+        birth_year_value = None
+        if birth_year_str:
             try:
-                birth_year_int = int(birth_year)
+                birth_year_value = int(birth_year_str)
+                if birth_year_value < 1900 or birth_year_value > 2025:
+                    flash('Birth year must be between 1900 and 2025.', 'error')
+                    return redirect(url_for('main.people'))
             except ValueError:
                 flash('Birth year must be a valid number.', 'error')
                 return redirect(url_for('main.people'))
         
-        # Create new person
-        person = Person(
-            user_id=current_user.id,
-            name=name,
-            nickname=nickname if nickname else None,
-            relationship=relationship if relationship else None,
-            birth_year=birth_year_int,
-            notes=notes if notes else None
-        )
+        # Create new person using property assignment (SQLAlchemy 2.0)
+        person = Person()
+        person.user_id = current_user.id
+        person.name = name
+        person.nickname = nickname if nickname else None
+        person.relationship = relationship if relationship else None
+        person.birth_year = birth_year_value
+        person.notes = notes if notes else None
         
+        # Save to database
         db.session.add(person)
         db.session.commit()
         
+        logger.info(f"✅ Added person: {name} (ID: {person.id}) for user {current_user.id}")
         flash(f'{name} has been added successfully!', 'success')
         return redirect(url_for('main.people'))
         
     except Exception as e:
-        print(f"Add person error: {str(e)}")
+        db.session.rollback()
+        logger.error(f"❌ Add person error: {str(e)}", exc_info=True)
         flash('Error adding person. Please try again.', 'error')
         return redirect(url_for('main.people'))
 
 @main_bp.route('/people/<int:person_id>/edit', methods=['POST'])
 @login_required
 def edit_person(person_id):
-    """Edit an existing person"""
+    """Edit an existing person - Robust implementation"""
+    from photovault.models import Person
+    from photovault.extensions import db
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    
     try:
-        from photovault.models import Person, db
-        
+        # Get person and verify ownership
         person = Person.query.get_or_404(person_id)
         
-        # Verify ownership
         if person.user_id != current_user.id:
             flash('Access denied.', 'error')
             return redirect(url_for('main.people'))
         
+        # Get form data
         name = request.form.get('name', '').strip()
         nickname = request.form.get('nickname', '').strip()
         relationship = request.form.get('relationship', '').strip()
-        birth_year = request.form.get('birth_year')
+        birth_year_str = request.form.get('birth_year', '').strip()
         notes = request.form.get('notes', '').strip()
         
+        # Validate name (required)
         if not name:
             flash('Name is required.', 'error')
             return redirect(url_for('main.people'))
         
-        # Convert birth_year to int if provided
-        birth_year_int = None
-        if birth_year:
+        # Validate birth year (optional)
+        birth_year_value = None
+        if birth_year_str:
             try:
-                birth_year_int = int(birth_year)
+                birth_year_value = int(birth_year_str)
+                if birth_year_value < 1900 or birth_year_value > 2025:
+                    flash('Birth year must be between 1900 and 2025.', 'error')
+                    return redirect(url_for('main.people'))
             except ValueError:
                 flash('Birth year must be a valid number.', 'error')
                 return redirect(url_for('main.people'))
         
-        # Update person
+        # Update person properties
         person.name = name
         person.nickname = nickname if nickname else None
         person.relationship = relationship if relationship else None
-        person.birth_year = birth_year_int
+        person.birth_year = birth_year_value
         person.notes = notes if notes else None
         
+        # Save changes
         db.session.commit()
         
+        logger.info(f"✅ Updated person: {name} (ID: {person.id}) for user {current_user.id}")
         flash(f'{name} has been updated successfully!', 'success')
         return redirect(url_for('main.people'))
         
     except Exception as e:
-        print(f"Edit person error: {str(e)}")
+        db.session.rollback()
+        logger.error(f"❌ Edit person error: {str(e)}", exc_info=True)
         flash('Error updating person. Please try again.', 'error')
         return redirect(url_for('main.people'))
 
@@ -476,9 +499,10 @@ def api_health():
 @main_bp.route('/api/health/db', methods=['GET'])
 def db_health():
     """Database health check endpoint"""
+    from photovault.extensions import db
+    import logging
+    
     try:
-        from photovault.extensions import db
-        import logging
         # Try a simple database query
         db.session.execute(db.text('SELECT 1'))
         return jsonify({'status': 'ok', 'database': 'connected'}), 200
@@ -527,24 +551,31 @@ def debug_plans():
 @main_bp.route('/api/person/delete/<int:person_id>', methods=['DELETE'])
 @login_required
 def delete_person(person_id):
-    """Delete a person"""
+    """Delete a person - Robust implementation"""
+    from photovault.models import Person
+    from photovault.extensions import db
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    
     try:
-        from photovault.models import Person, db
-        
+        # Get person and verify ownership
         person = Person.query.get_or_404(person_id)
         
-        # Verify ownership
         if person.user_id != current_user.id:
             return jsonify({'success': False, 'error': 'Access denied'}), 403
         
+        # Delete person (cascade will handle related records)
         name = person.name
         db.session.delete(person)
         db.session.commit()
         
-        return jsonify({'success': True, 'message': f'{name} deleted successfully'})
+        logger.info(f"✅ Deleted person: {name} (ID: {person_id}) for user {current_user.id}")
+        return jsonify({'success': True, 'message': f'{name} deleted successfully'}), 200
         
     except Exception as e:
-        print(f"Delete person error: {str(e)}")
+        db.session.rollback()
+        logger.error(f"❌ Delete person error: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'error': 'Error deleting person'}), 500
 
 @main_bp.route('/test-recording')
