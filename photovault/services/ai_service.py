@@ -12,8 +12,7 @@ from PIL import Image
 import io
 import json
 
-from google import genai
-from google.genai import types
+import google.generativeai as genai
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +26,8 @@ class AIService:
             logger.warning("GEMINI_API_KEY not found - AI features will be disabled")
             self.client = None
         else:
-            self.client = genai.Client(api_key=self.api_key)
+            genai.configure(api_key=self.api_key)
+            self.client = True
             logger.info("AI service initialized successfully with Google Gemini")
     
     def is_available(self) -> bool:
@@ -54,16 +54,12 @@ class AIService:
                 image_bytes = f.read()
             
             # Request AI colorization guidance using Gemini
-            response = self.client.models.generate_content(
-                model="gemini-2.0-flash-exp",
-                contents=[
-                    types.Part.from_bytes(
-                        data=image_bytes,
-                        mime_type="image/jpeg",
-                    ),
-                    "Analyze this black and white photo in detail. Provide realistic color suggestions for different elements in the image. Be specific about colors, tones, and natural appearances for the main subjects, background, clothing, objects, and any other visible elements. Describe what colors would be most natural and historically accurate."
-                ],
-            )
+            model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            prompt = "Analyze this black and white photo in detail. Provide realistic color suggestions for different elements in the image. Be specific about colors, tones, and natural appearances for the main subjects, background, clothing, objects, and any other visible elements. Describe what colors would be most natural and historically accurate."
+            
+            # Upload image
+            img = Image.open(io.BytesIO(image_bytes))
+            response = model.generate_content([prompt, img])
             
             color_guidance = response.text if response.text else "No guidance available"
             logger.info(f"AI colorization guidance generated: {len(color_guidance)} chars")
@@ -105,28 +101,18 @@ class AIService:
             with open(image_path, "rb") as f:
                 image_bytes = f.read()
             
-            system_prompt = (
+            model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            prompt = (
                 "You are a professional photo restoration and enhancement expert. "
-                "Analyze photos and provide specific, actionable suggestions for improvement. "
+                "Analyze this photo and suggest enhancements. Identify issues like: low contrast, poor lighting, color fading, scratches, dust, blurriness, or any other quality problems. "
+                "Provide specific enhancement suggestions. "
                 "Respond in JSON format with: "
                 "{'needs_enhancement': boolean, 'suggestions': [list of suggestions], "
                 "'priority': 'low'|'medium'|'high', 'issues': [list of detected issues]}"
             )
             
-            response = self.client.models.generate_content(
-                model="gemini-2.0-flash-exp",
-                contents=[
-                    types.Part.from_bytes(
-                        data=image_bytes,
-                        mime_type="image/jpeg",
-                    ),
-                    "Analyze this photo and suggest enhancements. Identify issues like: low contrast, poor lighting, color fading, scratches, dust, blurriness, or any other quality problems. Provide specific enhancement suggestions."
-                ],
-                config=types.GenerateContentConfig(
-                    system_instruction=system_prompt,
-                    response_mime_type="application/json",
-                ),
-            )
+            img = Image.open(io.BytesIO(image_bytes))
+            response = model.generate_content([prompt, img])
             
             result_text = response.text if response.text else "{}"
             result = json.loads(result_text)
@@ -156,16 +142,11 @@ class AIService:
             with open(image_path, "rb") as f:
                 image_bytes = f.read()
             
-            response = self.client.models.generate_content(
-                model="gemini-2.0-flash-exp",
-                contents=[
-                    types.Part.from_bytes(
-                        data=image_bytes,
-                        mime_type="image/jpeg",
-                    ),
-                    "Analyze this photo in detail. Describe the content, setting, subjects, time period (if identifiable), and any notable elements. This will be used for photo organization and tagging."
-                ],
-            )
+            model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            prompt = "Analyze this photo in detail. Describe the content, setting, subjects, time period (if identifiable), and any notable elements. This will be used for photo organization and tagging."
+            
+            img = Image.open(io.BytesIO(image_bytes))
+            response = model.generate_content([prompt, img])
             
             analysis = response.text if response.text else "No analysis available"
             logger.info(f"Image analysis completed: {len(analysis)} chars")

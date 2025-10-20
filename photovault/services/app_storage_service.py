@@ -5,7 +5,9 @@ import io
 import logging
 from typing import Optional, Tuple, BinaryIO
 from flask import current_app
-from replit.object_storage import Client
+# from replit.object_storage import Client
+# Note: replit.object_storage module is not available in the current version
+# Falling back to None client which will skip App Storage
 from PIL import Image
 
 logger = logging.getLogger(__name__)
@@ -15,19 +17,8 @@ class AppStorageService:
     
     def __init__(self):
         """Initialize the App Storage client"""
-        try:
-            # Check if we're in Replit environment
-            import os
-            if not os.environ.get('REPLIT_DB_URL') and not os.environ.get('REPL_ID'):
-                logger.info("Not in Replit environment, skipping App Storage initialization")
-                self.client = None
-                return
-                
-            self.client = Client()
-            logger.info("App Storage client initialized successfully")
-        except Exception as e:
-            logger.error(f"Failed to initialize App Storage client: {str(e)}")
-            self.client = None
+        logger.info("App Storage not available - using local file storage instead")
+        self.client = None
     
     def is_available(self) -> bool:
         """Check if App Storage is available"""

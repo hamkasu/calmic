@@ -366,6 +366,60 @@ def get_profile(current_user):
         logger.error(f"Traceback: {traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
+@mobile_api_bp.route('/auth/change-password', methods=['POST'])
+@csrf.exempt
+@token_required
+def change_password(current_user):
+    """Change password for mobile app users"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        current_password = data.get('current_password', '').strip()
+        new_password = data.get('new_password', '').strip()
+        confirm_password = data.get('confirm_password', '').strip()
+        
+        # Validate current password
+        if not current_password:
+            return jsonify({'error': 'Current password is required'}), 400
+        
+        if not check_password_hash(current_user.password_hash, current_password):
+            return jsonify({'error': 'Current password is incorrect'}), 401
+        
+        # Validate new password
+        if not new_password or not confirm_password:
+            return jsonify({'error': 'Please enter and confirm your new password'}), 400
+        
+        if new_password != confirm_password:
+            return jsonify({'error': 'New password and confirmation do not match'}), 400
+        
+        # Check if new password is same as current
+        if check_password_hash(current_user.password_hash, new_password):
+            return jsonify({'error': 'New password must be different from your current password'}), 400
+        
+        # Validate password strength (12 characters minimum)
+        from photovault.utils.security import validate_password_strength
+        is_valid, message = validate_password_strength(new_password)
+        if not is_valid:
+            return jsonify({'error': message}), 400
+        
+        # Update password
+        current_user.password_hash = generate_password_hash(new_password)
+        db.session.commit()
+        
+        logger.info(f"✅ Password changed successfully for user: {current_user.username}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Password changed successfully'
+        })
+    except Exception as e:
+        logger.error(f"❌ Password change error: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        db.session.rollback()
+        return jsonify({'error': 'Failed to change password'}), 500
+
 @mobile_api_bp.route('/profile/avatar', methods=['POST'])
 @csrf.exempt
 @token_required
