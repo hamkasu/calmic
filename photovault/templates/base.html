@@ -128,10 +128,6 @@ CALMIC SDN BHD - "Committed to Excellence"
                             </li>
                         </ul>
                     </div>
-                    <a class="nav-link {{ 'active' if request.endpoint == 'main.people' }}" 
-                       href="{{ url_for('main.people') }}" aria-current="{% if request.endpoint == 'main.people' %}page{% endif %}">
-                        <i class="bi bi-people"></i> People
-                    </a>
                     <a class="nav-link {{ 'active' if request.endpoint and request.endpoint.startswith('family.') }}" 
                        href="{{ url_for('family.index') }}" aria-current="{% if request.endpoint and request.endpoint.startswith('family.') %}page{% endif %}">
                         <i class="bi bi-house-heart"></i> Family
