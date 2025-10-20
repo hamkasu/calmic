@@ -63,10 +63,13 @@ def login():
         
         # Try to find user by username or email with retry logic
         try:
-            user = safe_db_query(
-                lambda: User.query.filter(
+            def query_user():
+                return User.query.filter(
                     (User.username == username) | (User.email == username)
-                ).first(),
+                ).first()
+            
+            user = safe_db_query(
+                query_user,
                 operation_name="user lookup"
             )
         except TransientDBError:
@@ -230,10 +233,13 @@ def register():
         
         # Check if user already exists with retry logic
         try:
-            existing_user = safe_db_query(
-                lambda: User.query.filter(
+            def query_existing_user():
+                return User.query.filter(
                     (User.username == username) | (User.email == email)
-                ).first(),
+                ).first()
+            
+            existing_user = safe_db_query(
+                query_existing_user,
                 operation_name="existing user check"
             )
         except TransientDBError:
@@ -416,8 +422,11 @@ def forgot_password():
         
         # Find user by email with retry logic for SSL disconnections
         try:
+            def query_user_by_email():
+                return User.query.filter_by(email=email).first()
+            
             user = safe_db_query(
-                lambda: User.query.filter_by(email=email).first(),
+                query_user_by_email,
                 operation_name="user lookup by email"
             )
         except TransientDBError:
