@@ -33,15 +33,6 @@ from photovault.utils.photo_detection import detect_photos_in_image, extract_det
 # Import JWT authentication utilities
 from photovault.utils.jwt_auth import hybrid_auth
 
-# Import photo detection utilities
-from photovault.utils.photo_detection import detect_photos_in_image, extract_detected_photos
-
-# Import JWT authentication utilities
-from photovault.utils.jwt_auth import hybrid_auth
-
-# Create blueprint
-photo_bp = Blueprint('photo', __name__)
-
 # Create blueprint
 photo_bp = Blueprint('photo', __name__)
 
