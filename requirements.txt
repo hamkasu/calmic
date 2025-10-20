@@ -59,15 +59,7 @@ replit-object-storage==1.0.2
 
 # AI Integration
 openai>=1.0.0
-google-generativeai
-
-# Photo Animation (LivePortrait)
-torch>=2.0.0
-torchvision>=0.15.0
-onnxruntime>=1.16.0
-imageio>=2.31.0
-imageio-ffmpeg>=0.4.9
-pyyaml>=6.0
+google-genai
 
 # Excel Export
 openpyxl
