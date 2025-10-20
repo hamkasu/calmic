@@ -62,13 +62,13 @@ def login():
             return render_template('login.html')
         
         # Try to find user by username or email with retry logic
-        def find_user():
-            return User.query.filter(
-                (User.username == username) | (User.email == username)
-            ).first()
-        
         try:
-            user = safe_db_query(find_user, operation_name="user lookup")
+            user = safe_db_query(
+                lambda: User.query.filter(
+                    (User.username == username) | (User.email == username)
+                ).first(),
+                operation_name="user lookup"
+            )
         except TransientDBError:
             if is_api_request:
                 return jsonify({'error': 'Temporary database issue. Please try again in a moment.'}), 503
@@ -229,13 +229,13 @@ def register():
             return render_template('register.html')
         
         # Check if user already exists with retry logic
-        def check_existing_user():
-            return User.query.filter(
-                (User.username == username) | (User.email == email)
-            ).first()
-        
         try:
-            existing_user = safe_db_query(check_existing_user, operation_name="existing user check")
+            existing_user = safe_db_query(
+                lambda: User.query.filter(
+                    (User.username == username) | (User.email == email)
+                ).first(),
+                operation_name="existing user check"
+            )
         except TransientDBError:
             if is_api_request:
                 return jsonify({'error': 'Temporary database issue. Please try again in a moment.'}), 503
