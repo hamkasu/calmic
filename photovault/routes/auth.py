@@ -148,7 +148,7 @@ def login():
     
     # Get actual stats from database for login page
     try:
-        from photovault.models import Photo, User
+        from photovault.models import Photo
         total_photos = Photo.query.count()
         total_users = User.query.count()
         

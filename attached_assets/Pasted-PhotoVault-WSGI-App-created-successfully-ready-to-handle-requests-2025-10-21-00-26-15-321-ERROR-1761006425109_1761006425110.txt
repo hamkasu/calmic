@@ -1,0 +1,13 @@
+PhotoVault WSGI: App created successfully, ready to handle requests
+[2025-10-21 00:26:15,321] ERROR in auth: Database error during user lookup: cannot access local variable 'User' where it is not associated with a value
+2025-10-21 00:26:15,321 ERROR: Database error during user lookup: cannot access local variable 'User' where it is not associated with a value [in /app/photovault/routes/auth.py:70]
+2025-10-21 00:26:15,321 ERROR: Database error during user lookup: cannot access local variable 'User' where it is not associated with a value [in /app/photovault/routes/auth.py:70]
+[2025-10-21 00:26:09,909] ERROR in auth: Database error during user lookup: cannot access local variable 'User' where it is not associated with a value
+2025-10-21 00:26:09,909 ERROR: Database error during user lookup: cannot access local variable 'User' where it is not associated with a value [in /app/photovault/routes/auth.py:70]
+2025-10-21 00:26:09,909 ERROR: Database error during user lookup: cannot access local variable 'User' where it is not associated with a value [in /app/photovault/routes/auth.py:70]
+ERROR:photovault:Database error during user lookup: cannot access local variable 'User' where it is not associated with a value
+2025-10-21 00:26:16,235 ERROR: Database error during user lookup: cannot access local variable 'User' where it is not associated with a value [in /app/photovault/routes/auth.py:70]
+ERROR:photovault:Database error during user lookup: cannot access local variable 'User' where it is not associated with a value
+2025-10-21 00:26:16,235 ERROR: Database error during user lookup: cannot access local variable 'User' where it is not associated with a value [in /app/photovault/routes/auth.py:70]
+[2025-10-21 00:26:16,235] ERROR in auth: Database error during user lookup: cannot access local variable 'User' where it is not associated with a value
+ERROR:photovault:Database error during user lookup: cannot access local variable 'User' where it is not associated with a value
