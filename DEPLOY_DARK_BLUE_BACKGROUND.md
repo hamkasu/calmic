@@ -1,11 +1,16 @@
 # Deploy Dark Blue Background to Railway
 
 ## Changes Made
-Updated the application background to a dark blue gradient:
+Updated the application background to a dark blue gradient with proper text contrast:
 - **File Changed**: `static/css/style.css`
 - **Background Changed**: From white/gray gradient to dark blue gradient
 - **New Colors**: `linear-gradient(135deg, #1e3a5f 0%, #0d1b2a 100%)`
 - **Text Color**: Changed to white (#ffffff) for visibility on dark background
+- **Typography Updates**: 
+  - All headings (h1-h6) are now white on dark background
+  - Paragraphs and labels are white on dark background
+  - Links are light blue (#a0c4ff) for better visibility
+  - Text inside cards remains dark for proper contrast on white card backgrounds
 
 ## Deploy to Railway
 

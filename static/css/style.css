@@ -38,6 +38,30 @@ body {
         "footer";
 }
 
+/* Headings on dark background */
+h1, h2, h3, h4, h5, h6 {
+    color: #ffffff;
+}
+
+/* Paragraphs on dark background */
+p {
+    color: #ffffff;
+}
+
+/* Links on dark background */
+a {
+    color: #a0c4ff;
+}
+
+a:hover {
+    color: #7dabff;
+}
+
+/* Labels and form text on dark background */
+label, .form-text {
+    color: #ffffff !important;
+}
+
 /* Modern Black & White Color Palette */
 :root {
     --primary-gradient: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
@@ -293,6 +317,30 @@ body {
 
 .card-body {
     padding: 1.5rem;
+}
+
+/* Keep text dark inside cards and white panels */
+.card h1, .card h2, .card h3, .card h4, .card h5, .card h6,
+.card p, .card label, .card .form-text {
+    color: var(--text-dark) !important;
+}
+
+.content-wrapper h1, .content-wrapper h2, .content-wrapper h3, 
+.content-wrapper h4, .content-wrapper h5, .content-wrapper h6,
+.content-wrapper p, .content-wrapper label, .content-wrapper .form-text {
+    color: var(--text-dark) !important;
+}
+
+.page-shell h1, .page-shell h2, .page-shell h3, 
+.page-shell h4, .page-shell h5, .page-shell h6,
+.page-shell p, .page-shell label, .page-shell .form-text {
+    color: var(--text-dark) !important;
+}
+
+.frosted-panel h1, .frosted-panel h2, .frosted-panel h3, 
+.frosted-panel h4, .frosted-panel h5, .frosted-panel h6,
+.frosted-panel p, .frosted-panel label, .frosted-panel .form-text {
+    color: var(--text-dark) !important;
 }
 
 /* Buttons - Beautiful Gradients and 3D Effects */
