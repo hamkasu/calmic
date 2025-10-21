@@ -53,8 +53,8 @@ function MainTabs() {
       })}
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
-      <Tab.Screen name="Camera" component={CameraScreen} />
       <Tab.Screen name="Gallery" component={GalleryScreen} />
+      <Tab.Screen name="Camera" component={CameraScreen} />
       <Tab.Screen name="Vaults" component={FamilyVaultsScreen} />
       <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>

@@ -895,3 +895,8 @@ Fixed web sharpening failing with "Authorization token is missing" error:
 [x] 268. Final verification - COMPLETED: Both servers running successfully with no critical errors
     - PhotoVault Server: Running on port 5000 with database initialized and subscription plans loaded
     - Expo Server: Running with tunnel ready and QR code displayed
+
+[x] 269. Reorder navigation tabs - COMPLETED: Moved Camera (Digitizer/Toolkit) icon to be positioned alongside Gallery and Vaults
+    - New tab order: Dashboard → Gallery → Camera → Vaults → Settings
+    - Camera now positioned between Gallery and Vaults for better organization
+    - All photo-related functions now grouped together in the middle tabs
