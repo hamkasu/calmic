@@ -50,41 +50,41 @@ CALMIC SDN BHD - "Committed to Excellence"
             <div class="card stats-card bg-primary text-white">
                 <div class="card-body text-center">
                     <div class="stats-number">{{ stats.total_photos }}</div>
-                    <div class="stats-label">Total Photos</div>
+                    <div class="stats-label">TOTAL PHOTOS</div>
                 </div>
             </div>
         </div>
         <div class="col-md-3 mb-3">
-            <div class="card stats-card bg-success text-white">
+            <div class="card stats-card bg-primary text-white">
                 <div class="card-body text-center">
                     <div class="stats-number">{{ stats.edited_photos }}</div>
-                    <div class="stats-label">Edited Photos</div>
+                    <div class="stats-label">EDITED PHOTOS</div>
                 </div>
             </div>
         </div>
         <div class="col-md-3 mb-3">
-            <div class="card stats-card bg-info text-white">
+            <div class="card stats-card bg-primary text-white">
                 <div class="card-body text-center">
                     <div class="stats-number">{{ stats.original_photos }}</div>
-                    <div class="stats-label">Original Photos</div>
+                    <div class="stats-label">ENHANCED PHOTOS</div>
                 </div>
             </div>
         </div>
         <div class="col-md-3 mb-3">
-            <div class="card stats-card bg-warning text-white">
+            <div class="card stats-card bg-primary text-white">
                 <div class="card-body text-center">
                     <div class="stats-number">{{ stats.total_size_mb }}</div>
-                    <div class="stats-label">Storage (MB)</div>
+                    <div class="stats-label">STORAGE (MB)</div>
                 </div>
             </div>
         </div>
         
         {% if current_user.is_admin and stats.total_users %}
         <div class="col-md-3 mb-3">
-            <div class="card stats-card bg-secondary text-white">
+            <div class="card stats-card bg-primary text-white">
                 <div class="card-body text-center">
                     <div class="stats-number">{{ stats.total_users }}</div>
-                    <div class="stats-label">Total Users</div>
+                    <div class="stats-label">TOTAL USERS</div>
                 </div>
             </div>
         </div>
