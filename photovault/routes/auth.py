@@ -61,18 +61,13 @@ def login():
             flash('Please enter both username and password.', 'error')
             return render_template('login.html')
         
-        # Try to find user by username or email with retry logic
+        # Try to find user by username or email
         try:
-            def query_user():
-                return User.query.filter(
-                    (User.username == username) | (User.email == username)
-                ).first()
-            
-            user = safe_db_query(
-                query_user,
-                operation_name="user lookup"
-            )
-        except TransientDBError:
+            user = User.query.filter(
+                (User.username == username) | (User.email == username)
+            ).first()
+        except Exception as e:
+            current_app.logger.error(f"Database error during user lookup: {e}")
             if is_api_request:
                 return jsonify({'error': 'Temporary database issue. Please try again in a moment.'}), 503
             flash('Temporary database issue. Please try again in a moment.', 'error')
@@ -231,18 +226,13 @@ def register():
             flash('Passwords do not match.', 'error')
             return render_template('register.html')
         
-        # Check if user already exists with retry logic
+        # Check if user already exists
         try:
-            def query_existing_user():
-                return User.query.filter(
-                    (User.username == username) | (User.email == email)
-                ).first()
-            
-            existing_user = safe_db_query(
-                query_existing_user,
-                operation_name="existing user check"
-            )
-        except TransientDBError:
+            existing_user = User.query.filter(
+                (User.username == username) | (User.email == email)
+            ).first()
+        except Exception as e:
+            current_app.logger.error(f"Database error during existing user check: {e}")
             if is_api_request:
                 return jsonify({'error': 'Temporary database issue. Please try again in a moment.'}), 503
             flash('Temporary database issue. Please try again in a moment.', 'error')
@@ -420,17 +410,11 @@ def forgot_password():
             flash('Please enter a valid email address.', 'error')
             return render_template('auth/forgot_password.html')
         
-        # Find user by email with retry logic for SSL disconnections
+        # Find user by email
         try:
-            def query_user_by_email():
-                return User.query.filter_by(email=email).first()
-            
-            user = safe_db_query(
-                query_user_by_email,
-                operation_name="user lookup by email"
-            )
-        except TransientDBError:
-            # If database is still failing after retries, show generic error
+            user = User.query.filter_by(email=email).first()
+        except Exception as e:
+            current_app.logger.error(f"Database error during user lookup by email: {e}")
             flash('Service temporarily unavailable. Please try again in a moment.', 'error')
             return render_template('auth/forgot_password.html')
         
