@@ -235,35 +235,66 @@ class StoryKeepUploader {
             const contours = new cv.MatVector();
             const hierarchy = new cv.Mat();
             
-            // Enhanced image processing pipeline for multiple photo detection
+            // ADVANCED multi-strategy image processing pipeline
             
             // 1. Convert to grayscale
             cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
             
-            // 2. Apply CLAHE for improved contrast in uneven lighting
-            const claheFilter = new cv.CLAHE(2.0, new cv.Size(8, 8));
-            claheFilter.apply(gray, clahe);
+            // 2. Shadow removal - normalize illumination
+            const shadowRemoved = new cv.Mat();
+            const blurred = new cv.Mat();
+            cv.GaussianBlur(gray, blurred, new cv.Size(15, 15), 0);
+            cv.divide(gray, blurred, shadowRemoved, 255);
+            blurred.delete();
             
-            // 3. Apply bilateral filter for edge-preserving noise reduction
+            // 3. Apply CLAHE for improved contrast (increased for faded photos)
+            const claheFilter = new cv.CLAHE(3.0, new cv.Size(8, 8));
+            claheFilter.apply(shadowRemoved, clahe);
+            shadowRemoved.delete();
+            
+            // 4. Apply bilateral filter for edge-preserving noise reduction
             cv.bilateralFilter(clahe, blur, 9, 75, 75);
             
-            // 4. Calculate adaptive Canny thresholds based on image median
+            // 5. Multi-strategy edge detection: Canny + Sobel combined
             const medianValue = this.calculateMedianValue(blur);
             const sigma = 0.33;
             const lower = Math.max(0, (1.0 - sigma) * medianValue);
             const upper = Math.min(255, (1.0 + sigma) * medianValue);
             
-            // 5. Apply Canny edge detection with adaptive thresholds
-            cv.Canny(blur, edges, lower, upper);
+            // Canny edges
+            const cannyEdges = new cv.Mat();
+            cv.Canny(blur, cannyEdges, lower, upper);
+            
+            // Sobel edges for additional detection
+            const sobelX = new cv.Mat();
+            const sobelY = new cv.Mat();
+            const sobelCombined = new cv.Mat();
+            cv.Sobel(blur, sobelX, cv.CV_16S, 1, 0, 3);
+            cv.Sobel(blur, sobelY, cv.CV_16S, 0, 1, 3);
+            cv.convertScaleAbs(sobelX, sobelX);
+            cv.convertScaleAbs(sobelY, sobelY);
+            cv.addWeighted(sobelX, 0.5, sobelY, 0.5, 0, sobelCombined);
+            const sobelEdges = new cv.Mat();
+            cv.threshold(sobelCombined, sobelEdges, 50, 255, cv.THRESH_BINARY);
+            
+            // Combine Canny and Sobel edges
+            cv.bitwise_or(cannyEdges, sobelEdges, edges);
+            
+            // Cleanup
+            cannyEdges.delete();
+            sobelX.delete();
+            sobelY.delete();
+            sobelCombined.delete();
+            sobelEdges.delete();
             
             // 6. Apply morphological operations to connect broken edges
-            const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
-            cv.dilate(edges, morphed, kernel);
-            cv.morphologyEx(morphed, morphed, cv.MORPH_CLOSE, kernel);
+            const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5, 5));
+            cv.morphologyEx(edges, morphed, cv.MORPH_CLOSE, kernel);
+            cv.dilate(morphed, morphed, kernel, new cv.Point(-1, -1), 2);
             kernel.delete();
             
-            // 7. Find contours
-            cv.findContours(morphed, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+            // 7. Find contours with HIERARCHY to detect overlapping photos
+            cv.findContours(morphed, contours, hierarchy, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE);
             
             // Clear overlay
             ctx.clearRect(0, 0, overlay.width, overlay.height);
@@ -334,17 +365,19 @@ class StoryKeepUploader {
     findPhotoContours(contours, imageWidth, imageHeight) {
         const detectedPhotos = [];
         const imageArea = imageWidth * imageHeight;
-        const minArea = imageArea * 0.05; // At least 5% of image
+        const minArea = imageArea * 0.02; // LOWERED: At least 2% of image (was 5%)
         const maxArea = imageArea * 0.95; // At most 95% of image
         
-        // Valid aspect ratios for photographs (width:height)
+        // EXPANDED: More permissive aspect ratios for various photo types including Polaroids
         const validAspectRatios = [
-            { min: 0.9, max: 1.1, name: '1:1 (Square)' },      // 1:1
-            { min: 1.4, max: 1.6, name: '3:2 (Standard)' },    // 3:2
-            { min: 0.625, max: 0.725, name: '2:3 (Portrait)' }, // 2:3
-            { min: 1.3, max: 1.4, name: '4:3 (Classic)' },     // 4:3
-            { min: 0.71, max: 0.77, name: '3:4 (Portrait)' },  // 3:4
-            { min: 1.7, max: 1.8, name: '16:9 (Widescreen)' }  // 16:9
+            { min: 0.85, max: 1.15, name: '1:1 (Square/Polaroid)' },  // Square photos and Polaroids
+            { min: 1.35, max: 1.65, name: '3:2 (Standard)' },         // Standard photo
+            { min: 0.60, max: 0.75, name: '2:3 (Portrait)' },         // Portrait orientation
+            { min: 1.25, max: 1.45, name: '4:3 (Classic)' },          // Classic photo
+            { min: 0.69, max: 0.80, name: '3:4 (Portrait)' },         // Portrait classic
+            { min: 1.65, max: 1.85, name: '16:9 (Widescreen)' },      // Widescreen
+            { min: 0.50, max: 0.60, name: '9:16 (Tall)' },            // Very tall photos
+            { min: 1.85, max: 2.2, name: 'Panoramic' }                // Panoramic photos
         ];
         
         for (let i = 0; i < contours.size(); ++i) {
@@ -359,10 +392,10 @@ class StoryKeepUploader {
             
             // Filter 2: Approximate to polygon
             const approx = new cv.Mat();
-            const epsilon = 0.02 * cv.arcLength(contour, true);
+            const epsilon = 0.015 * cv.arcLength(contour, true); // LOWERED: More permissive (was 0.02)
             cv.approxPolyDP(contour, approx, epsilon, true);
             
-            // Filter 3: Must have 4 corners (quadrilateral)
+            // Filter 3: Must have 4 corners (quadrilateral) - allow some flexibility
             if (approx.rows !== 4) {
                 approx.delete();
                 contour.delete();
@@ -390,8 +423,8 @@ class StoryKeepUploader {
                 continue;
             }
             
-            // Filter 6: Check corner angles (should be roughly 90 degrees)
-            if (!this.hasValidCornerAngles(approx)) {
+            // Filter 6: RELAXED corner angle check (allow 60-120 degrees, was 70-110)
+            if (!this.hasValidCornerAnglesRelaxed(approx)) {
                 approx.delete();
                 contour.delete();
                 continue;
@@ -440,6 +473,37 @@ class StoryKeepUploader {
         }
         
         return true;
+    }
+    
+    hasValidCornerAnglesRelaxed(contour) {
+        // RELAXED: Check if corner angles are reasonable (60-120 deg range for challenging photos)
+        if (contour.rows !== 4) return false;
+        
+        const points = [];
+        for (let i = 0; i < 4; i++) {
+            const x = contour.data32S[i * 2];
+            const y = contour.data32S[i * 2 + 1];
+            points.push({ x, y });
+        }
+        
+        // Calculate angles at each corner
+        let validCorners = 0;
+        for (let i = 0; i < 4; i++) {
+            const p1 = points[i];
+            const p2 = points[(i + 1) % 4];
+            const p3 = points[(i + 2) % 4];
+            
+            const angle = this.calculateAngle(p1, p2, p3);
+            
+            // Relaxed: Allow 60-120 degrees (was 70-110)
+            // At least 3 out of 4 corners must be in this range
+            if (angle >= 60 && angle <= 120) {
+                validCorners++;
+            }
+        }
+        
+        // Need at least 3 corners in the valid range (allows for slight distortion)
+        return validCorners >= 3;
     }
     
     calculateAngle(p1, p2, p3) {
