@@ -648,12 +648,11 @@ export default function PhotoDetailScreen({ route, navigation }) {
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.actionButton, !authToken && styles.actionButtonDisabled]} 
+            style={styles.actionButton} 
             onPress={handleShare}
-            disabled={!authToken}
           >
-            <Ionicons name="share-social" size={24} color={authToken ? "#E85D75" : "#999"} />
-            <Text style={[styles.actionText, !authToken && styles.actionTextDisabled]}>Share</Text>
+            <Ionicons name="share-social" size={24} color="#E85D75" />
+            <Text style={styles.actionText}>Share</Text>
           </TouchableOpacity>
         </View>
 
