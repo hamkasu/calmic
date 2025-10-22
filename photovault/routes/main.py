@@ -378,6 +378,20 @@ def sharpening():
         flash('Error loading sharpening page.', 'error')
         return redirect(url_for('main.dashboard'))
 
+@main_bp.route('/damage-repair')
+@login_required
+def damage_repair():
+    """Photo damage repair page"""
+    try:
+        from photovault.models import Photo
+        # Get user's photos for damage repair
+        photos = Photo.query.filter_by(user_id=current_user.id).order_by(Photo.created_at.desc()).limit(20).all()
+        return render_template('damage_repair.html', photos=photos)
+    except Exception as e:
+        print(f"Damage repair page error: {str(e)}")
+        flash('Error loading damage repair page.', 'error')
+        return redirect(url_for('main.dashboard'))
+
 @main_bp.route('/people/add', methods=['POST'])
 @login_required
 def add_person():

@@ -1,0 +1,494 @@
+<!--
+StoryKeep - Professional Photo Management Platform
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+-->
+
+{% extends "base.html" %}
+{% block title %}Photo Damage Repair - StoryKeep{% endblock %}
+
+{% block extra_css %}
+<style>
+body {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    min-height: 100vh;
+}
+
+.damage-repair-container {
+    padding: 2rem 0;
+}
+
+.damage-repair-header {
+    text-align: center;
+    color: white;
+    margin-bottom: 2rem;
+}
+
+.damage-repair-header h1 {
+    font-size: 2.5rem;
+    font-weight: 300;
+    margin-bottom: 0.5rem;
+}
+
+.damage-repair-header p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+.preview-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+    margin-bottom: 1.5rem;
+}
+
+.image-preview-section {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+}
+
+.image-column {
+    flex: 1;
+    max-width: 48%;
+    text-align: center;
+}
+
+.image-column h6 {
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #333;
+}
+
+.preview-image {
+    width: 100%;
+    height: auto;
+    max-height: 400px;
+    object-fit: contain;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.controls-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+}
+
+.control-group {
+    margin-bottom: 1.5rem;
+}
+
+.control-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.slider-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.slider-container input[type="range"] {
+    flex: 1;
+}
+
+.slider-value {
+    min-width: 60px;
+    text-align: center;
+    font-weight: 600;
+    color: #e74c3c;
+}
+
+.btn-repair {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.btn-repair:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(231, 76, 60, 0.4);
+}
+
+.btn-repair:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.photo-selector {
+    background: white;
+    border: 2px solid #e74c3c;
+    border-radius: 10px;
+    padding: 0.75rem;
+    width: 100%;
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.info-box {
+    background: rgba(231, 76, 60, 0.1);
+    border-left: 4px solid #e74c3c;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+.info-box i {
+    color: #e74c3c;
+    margin-right: 0.5rem;
+}
+
+.loading-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+
+.loading-overlay.show {
+    display: flex;
+}
+
+.loading-spinner {
+    background: white;
+    padding: 2rem;
+    border-radius: 15px;
+    text-align: center;
+}
+
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+    border-width: 0.3rem;
+}
+
+.repair-type-btn {
+    padding: 0.75rem;
+    border-radius: 8px;
+    border: 2px solid #e74c3c;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    margin-bottom: 0.5rem;
+}
+
+.repair-type-btn:hover {
+    background: rgba(231, 76, 60, 0.1);
+}
+
+.repair-type-btn.active {
+    background: #e74c3c;
+    color: white;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="damage-repair-container container">
+    <!-- Header -->
+    <div class="damage-repair-header">
+        <h1><i class="bi bi-bandaid"></i> Photo Damage Repair</h1>
+        <p>Restore old and damaged photos with AI-powered repair tools</p>
+    </div>
+
+    <div class="row">
+        <!-- Controls Column -->
+        <div class="col-lg-4">
+            <div class="controls-card">
+                <h5 class="mb-4"><i class="bi bi-tools"></i> Repair Controls</h5>
+
+                <!-- Photo Selection -->
+                <div class="control-group">
+                    <label for="photoSelect">Select Photo</label>
+                    <select id="photoSelect" class="photo-selector">
+                        <option value="">Choose a photo...</option>
+                        {% for photo in photos %}
+                        <option value="{{ photo.id }}" data-url="{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.filename) }}">
+                            {{ photo.filename|truncate(40) }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Repair Type Selection -->
+                <div class="control-group">
+                    <label>Repair Type</label>
+                    <div class="repair-type-btn active" data-type="comprehensive" onclick="selectRepairType('comprehensive', this)">
+                        <strong>Comprehensive Repair</strong><br>
+                        <small>All-in-one fix</small>
+                    </div>
+                    <div class="repair-type-btn" data-type="scratches" onclick="selectRepairType('scratches', this)">
+                        <strong>Remove Scratches</strong><br>
+                        <small>Fix scratches & dust</small>
+                    </div>
+                    <div class="repair-type-btn" data-type="stains" onclick="selectRepairType('stains', this)">
+                        <strong>Remove Stains</strong><br>
+                        <small>Clean discoloration</small>
+                    </div>
+                    <div class="repair-type-btn" data-type="cracks" onclick="selectRepairType('cracks', this)">
+                        <strong>Repair Cracks</strong><br>
+                        <small>Fix photo cracks</small>
+                    </div>
+                </div>
+
+                <!-- Sensitivity Control (for scratches & cracks) -->
+                <div class="control-group" id="sensitivityControl">
+                    <label for="sensitivity">Repair Sensitivity</label>
+                    <div class="slider-container">
+                        <input type="range" id="sensitivity" class="form-range" min="1" max="10" step="1" value="5">
+                        <span class="slider-value" id="sensitivityValue">5</span>
+                    </div>
+                    <small class="text-muted">Higher values detect more damage</small>
+                </div>
+
+                <!-- Strength Control (for stains) -->
+                <div class="control-group" id="strengthControl" style="display: none;">
+                    <label for="strength">Repair Strength</label>
+                    <div class="slider-container">
+                        <input type="range" id="strength" class="form-range" min="0.5" max="3.0" step="0.1" value="1.5">
+                        <span class="slider-value" id="strengthValue">1.5</span>
+                    </div>
+                    <small class="text-muted">Higher values apply stronger correction</small>
+                </div>
+
+                <!-- Apply Button -->
+                <button id="applyRepair" class="btn-repair" disabled>
+                    <i class="bi bi-magic"></i> Apply Repair
+                </button>
+
+                <!-- Info Box -->
+                <div class="info-box">
+                    <i class="bi bi-info-circle-fill"></i>
+                    <strong>Tip:</strong> For best results, try comprehensive repair first, then fine-tune with specific repairs.
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Column -->
+        <div class="col-lg-8">
+            <div class="preview-card">
+                <div id="noPhotoSelected" style="text-align: center; padding: 3rem; color: #999;">
+                    <i class="bi bi-image" style="font-size: 4rem; margin-bottom: 1rem;"></i>
+                    <p>Select a photo to begin repair</p>
+                </div>
+
+                <div id="imagePreview" style="display: none;">
+                    <div class="image-preview-section">
+                        <!-- Original Image -->
+                        <div class="image-column">
+                            <h6>Original (Damaged)</h6>
+                            <img id="originalImage" class="preview-image" src="" alt="Original">
+                        </div>
+
+                        <!-- Repaired Image -->
+                        <div class="image-column">
+                            <h6>Repaired</h6>
+                            <div id="repairedPlaceholder" style="text-align: center; padding: 2rem; color: #999;">
+                                <i class="bi bi-arrow-left-circle" style="font-size: 3rem;"></i>
+                                <p>Click "Apply Repair" to see result</p>
+                            </div>
+                            <img id="repairedImage" class="preview-image" src="" alt="Repaired" style="display: none;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-spinner">
+        <div class="spinner-border text-danger" role="status"></div>
+        <p class="mt-3 mb-0">Repairing image damage...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedPhotoId = null;
+let selectedRepairType = 'comprehensive';
+
+// Repair type selection
+function selectRepairType(type, element) {
+    selectedRepairType = type;
+    
+    // Update button active states
+    document.querySelectorAll('.repair-type-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    element.classList.add('active');
+    
+    // Show/hide appropriate controls
+    const sensitivityControl = document.getElementById('sensitivityControl');
+    const strengthControl = document.getElementById('strengthControl');
+    
+    if (type === 'stains') {
+        sensitivityControl.style.display = 'none';
+        strengthControl.style.display = 'block';
+    } else if (type === 'comprehensive') {
+        sensitivityControl.style.display = 'block';
+        strengthControl.style.display = 'block';
+    } else {
+        sensitivityControl.style.display = 'block';
+        strengthControl.style.display = 'none';
+    }
+}
+
+// Update slider values
+document.getElementById('sensitivity').addEventListener('input', function() {
+    document.getElementById('sensitivityValue').textContent = this.value;
+});
+
+document.getElementById('strength').addEventListener('input', function() {
+    document.getElementById('strengthValue').textContent = this.value;
+});
+
+// Photo selection
+document.getElementById('photoSelect').addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    selectedPhotoId = this.value;
+    
+    if (selectedPhotoId) {
+        const imageUrl = selectedOption.dataset.url;
+        document.getElementById('originalImage').src = imageUrl;
+        document.getElementById('noPhotoSelected').style.display = 'none';
+        document.getElementById('imagePreview').style.display = 'block';
+        document.getElementById('repairedPlaceholder').style.display = 'block';
+        document.getElementById('repairedImage').style.display = 'none';
+        document.getElementById('applyRepair').disabled = false;
+    } else {
+        document.getElementById('noPhotoSelected').style.display = 'block';
+        document.getElementById('imagePreview').style.display = 'none';
+        document.getElementById('applyRepair').disabled = true;
+    }
+});
+
+// Apply repair
+document.getElementById('applyRepair').addEventListener('click', async function() {
+    if (!selectedPhotoId) {
+        alert('Please select a photo first');
+        return;
+    }
+
+    const sensitivity = parseInt(document.getElementById('sensitivity').value);
+    const strength = parseFloat(document.getElementById('strength').value);
+
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    loadingOverlay.classList.add('show');
+
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        
+        let endpoint = '';
+        let body = {};
+        
+        switch(selectedRepairType) {
+            case 'comprehensive':
+                endpoint = `/api/photos/${selectedPhotoId}/repair/comprehensive`;
+                body = {
+                    scratch_sensitivity: sensitivity,
+                    crack_sensitivity: sensitivity,
+                    stain_strength: strength
+                };
+                break;
+            case 'scratches':
+                endpoint = `/api/photos/${selectedPhotoId}/repair/scratches`;
+                body = {
+                    sensitivity: sensitivity,
+                    inpaint_radius: 3
+                };
+                break;
+            case 'stains':
+                endpoint = `/api/photos/${selectedPhotoId}/repair/stains`;
+                body = {
+                    strength: strength
+                };
+                break;
+            case 'cracks':
+                endpoint = `/api/photos/${selectedPhotoId}/repair/cracks`;
+                body = {
+                    sensitivity: sensitivity
+                };
+                break;
+        }
+        
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify(body)
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // The API returns the new photo ID, we need to get its URL
+            const photoUrl = `/uploads/${data.repaired_photo_id}?t=${new Date().getTime()}`;
+            
+            document.getElementById('repairedImage').src = photoUrl;
+            document.getElementById('repairedPlaceholder').style.display = 'none';
+            document.getElementById('repairedImage').style.display = 'block';
+            
+            showMessage(data.message || 'Repair completed successfully!', 'success');
+        } else {
+            showMessage('Repair failed: ' + (data.error || 'Unknown error'), 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showMessage('Repair failed: ' + error.message, 'error');
+    } finally {
+        loadingOverlay.classList.remove('show');
+    }
+});
+
+function showMessage(message, type) {
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    const container = document.querySelector('.damage-repair-container');
+    container.insertAdjacentHTML('afterbegin', alertHtml);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        const alert = container.querySelector('.alert');
+        if (alert) {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}
