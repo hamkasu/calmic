@@ -907,3 +907,9 @@ Fixed web sharpening failing with "Authorization token is missing" error:
     - Navigation now displays text-only labels for cleaner appearance
     - Removed Toolkit special styling (flex-direction: column) for consistency with other nav items
     - PhotoVault Server restarted successfully with updated navigation
+
+[x] 271. Add Colorization to Toolkit dropdown - COMPLETED: Added Colorization menu item below Sharpening
+    - New Toolkit dropdown order: Enhancement → Sharpening → Colorization → Montage
+    - Colorization links to Advanced Enhancement page (main.advanced_enhancement)
+    - Menu item positioned between Sharpening and Montage as requested
+    - PhotoVault Server restarted successfully with updated menu
