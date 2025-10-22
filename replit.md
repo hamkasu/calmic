@@ -4,6 +4,20 @@
 StoryKeep is a comprehensive photo management and enhancement platform offering a professional-grade experience. It includes a professional camera interface, automatic photo upload and organization, secure storage, face detection and recognition, advanced photo enhancement and restoration, AI-powered smart tagging, family vault sharing, and social media integration. The platform uses a subscription-based model and aims to provide advanced photo management solutions to a broad market.
 
 ## Recent Changes
+**October 22, 2025** - Comprehensive Edge Detection Upgrades:
+- Implemented advanced multi-scale pyramid detection (3 scales: 1.0x, 0.75x, 0.5x) to catch photos of all sizes including small photos
+- Added adaptive preprocessing pipeline with shadow removal, glare mitigation, and illumination normalization for challenging lighting conditions
+- Implemented hierarchical contour detection (RETR_TREE) for detecting overlapping and touching photos
+- Added watershed segmentation to separate touching photos with shared edges
+- Implemented special photo type detection: Polaroid recognition (white border detection), faded photo enhancement (aggressive CLAHE)
+- Added geometric validation with texture analysis and relaxed angle checks (60-120° instead of 70-110°) to reduce false positives while improving recall
+- Implemented Non-Maximum Suppression (NMS) to merge overlapping detections and prevent duplicates
+- Enhanced frontend JavaScript real-time detection with matching preprocessing stack (illumination normalization, CLAHE 3.0, bilateral blur, Canny+Sobel fusion)
+- Expanded aspect ratio support for Polaroids (0.8-1.0), panoramic (0.3-0.5), and tall photos (2.0-3.3)
+- Lowered minimum area threshold from 5% to 2% for small photo detection
+- Added backward compatibility alias `PhotoDetector = AdvancedPhotoDetector` to prevent breaking changes
+- All improvements architect-reviewed and approved with PASS rating for coherent integration and comprehensive edge-case coverage
+
 **October 20, 2025** - Fixed People Page Flashing Issue on Railway:
 - Fixed SQLAlchemy 2.0 pagination bug causing People page to flash/flicker on Railway
 - Replaced deprecated `Query.paginate()` with `db.paginate(select(Person).where()...)` 
@@ -37,6 +51,18 @@ The frontend uses HTML5, CSS3, JavaScript (vanilla + jQuery patterns) with Jinja
 
 ### Technical Implementations
 The backend is built with Flask 3.0.3, PostgreSQL (via Neon on Replit), and SQLAlchemy 2.0.25 for ORM. Alembic via Flask-Migrate handles database migrations. Flask-Login manages authentication, and Flask-WTF + WTForms are used for forms. Gunicorn 21.2.0 serves the application in production. Image processing uses Pillow 11.3.0 with pillow-heif 1.1.1 for HEIC/HEIF support, and OpenCV 4.12.0.88 (headless), with NumPy and scikit-image. AI integration leverages Google Gemini API (gemini-2.0-flash-exp) for intelligent photo colorization and analysis. Replit Object Storage is used for persistent image storage with local storage fallback.
+
+**Advanced Photo Detection System** (`AdvancedPhotoDetector`) implements production-grade edge detection with:
+- Multi-scale pyramid processing (1.0x, 0.75x, 0.5x) for size-invariant detection
+- Adaptive preprocessing: shadow removal, glare mitigation, illumination normalization, CLAHE enhancement
+- Multi-strategy edge detection combining adaptive Canny with Sobel edges
+- Hierarchical contour analysis (RETR_TREE) for overlapping photo detection
+- Watershed segmentation for separating touching photos
+- Special detection modes: Polaroid white-border recognition, faded photo aggressive enhancement
+- Geometric validation: quadrilateral approximation, corner angle checking (60-120°), texture analysis, edge strength validation
+- Non-Maximum Suppression (NMS) for merging overlapping detections
+- Confidence scoring system with area-based, aspect-ratio-based, and geometry-based metrics
+- Corner refinement with sub-pixel accuracy for precise extraction
 
 The Mobile Digitizer App (iOS & Android) is a professional photo digitalization tool built with React Native/Expo, featuring:
 - Smart camera with real-time edge detection, visual guides, and auto-capture.
