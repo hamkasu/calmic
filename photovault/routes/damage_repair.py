@@ -66,8 +66,7 @@ def repair_scratches(photo_id):
             mime_type=f"image/{image_info.get('format', 'jpeg').lower()}" if image_info else 'image/jpeg',
             upload_source='damage_repair',
             user_id=current_user.id,
-            album_id=photo.album_id,
-            description=f"Scratch-repaired version of {photo.original_name}"
+            album_id=photo.album_id
         )
         
         db.session.add(new_photo)
@@ -141,8 +140,7 @@ def repair_stains(photo_id):
             mime_type=f"image/{image_info.get('format', 'jpeg').lower()}" if image_info else 'image/jpeg',
             upload_source='damage_repair',
             user_id=current_user.id,
-            album_id=photo.album_id,
-            description=f"Stain-removed version of {photo.original_name}"
+            album_id=photo.album_id
         )
         
         db.session.add(new_photo)
@@ -216,8 +214,7 @@ def repair_cracks(photo_id):
             mime_type=f"image/{image_info.get('format', 'jpeg').lower()}" if image_info else 'image/jpeg',
             upload_source='damage_repair',
             user_id=current_user.id,
-            album_id=photo.album_id,
-            description=f"Crack-repaired version of {photo.original_name}"
+            album_id=photo.album_id
         )
         
         db.session.add(new_photo)
@@ -294,8 +291,7 @@ def comprehensive_repair(photo_id):
             mime_type=f"image/{image_info.get('format', 'jpeg').lower()}" if image_info else 'image/jpeg',
             upload_source='damage_repair',
             user_id=current_user.id,
-            album_id=photo.album_id,
-            description=f"Fully repaired version of {photo.original_name}"
+            album_id=photo.album_id
         )
         
         db.session.add(new_photo)
@@ -420,8 +416,7 @@ def ai_inpaint(photo_id):
             mime_type=f"image/{image_info.get('format', 'jpeg').lower()}" if image_info else 'image/jpeg',
             upload_source='ai_damage_repair',
             user_id=current_user.id,
-            album_id=photo.album_id,
-            description=f"AI-inpainted version of {photo.original_name}"
+            album_id=photo.album_id
         )
         
         db.session.add(new_photo)
