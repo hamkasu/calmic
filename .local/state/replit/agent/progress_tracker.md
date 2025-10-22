@@ -970,3 +970,10 @@ Fixed web sharpening failing with "Authorization token is missing" error:
     - Added backgroundColor: '#ffffff' to GestureHandlerRootView
     - This overrides React Navigation's automatic dark mode detection
     - User needs to reload the app in Expo Go (shake device → Reload)
+
+[x] 284. Fix image loading rate limit issue - COMPLETED: Exempted uploaded_file endpoint from rate limiting
+    - Problem: Global rate limit of 50 requests/hour was blocking image loads
+    - Solution: Added @limiter.exempt decorator to /uploads/<user_id>/<filename> route
+    - Images already protected by JWT/session authentication
+    - PhotoVault Server restarted with fix applied
+    - Note: This fix is on local Replit - user needs to deploy to Railway for production

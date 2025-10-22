@@ -4,7 +4,7 @@ Simple gallery blueprint for photo management
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_from_directory, send_file, abort, current_app, Response, jsonify
 from flask_login import login_required, current_user
-from photovault.extensions import db
+from photovault.extensions import db, limiter
 import os
 import zipfile
 import tempfile
@@ -252,6 +252,7 @@ def file_diagnostics():
     return render_template('debug/file_diagnostics.html')
 
 @gallery_bp.route('/uploads/<int:user_id>/<path:filename>')
+@limiter.exempt  # Exempt from rate limiting - already protected by JWT/session auth
 @hybrid_auth
 def uploaded_file(current_user, user_id, filename):
     """Secure route for serving uploaded files with authentication checks (supports both session and JWT)"""
