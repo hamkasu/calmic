@@ -228,18 +228,42 @@ class StoryKeepUploader {
             // Convert to OpenCV Mat
             const src = cv.imread(canvas);
             const gray = new cv.Mat();
+            const clahe = new cv.Mat();
             const blur = new cv.Mat();
             const edges = new cv.Mat();
+            const morphed = new cv.Mat();
             const contours = new cv.MatVector();
             const hierarchy = new cv.Mat();
             
-            // Image processing pipeline for photo edge detection
-            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-            cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
-            cv.Canny(blur, edges, 50, 150);
+            // Enhanced image processing pipeline for multiple photo detection
             
-            // Find contours
-            cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+            // 1. Convert to grayscale
+            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+            
+            // 2. Apply CLAHE for improved contrast in uneven lighting
+            const claheFilter = new cv.CLAHE(2.0, new cv.Size(8, 8));
+            claheFilter.apply(gray, clahe);
+            
+            // 3. Apply bilateral filter for edge-preserving noise reduction
+            cv.bilateralFilter(clahe, blur, 9, 75, 75);
+            
+            // 4. Calculate adaptive Canny thresholds based on image median
+            const medianValue = this.calculateMedianValue(blur);
+            const sigma = 0.33;
+            const lower = Math.max(0, (1.0 - sigma) * medianValue);
+            const upper = Math.min(255, (1.0 + sigma) * medianValue);
+            
+            // 5. Apply Canny edge detection with adaptive thresholds
+            cv.Canny(blur, edges, lower, upper);
+            
+            // 6. Apply morphological operations to connect broken edges
+            const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
+            cv.dilate(edges, morphed, kernel);
+            cv.morphologyEx(morphed, morphed, cv.MORPH_CLOSE, kernel);
+            kernel.delete();
+            
+            // 7. Find contours
+            cv.findContours(morphed, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
             
             // Clear overlay
             ctx.clearRect(0, 0, overlay.width, overlay.height);
@@ -254,35 +278,25 @@ class StoryKeepUploader {
                 this.analyzeMotionAndStability(src);
             }
             
-            // Find the largest rectangular contour (likely a photo)
-            let largestArea = 0;
-            let bestContour = null;
+            // 8. Detect ALL valid photo-like contours with intelligent filtering
+            const detectedPhotos = this.findPhotoContours(contours, canvas.width, canvas.height);
             
-            for (let i = 0; i < contours.size(); ++i) {
-                const contour = contours.get(i);
-                const area = cv.contourArea(contour);
+            // 9. Draw all detected photos
+            const scaleX = overlay.width / canvas.width;
+            const scaleY = overlay.height / canvas.height;
+            
+            if (detectedPhotos.length > 0) {
+                // Draw all detected photos with different visual styles
+                detectedPhotos.forEach((photo, index) => {
+                    const isPrimary = index === 0; // First (largest) photo is primary
+                    this.drawPhotoOverlay(ctx, photo.contour, scaleX, scaleY, isPrimary, index);
+                });
                 
-                if (area > largestArea && area > 5000) { // Minimum area threshold
-                    // Approximate contour to polygon
-                    const approx = new cv.Mat();
-                    const epsilon = 0.02 * cv.arcLength(contour, true);
-                    cv.approxPolyDP(contour, approx, epsilon, true);
-                    
-                    // Check if it's roughly rectangular (4 corners)
-                    if (approx.rows === 4) {
-                        largestArea = area;
-                        bestContour = approx.clone();
-                    }
-                    approx.delete();
-                }
-                contour.delete();
-            }
-            
-            // Draw detected photo edges
-            if (bestContour) {
-                this.drawPhotoOverlay(ctx, bestContour, overlay.width / canvas.width, overlay.height / canvas.height);
-                this.lastDetectedCorners = this.extractCorners(bestContour);
-                bestContour.delete();
+                // Store corners of the primary photo for auto-capture
+                this.lastDetectedCorners = this.extractCorners(detectedPhotos[0].contour);
+                
+                // Cleanup photo contours
+                detectedPhotos.forEach(photo => photo.contour.delete());
             }
             
             // Draw focus outline if in focus
@@ -296,21 +310,174 @@ class StoryKeepUploader {
             // Cleanup
             src.delete();
             gray.delete();
+            clahe.delete();
             blur.delete();
             edges.delete();
+            morphed.delete();
             contours.delete();
             hierarchy.delete();
+            claheFilter.delete();
             
         } catch (error) {
             console.warn('Edge detection error:', error);
         }
     }
     
-    drawPhotoOverlay(ctx, contour, scaleX, scaleY) {
-        ctx.strokeStyle = '#00ff00';
-        ctx.lineWidth = 3;
-        ctx.fillStyle = 'rgba(0, 255, 0, 0.1)';
+    calculateMedianValue(mat) {
+        // Calculate median pixel value for adaptive thresholding
+        const data = mat.data;
+        const sorted = Array.from(data).sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+    }
+    
+    findPhotoContours(contours, imageWidth, imageHeight) {
+        const detectedPhotos = [];
+        const imageArea = imageWidth * imageHeight;
+        const minArea = imageArea * 0.05; // At least 5% of image
+        const maxArea = imageArea * 0.95; // At most 95% of image
         
+        // Valid aspect ratios for photographs (width:height)
+        const validAspectRatios = [
+            { min: 0.9, max: 1.1, name: '1:1 (Square)' },      // 1:1
+            { min: 1.4, max: 1.6, name: '3:2 (Standard)' },    // 3:2
+            { min: 0.625, max: 0.725, name: '2:3 (Portrait)' }, // 2:3
+            { min: 1.3, max: 1.4, name: '4:3 (Classic)' },     // 4:3
+            { min: 0.71, max: 0.77, name: '3:4 (Portrait)' },  // 3:4
+            { min: 1.7, max: 1.8, name: '16:9 (Widescreen)' }  // 16:9
+        ];
+        
+        for (let i = 0; i < contours.size(); ++i) {
+            const contour = contours.get(i);
+            const area = cv.contourArea(contour);
+            
+            // Filter 1: Area must be within valid range
+            if (area < minArea || area > maxArea) {
+                contour.delete();
+                continue;
+            }
+            
+            // Filter 2: Approximate to polygon
+            const approx = new cv.Mat();
+            const epsilon = 0.02 * cv.arcLength(contour, true);
+            cv.approxPolyDP(contour, approx, epsilon, true);
+            
+            // Filter 3: Must have 4 corners (quadrilateral)
+            if (approx.rows !== 4) {
+                approx.delete();
+                contour.delete();
+                continue;
+            }
+            
+            // Filter 4: Check aspect ratio
+            const rect = cv.boundingRect(approx);
+            const aspectRatio = rect.width / rect.height;
+            const isValidAspectRatio = validAspectRatios.some(
+                ratio => aspectRatio >= ratio.min && aspectRatio <= ratio.max
+            );
+            
+            if (!isValidAspectRatio) {
+                approx.delete();
+                contour.delete();
+                continue;
+            }
+            
+            // Filter 5: Check convexity (photos should be convex shapes)
+            const isConvex = cv.isContourConvex(approx);
+            if (!isConvex) {
+                approx.delete();
+                contour.delete();
+                continue;
+            }
+            
+            // Filter 6: Check corner angles (should be roughly 90 degrees)
+            if (!this.hasValidCornerAngles(approx)) {
+                approx.delete();
+                contour.delete();
+                continue;
+            }
+            
+            // Valid photo found!
+            detectedPhotos.push({
+                contour: approx,
+                area: area,
+                aspectRatio: aspectRatio,
+                bounds: rect
+            });
+            
+            contour.delete();
+        }
+        
+        // Sort by area (largest first) for prioritization
+        detectedPhotos.sort((a, b) => b.area - a.area);
+        
+        return detectedPhotos;
+    }
+    
+    hasValidCornerAngles(contour) {
+        // Check if corner angles are roughly 90 degrees (70-110 deg range)
+        if (contour.rows !== 4) return false;
+        
+        const points = [];
+        for (let i = 0; i < 4; i++) {
+            const x = contour.data32S[i * 2];
+            const y = contour.data32S[i * 2 + 1];
+            points.push({ x, y });
+        }
+        
+        // Calculate angles at each corner
+        for (let i = 0; i < 4; i++) {
+            const p1 = points[i];
+            const p2 = points[(i + 1) % 4];
+            const p3 = points[(i + 2) % 4];
+            
+            const angle = this.calculateAngle(p1, p2, p3);
+            
+            // Angle should be between 70 and 110 degrees for rectangular photos
+            if (angle < 70 || angle > 110) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    calculateAngle(p1, p2, p3) {
+        // Calculate angle at p2 formed by p1-p2-p3
+        const v1x = p1.x - p2.x;
+        const v1y = p1.y - p2.y;
+        const v2x = p3.x - p2.x;
+        const v2y = p3.y - p2.y;
+        
+        const dot = v1x * v2x + v1y * v2y;
+        const mag1 = Math.sqrt(v1x * v1x + v1y * v1y);
+        const mag2 = Math.sqrt(v2x * v2x + v2y * v2y);
+        
+        const cosAngle = dot / (mag1 * mag2);
+        const angleRad = Math.acos(Math.max(-1, Math.min(1, cosAngle)));
+        const angleDeg = angleRad * (180 / Math.PI);
+        
+        return angleDeg;
+    }
+    
+    drawPhotoOverlay(ctx, contour, scaleX, scaleY, isPrimary = true, index = 0) {
+        // Visual styles for multiple detected photos
+        const colors = [
+            { stroke: '#00ff00', fill: 'rgba(0, 255, 0, 0.15)', name: 'Primary' },     // Green for primary
+            { stroke: '#00bfff', fill: 'rgba(0, 191, 255, 0.12)', name: 'Secondary' }, // Blue for secondary
+            { stroke: '#ffa500', fill: 'rgba(255, 165, 0, 0.12)', name: 'Tertiary' }, // Orange for tertiary
+            { stroke: '#ff00ff', fill: 'rgba(255, 0, 255, 0.12)', name: 'Other' }     // Magenta for others
+        ];
+        
+        const colorIndex = Math.min(index, colors.length - 1);
+        const color = colors[colorIndex];
+        
+        // Primary photo gets thicker border and brighter fill
+        ctx.strokeStyle = color.stroke;
+        ctx.lineWidth = isPrimary ? 4 : 2;
+        ctx.fillStyle = color.fill;
+        
+        // Draw photo outline
         ctx.beginPath();
         for (let i = 0; i < contour.rows; i++) {
             const point = contour.data32S.slice(i * 2, i * 2 + 2);
@@ -328,14 +495,29 @@ class StoryKeepUploader {
         ctx.fill();
         
         // Add corner indicators
-        ctx.fillStyle = '#00ff00';
+        ctx.fillStyle = color.stroke;
+        const cornerSize = isPrimary ? 8 : 5;
         for (let i = 0; i < contour.rows; i++) {
             const point = contour.data32S.slice(i * 2, i * 2 + 2);
             const x = point[0] * scaleX;
             const y = point[1] * scaleY;
             ctx.beginPath();
-            ctx.arc(x, y, 6, 0, 2 * Math.PI);
+            ctx.arc(x, y, cornerSize, 0, 2 * Math.PI);
             ctx.fill();
+        }
+        
+        // Add label for non-primary photos
+        if (!isPrimary && contour.rows > 0) {
+            const point = contour.data32S.slice(0, 2);
+            const x = point[0] * scaleX;
+            const y = point[1] * scaleY;
+            
+            ctx.font = 'bold 14px Arial';
+            ctx.fillStyle = color.stroke;
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.lineWidth = 3;
+            ctx.strokeText(`Photo ${index + 1}`, x + 10, y - 10);
+            ctx.fillText(`Photo ${index + 1}`, x + 10, y - 10);
         }
     }
     

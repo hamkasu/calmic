@@ -152,14 +152,16 @@ class PhotoDetector:
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         enhanced = clahe.apply(denoised)
         
-        # Apply adaptive threshold for better edge detection
-        adaptive = cv2.adaptiveThreshold(
-            enhanced, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
-            cv2.THRESH_BINARY, 11, 2
-        )
+        # Calculate adaptive Canny thresholds based on image median (2025 best practice)
+        median_intensity = float(np.median(np.array(enhanced)))
+        sigma = 0.33
+        lower_threshold = int(max(0, (1.0 - sigma) * median_intensity))
+        upper_threshold = int(min(255, (1.0 + sigma) * median_intensity))
         
-        # Apply Canny edge detection with improved parameters for better photo detection
-        edges = cv2.Canny(enhanced, 40, 120, apertureSize=3, L2gradient=True)
+        logger.debug(f"Adaptive Canny thresholds: {lower_threshold}-{upper_threshold} (median: {median_intensity})")
+        
+        # Apply Canny edge detection with adaptive thresholds for varying lighting conditions
+        edges = cv2.Canny(enhanced, lower_threshold, upper_threshold, apertureSize=3, L2gradient=True)
         
         # Apply morphological operations to close gaps and strengthen edges
         kernel_close = np.ones((5, 5), np.uint8)
