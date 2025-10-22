@@ -956,3 +956,9 @@ Fixed web sharpening failing with "Authorization token is missing" error:
     - Expo Server: Running with Metro bundler and tunnel ready
     - Both servers running with no critical errors
     - Project ready for development and use
+
+[x] 282. Fix dark mode text visibility issue - COMPLETED: Changed userInterfaceStyle from "automatic" to "light"
+    - Updated app.json to force light mode on both iOS and Android
+    - Prevents invisible dark text on dark background when device is in dark mode
+    - Expo Server restarted with new configuration
+    - User needs to close and reopen the app for changes to take effect
