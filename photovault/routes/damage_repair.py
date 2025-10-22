@@ -80,6 +80,8 @@ def repair_scratches(photo_id):
             'message': f'Scratches removed successfully ({stats["damage_percentage"]:.2f}% damage repaired)',
             'original_photo_id': photo_id,
             'repaired_photo_id': new_photo.id,
+            'repaired_filename': new_photo.filename,
+            'user_id': current_user.id,
             'stats': stats
         })
         
@@ -153,6 +155,8 @@ def repair_stains(photo_id):
             'message': 'Stains removed successfully',
             'original_photo_id': photo_id,
             'repaired_photo_id': new_photo.id,
+            'repaired_filename': new_photo.filename,
+            'user_id': current_user.id,
             'stats': stats
         })
         
@@ -226,6 +230,8 @@ def repair_cracks(photo_id):
             'message': f'Cracks repaired successfully ({stats["crack_percentage"]:.2f}% cracks repaired)',
             'original_photo_id': photo_id,
             'repaired_photo_id': new_photo.id,
+            'repaired_filename': new_photo.filename,
+            'user_id': current_user.id,
             'stats': stats
         })
         
@@ -302,6 +308,8 @@ def comprehensive_repair(photo_id):
             'message': 'Comprehensive damage repair completed successfully',
             'original_photo_id': photo_id,
             'repaired_photo_id': new_photo.id,
+            'repaired_filename': new_photo.filename,
+            'user_id': current_user.id,
             'stats': stats
         })
         

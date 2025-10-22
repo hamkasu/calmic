@@ -108,6 +108,20 @@ body {
     color: #e74c3c;
 }
 
+/* Fix text visibility - ensure all text in white boxes is dark */
+.controls-card,
+.preview-card,
+.control-group label,
+.control-group small,
+.repair-type-btn,
+.info-box strong {
+    color: #333 !important;
+}
+
+.repair-type-btn.active {
+    color: white !important;
+}
+
 .btn-repair {
     background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
     color: white;
@@ -451,8 +465,8 @@ document.getElementById('applyRepair').addEventListener('click', async function(
         const data = await response.json();
 
         if (data.success) {
-            // The API returns the new photo ID, we need to get its URL
-            const photoUrl = `/uploads/${data.repaired_photo_id}?t=${new Date().getTime()}`;
+            // Build proper URL using user_id and filename from the response
+            const photoUrl = `/uploads/${data.user_id}/${data.repaired_filename}?t=${new Date().getTime()}`;
             
             document.getElementById('repairedImage').src = photoUrl;
             document.getElementById('repairedPlaceholder').style.display = 'none';
