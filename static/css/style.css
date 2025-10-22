@@ -316,6 +316,23 @@ label, .form-text {
     overflow: hidden;
 }
 
+/* Fix text visibility in cards - ensure dark text on white background */
+.card,
+.card .card-body,
+.card .card-title,
+.card .list-unstyled li {
+    color: var(--text-dark) !important;
+}
+
+.card h1,
+.card h2,
+.card h3,
+.card h4,
+.card h5,
+.card h6 {
+    color: var(--text-dark) !important;
+}
+
 .card:hover {
     box-shadow: var(--shadow-lg);
     transform: translateY(-5px);
