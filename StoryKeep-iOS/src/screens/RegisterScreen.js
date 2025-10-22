@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Linking,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authAPI } from '../services/api';
@@ -19,6 +20,7 @@ export default function RegisterScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const { startLoading, stopLoading } = useLoading();
 
   const handleRegister = async () => {
@@ -34,6 +36,11 @@ export default function RegisterScreen({ navigation }) {
 
     if (password.length < 12) {
       Alert.alert('Error', 'Password must be at least 12 characters with uppercase, lowercase, digit, and special character');
+      return;
+    }
+
+    if (!termsAccepted) {
+      Alert.alert('Error', 'Please accept the Terms and Conditions to continue');
       return;
     }
 
@@ -98,6 +105,27 @@ export default function RegisterScreen({ navigation }) {
               onChangeText={setConfirmPassword}
               secureTextEntry
             />
+
+            <TouchableOpacity
+              style={styles.termsContainer}
+              onPress={() => setTermsAccepted(!termsAccepted)}
+            >
+              <View style={styles.checkbox}>
+                {termsAccepted && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <Text style={styles.termsText}>
+                I agree to the{' '}
+                <Text
+                  style={styles.termsLink}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    Linking.openURL('https://web-production-535bd.up.railway.app/terms');
+                  }}
+                >
+                  Terms and Conditions
+                </Text>
+              </Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.button}
@@ -174,5 +202,38 @@ const styles = StyleSheet.create({
   linkBold: {
     color: '#E85D75',
     fontWeight: 'bold',
+  },
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+    marginTop: 5,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderColor: '#E85D75',
+    borderRadius: 4,
+    marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  checkmark: {
+    color: '#E85D75',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+  },
+  termsLink: {
+    color: '#E85D75',
+    fontWeight: 'bold',
+    textDecorationLine: 'underline',
   },
 });
