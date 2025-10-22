@@ -5,7 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { StatusBar, Platform, BackHandler, Alert } from 'react-native';
+import { StatusBar, Platform, BackHandler, Alert, Appearance } from 'react-native';
 
 import { LoadingProvider } from './src/contexts/LoadingContext';
 import LoadingOverlay from './src/components/LoadingOverlay';
@@ -67,6 +67,9 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
+    // FORCE light mode - override system dark mode
+    Appearance.setColorScheme('light');
+    
     checkAuthStatus();
     
     // Check auth status periodically (500ms is responsive but not battery-draining)
@@ -142,11 +145,13 @@ export default function App() {
     <LoadingProvider>
       <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#ffffff' }}>
         <StatusBar 
-          barStyle="dark-content" 
+          barStyle="dark-content"
           backgroundColor="#ffffff"
           translucent={false}
         />
-        <NavigationContainer theme={lightTheme}>
+        <NavigationContainer 
+          theme={lightTheme}
+        >
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             {!isAuthenticated ? (
               <>

@@ -977,3 +977,11 @@ Fixed web sharpening failing with "Authorization token is missing" error:
     - Images already protected by JWT/session authentication
     - PhotoVault Server restarted with fix applied
     - Note: This fix is on local Replit - user needs to deploy to Railway for production
+
+[x] 285. Force light mode with Appearance API - COMPLETED: Added system-level light mode enforcement
+    - Problem: iOS was still applying dark mode despite app.json and theme settings
+    - Solution: Added Appearance.setColorScheme('light') in App.js useEffect
+    - This forces the app to use light mode regardless of device settings
+    - Changed StatusBar back to barStyle="dark-content" (dark text on light background)
+    - Expo Server restarted with fix
+    - User MUST reload app: Shake device → Reload (or close and scan QR code again)
