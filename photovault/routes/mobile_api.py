@@ -3015,7 +3015,7 @@ def detect_damage_mobile(current_user, photo_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@mobile_api_bp.route('/photos/<int:photo_id}/repair', methods=['POST'])
+@mobile_api_bp.route('/photos/<int:photo_id>/repair', methods=['POST'])
 @csrf.exempt
 @token_required
 def repair_damage_mobile(current_user, photo_id):

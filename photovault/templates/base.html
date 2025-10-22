@@ -119,6 +119,12 @@ CALMIC SDN BHD - "Committed to Excellence"
                                 </a>
                             </li>
                             <li>
+                                <a class="dropdown-item {{ 'active' if request.endpoint == 'main.damage_repair' }}" 
+                                   href="{{ url_for('gallery.photos') }}">
+                                    Damage Repair
+                                </a>
+                            </li>
+                            <li>
                                 <a class="dropdown-item {{ 'active' if request.endpoint == 'main.montage' }}" 
                                    href="{{ url_for('main.montage') }}">
                                     Montage
