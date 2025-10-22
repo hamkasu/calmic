@@ -992,3 +992,74 @@ footer a:hover {
 .shadow-glow {
     box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
 }
+
+/* Fix text visibility in ALL light-background sections */
+.features-section,
+.feature-card,
+.feature-card h1,
+.feature-card h2,
+.feature-card h3,
+.feature-card h4,
+.feature-card h5,
+.feature-card h6,
+.feature-card p,
+.feature-card .feature-title,
+.feature-card .feature-description,
+.section-title,
+.section-subtitle {
+    color: #2d3748 !important;
+}
+
+/* Ensure any element with white/light background has dark text */
+[style*="background: white"],
+[style*="background-color: white"],
+[style*="background: #fff"],
+[style*="background-color: #fff"],
+[style*="background: #f8f9fa"],
+.bg-white,
+.bg-light {
+    color: #2d3748 !important;
+}
+
+/* Override for all children of light backgrounds */
+.features-section *,
+.feature-card *,
+.bg-white *,
+.bg-light * {
+    color: #2d3748 !important;
+}
+
+/* Special exception for feature icons which need white text */
+.feature-icon,
+.feature-icon * {
+    color: white !important;
+}
+
+/* Fix Bootstrap .text-muted to be visible */
+.card .text-muted,
+.container .text-muted,
+.content-wrapper .text-muted {
+    color: #6c757d !important;
+}
+
+/* Ensure all headings in containers with light backgrounds are dark */
+.container h1,
+.container h2,
+.container h3,
+.container h4,
+.container h5,
+.container h6 {
+    color: #2d3748 !important;
+}
+
+/* Exception: headings in dark sections should stay white */
+.hero-section h1,
+.hero-section h2,
+.hero-section h3,
+.hero-section h4,
+.hero-section h5,
+.hero-section h6,
+.hero-section p,
+.hero-section .lead {
+    color: #ffffff !important;
+}
