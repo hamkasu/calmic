@@ -223,6 +223,26 @@ label, .form-text {
     background-color: var(--lighter-bg);
     padding: 0.5rem;
     animation: dropdownSlide 0.3s ease;
+    z-index: 1050;
+    min-width: 200px;
+    max-height: none !important;
+}
+
+/* Ensure navbar and containers don't clip dropdowns */
+.navbar {
+    overflow: visible !important;
+}
+
+.navbar-collapse {
+    overflow: visible !important;
+}
+
+.navbar-nav {
+    overflow: visible !important;
+}
+
+.nav-item.dropdown {
+    overflow: visible !important;
 }
 
 @keyframes dropdownSlide {
