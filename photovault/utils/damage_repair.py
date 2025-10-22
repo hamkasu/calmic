@@ -30,7 +30,8 @@ class DamageRepair:
             logger.warning("OpenCV not available - damage repair features disabled")
     
     def remove_scratches_and_dust(self, image_path: str, output_path: str = None,
-                                   sensitivity: int = 5, inpaint_radius: int = 3) -> Tuple[str, Dict]:
+                                   sensitivity: int = 5, inpaint_radius: int = 3,
+                                   apply_enhancement: bool = True) -> Tuple[str, Dict]:
         """
         Remove scratches and dust spots from damaged photos using morphological operations
         
@@ -39,6 +40,7 @@ class DamageRepair:
             output_path: Path for output (if None, overwrites original)
             sensitivity: Detection sensitivity (1-10, lower = more sensitive)
             inpaint_radius: Radius for inpainting (1-10, larger = broader repair)
+            apply_enhancement: Whether to apply post-processing enhancement (default True)
             
         Returns:
             Tuple of (output_path, repair_stats)
@@ -95,6 +97,12 @@ class DamageRepair:
             # Inpaint the damaged areas
             repaired = cv2.inpaint(img, mask, inpaint_radius, cv2.INPAINT_TELEA)
             
+            # Apply post-processing enhancement if requested
+            if apply_enhancement:
+                repaired = self.denoise_preserve_edges(repaired)
+                repaired = self.enhance_contrast_clahe(repaired, clip_limit=2.5)
+                repaired = self.sharpen_image(repaired, strength=1.3)
+            
             # Save repaired image
             if output_path is None:
                 output_path = image_path
@@ -107,7 +115,8 @@ class DamageRepair:
                 'damage_percentage': round(damage_percent, 2),
                 'sensitivity': sensitivity,
                 'inpaint_radius': inpaint_radius,
-                'method': 'morphological_inpainting'
+                'method': 'morphological_inpainting',
+                'enhanced': apply_enhancement
             }
             
             logger.info(f"Scratch removal completed: {damage_percent:.2f}% damage repaired")
@@ -188,7 +197,7 @@ class DamageRepair:
             raise
     
     def repair_cracks(self, image_path: str, output_path: str = None,
-                     sensitivity: int = 5) -> Tuple[str, Dict]:
+                     sensitivity: int = 5, apply_enhancement: bool = True) -> Tuple[str, Dict]:
         """
         Detect and repair cracks in old photographs
         
@@ -196,6 +205,7 @@ class DamageRepair:
             image_path: Path to input image
             output_path: Path for output (if None, overwrites original)
             sensitivity: Detection sensitivity (1-10, lower = more sensitive)
+            apply_enhancement: Whether to apply post-processing enhancement (default True)
             
         Returns:
             Tuple of (output_path, repair_stats)
@@ -244,6 +254,11 @@ class DamageRepair:
             # Apply light smoothing to blend repairs
             repaired = cv2.bilateralFilter(repaired, 5, 50, 50)
             
+            # Apply post-processing enhancement if requested
+            if apply_enhancement:
+                repaired = self.enhance_contrast_clahe(repaired, clip_limit=2.5)
+                repaired = self.sharpen_image(repaired, strength=1.3)
+            
             # Save result
             if output_path is None:
                 output_path = image_path
@@ -255,7 +270,8 @@ class DamageRepair:
                 'total_pixels': int(total_pixels),
                 'crack_percentage': round(crack_percent, 2),
                 'sensitivity': sensitivity,
-                'method': 'edge_detection_inpainting'
+                'method': 'edge_detection_inpainting',
+                'enhanced': apply_enhancement
             }
             
             logger.info(f"Crack repair completed: {crack_percent:.2f}% cracks repaired")
@@ -265,12 +281,154 @@ class DamageRepair:
             logger.error(f"Error repairing cracks: {e}")
             raise
     
+    def sharpen_image(self, img: np.ndarray, strength: float = 1.5) -> np.ndarray:
+        """
+        Apply unsharp masking to sharpen image details
+        
+        Args:
+            img: Input image (BGR format)
+            strength: Sharpening strength (0.5-3.0, default 1.5)
+            
+        Returns:
+            Sharpened image
+        """
+        # Create blurred version
+        blurred = cv2.GaussianBlur(img, (0, 0), 3)
+        
+        # Unsharp mask = original + (original - blurred) * strength
+        sharpened = cv2.addWeighted(img, 1.0 + strength, blurred, -strength, 0)
+        
+        return sharpened
+    
+    def enhance_contrast_clahe(self, img: np.ndarray, clip_limit: float = 3.0) -> np.ndarray:
+        """
+        Apply adaptive contrast enhancement using CLAHE
+        
+        Args:
+            img: Input image (BGR format)
+            clip_limit: Contrast clipping limit (1.0-5.0, default 3.0)
+            
+        Returns:
+            Contrast-enhanced image
+        """
+        # Convert to LAB color space
+        lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+        
+        # Apply CLAHE to L channel only
+        clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=(8, 8))
+        l_enhanced = clahe.apply(l)
+        
+        # Merge and convert back
+        enhanced_lab = cv2.merge([l_enhanced, a, b])
+        enhanced_bgr = cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
+        
+        return enhanced_bgr
+    
+    def denoise_preserve_edges(self, img: np.ndarray) -> np.ndarray:
+        """
+        Apply edge-preserving denoising to reduce blur artifacts
+        
+        Args:
+            img: Input image (BGR format)
+            
+        Returns:
+            Denoised image with preserved edges
+        """
+        # Use bilateral filter for edge-preserving smoothing
+        denoised = cv2.bilateralFilter(img, 7, 50, 50)
+        return denoised
+    
+    def normalize_brightness_contrast(self, img: np.ndarray) -> np.ndarray:
+        """
+        Automatically adjust brightness and contrast for optimal range
+        
+        Args:
+            img: Input image (BGR format)
+            
+        Returns:
+            Normalized image
+        """
+        # Convert to LAB
+        lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+        
+        # Normalize L channel to use full range
+        l_normalized = cv2.normalize(l, None, 5, 250, cv2.NORM_MINMAX)
+        
+        # Merge and convert back
+        normalized_lab = cv2.merge([l_normalized, a, b])
+        normalized_bgr = cv2.cvtColor(normalized_lab, cv2.COLOR_LAB2BGR)
+        
+        return normalized_bgr
+    
+    def post_process_repair(self, image_path: str, output_path: str = None) -> Tuple[str, Dict]:
+        """
+        Apply post-processing enhancements to repaired image:
+        - Edge-preserving denoising
+        - Adaptive contrast enhancement
+        - Sharpening
+        - Brightness/contrast normalization
+        
+        Args:
+            image_path: Path to repaired image
+            output_path: Path for enhanced output
+            
+        Returns:
+            Tuple of (output_path, enhancement_stats)
+        """
+        if not OPENCV_AVAILABLE:
+            raise RuntimeError("OpenCV required for post-processing")
+        
+        logger.info(f"Applying post-processing enhancements to: {image_path}")
+        
+        try:
+            # Load image
+            img = cv2.imread(image_path)
+            if img is None:
+                raise ValueError(f"Could not load image: {image_path}")
+            
+            # Step 1: Edge-preserving denoising to reduce blur artifacts
+            img = self.denoise_preserve_edges(img)
+            
+            # Step 2: Enhance contrast with CLAHE
+            img = self.enhance_contrast_clahe(img, clip_limit=3.0)
+            
+            # Step 3: Sharpen to restore detail
+            img = self.sharpen_image(img, strength=1.5)
+            
+            # Step 4: Normalize brightness and contrast
+            img = self.normalize_brightness_contrast(img)
+            
+            # Save enhanced image
+            if output_path is None:
+                output_path = image_path
+            
+            cv2.imwrite(output_path, img, [cv2.IMWRITE_JPEG_QUALITY, 95])
+            
+            stats = {
+                'enhancements_applied': [
+                    'edge_preserving_denoising',
+                    'adaptive_contrast_enhancement',
+                    'unsharp_masking',
+                    'brightness_normalization'
+                ],
+                'quality': 95
+            }
+            
+            logger.info(f"Post-processing completed successfully")
+            return output_path, stats
+            
+        except Exception as e:
+            logger.error(f"Error in post-processing: {e}")
+            raise
+    
     def comprehensive_repair(self, image_path: str, output_path: str = None,
                             scratch_sensitivity: int = 5,
                             crack_sensitivity: int = 5,
                             stain_strength: float = 1.5) -> Tuple[str, Dict]:
         """
-        Apply comprehensive damage repair (all methods)
+        Apply comprehensive damage repair (all methods) with post-processing enhancement
         
         Args:
             image_path: Path to input image
@@ -293,41 +451,49 @@ class DamageRepair:
             # Create temp file for intermediate results
             temp_path = tempfile.mktemp(suffix='.jpg')
             
-            # Step 1: Remove scratches and dust
+            # Step 1: Remove scratches and dust (without enhancement)
             temp_path, scratch_stats = self.remove_scratches_and_dust(
-                image_path, temp_path, scratch_sensitivity
+                image_path, temp_path, scratch_sensitivity, apply_enhancement=False
             )
             
-            # Step 2: Repair cracks
+            # Step 2: Repair cracks (without enhancement)
             temp_path2 = tempfile.mktemp(suffix='.jpg')
             temp_path2, crack_stats = self.repair_cracks(
-                temp_path, temp_path2, crack_sensitivity
+                temp_path, temp_path2, crack_sensitivity, apply_enhancement=False
             )
             
             # Step 3: Remove stains
+            temp_path3 = tempfile.mktemp(suffix='.jpg')
+            temp_path3, stain_stats = self.remove_stains(
+                temp_path2, temp_path3, stain_strength
+            )
+            
+            # Step 4: Apply post-processing enhancements
             if output_path is None:
                 output_path = image_path
             
-            output_path, stain_stats = self.remove_stains(
-                temp_path2, output_path, stain_strength
+            output_path, enhancement_stats = self.post_process_repair(
+                temp_path3, output_path
             )
             
             # Clean up temp files
             try:
                 os.remove(temp_path)
                 os.remove(temp_path2)
+                os.remove(temp_path3)
             except:
                 pass
             
             # Combine stats
             combined_stats = {
-                'method': 'comprehensive_repair',
+                'method': 'comprehensive_repair_enhanced',
                 'scratch_removal': scratch_stats,
                 'crack_repair': crack_stats,
-                'stain_removal': stain_stats
+                'stain_removal': stain_stats,
+                'post_processing': enhancement_stats
             }
             
-            logger.info(f"Comprehensive repair completed successfully")
+            logger.info(f"Comprehensive repair with enhancements completed successfully")
             return output_path, combined_stats
             
         except Exception as e:
