@@ -2970,3 +2970,148 @@ def bulk_delete_photos_mobile(current_user):
         logger.error(f"📋 TRACEBACK:\n{error_trace}")
         db.session.rollback()
         return jsonify({'success': False, 'error': f'Bulk delete failed: {str(e)}'}), 500
+
+# Damage Repair Endpoints for Mobile
+@mobile_api_bp.route('/photos/<int:photo_id>/detect-damage', methods=['GET'])
+@csrf.exempt
+@token_required
+def detect_damage_mobile(current_user, photo_id):
+    """Detect damage in photo using AI (mobile endpoint)"""
+    try:
+        photo = Photo.query.get(photo_id)
+        if not photo or photo.user_id != current_user.id:
+            return jsonify({'error': 'Photo not found'}), 404
+        
+        from photovault.services.ai_service import get_ai_service
+        ai_service = get_ai_service()
+        
+        if not ai_service.is_available():
+            return jsonify({
+                'success': False,
+                'error': 'AI service not available'
+            }), 503
+        
+        # Get storage path
+        from photovault.utils.app_storage import app_storage
+        if app_storage.is_available() and photo.file_path.startswith('uploads/'):
+            photo_path = app_storage.download_to_temp(photo.file_path)
+        else:
+            photo_path = photo.file_path
+        
+        # Detect damage
+        damage_info = ai_service.detect_damage(photo_path)
+        
+        return jsonify({
+            'success': True,
+            'photo_id': photo_id,
+            'has_damage': damage_info.get('has_damage', False),
+            'damage_types': damage_info.get('damage_types', []),
+            'severity': damage_info.get('severity', 'unknown'),
+            'repair_recommendations': damage_info.get('repair_recommendations', [])
+        })
+        
+    except Exception as e:
+        logger.error(f"Damage detection failed for photo {photo_id}: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@mobile_api_bp.route('/photos/<int:photo_id}/repair', methods=['POST'])
+@csrf.exempt
+@token_required
+def repair_damage_mobile(current_user, photo_id):
+    """Apply damage repair to photo (mobile endpoint)"""
+    try:
+        photo = Photo.query.get(photo_id)
+        if not photo or photo.user_id != current_user.id:
+            return jsonify({'error': 'Photo not found'}), 404
+        
+        # Get repair type
+        data = request.get_json() or {}
+        repair_type = data.get('type', 'comprehensive')  # 'scratches', 'stains', 'cracks', or 'comprehensive'
+        sensitivity = int(data.get('sensitivity', 5))
+        
+        from photovault.utils.damage_repair import damage_repair
+        from photovault.utils.app_storage import app_storage
+        from datetime import datetime
+        import random
+        
+        # Get original file path
+        if app_storage.is_available() and photo.file_path.startswith('uploads/'):
+            original_path = app_storage.download_to_temp(photo.file_path)
+        else:
+            original_path = photo.file_path
+        
+        # Generate filename for repaired version
+        from werkzeug.utils import secure_filename as sanitize_name
+        date = datetime.now().strftime('%Y%m%d')
+        random_number = random.randint(100000, 999999)
+        safe_username = sanitize_name(current_user.username)
+        repaired_filename = f"{safe_username}.{date}.repaired.{random_number}.jpg"
+        
+        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'photovault/uploads')
+        user_upload_folder = os.path.join(upload_folder, str(current_user.id))
+        os.makedirs(user_upload_folder, exist_ok=True)
+        temp_repaired_filepath = os.path.join(user_upload_folder, repaired_filename)
+        
+        # Apply repair based on type
+        if repair_type == 'scratches':
+            output_path, stats = damage_repair.remove_scratches_and_dust(
+                original_path, temp_repaired_filepath, sensitivity
+            )
+        elif repair_type == 'stains':
+            output_path, stats = damage_repair.remove_stains(
+                original_path, temp_repaired_filepath, float(data.get('strength', 1.5))
+            )
+        elif repair_type == 'cracks':
+            output_path, stats = damage_repair.repair_cracks(
+                original_path, temp_repaired_filepath, sensitivity
+            )
+        else:  # comprehensive
+            output_path, stats = damage_repair.comprehensive_repair(
+                original_path, temp_repaired_filepath, sensitivity, sensitivity, 1.5
+            )
+        
+        # Upload to storage if available
+        repaired_filepath = temp_repaired_filepath
+        if app_storage.is_available():
+            import io
+            with open(temp_repaired_filepath, 'rb') as f:
+                img_bytes = io.BytesIO(f.read())
+                success, storage_path = app_storage.upload_file(
+                    img_bytes, repaired_filename, str(current_user.id)
+                )
+                if success:
+                    repaired_filepath = storage_path
+                    try:
+                        os.remove(temp_repaired_filepath)
+                    except:
+                        pass
+        
+        # Update photo with repaired version
+        photo.edited_filename = repaired_filename
+        photo.edited_path = repaired_filepath
+        photo.enhancement_metadata = {
+            'damage_repair': {
+                'type': repair_type,
+                'sensitivity': sensitivity,
+                'timestamp': datetime.now().isoformat(),
+                'stats': stats
+            }
+        }
+        db.session.commit()
+        
+        logger.info(f"Photo {photo_id} damage repaired successfully (type: {repair_type})")
+        
+        return jsonify({
+            'success': True,
+            'photo_id': photo.id,
+            'repaired_url': f'/uploads/{current_user.id}/{repaired_filename}',
+            'repair_type': repair_type,
+            'stats': stats,
+            'message': f'{repair_type.capitalize()} repair completed successfully'
+        })
+        
+    except Exception as e:
+        logger.error(f"Damage repair failed for photo {photo_id}: {str(e)}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
