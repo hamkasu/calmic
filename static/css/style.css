@@ -144,6 +144,8 @@ label, .form-text {
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     padding-top: 1rem;
     padding-bottom: 1rem;
+    position: relative;
+    z-index: 1030;
 }
 
 .navbar-dark .navbar-nav .nav-link {
@@ -223,7 +225,7 @@ label, .form-text {
     background-color: var(--lighter-bg);
     padding: 0.5rem;
     animation: dropdownSlide 0.3s ease;
-    z-index: 1050;
+    z-index: 1040;
     min-width: 200px;
     max-height: none !important;
 }
@@ -625,6 +627,8 @@ label, .form-text {
 main {
     grid-area: main;
     padding: 2rem 0;
+    position: relative;
+    z-index: 1;
 }
 
 /* Preserve Bootstrap container defaults - Don't override globally */
