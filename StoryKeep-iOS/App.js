@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -124,15 +124,29 @@ export default function App() {
     return <SplashScreen onFinish={handleSplashFinish} />;
   }
 
+  const lightTheme = {
+    ...DefaultTheme,
+    dark: false,
+    colors: {
+      ...DefaultTheme.colors,
+      primary: '#E85D75',
+      background: '#ffffff',
+      card: '#ffffff',
+      text: '#333333',
+      border: '#E0E0E0',
+      notification: '#E85D75',
+    },
+  };
+
   return (
     <LoadingProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
+      <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#ffffff' }}>
         <StatusBar 
           barStyle="dark-content" 
           backgroundColor="#ffffff"
           translucent={false}
         />
-        <NavigationContainer>
+        <NavigationContainer theme={lightTheme}>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             {!isAuthenticated ? (
               <>
