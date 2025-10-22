@@ -1,7 +1,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BASE_URL = 'https://storykeep.calmic.com.my';
+export const BASE_URL = 'https://storykeep.calmic.com.my';
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -40,11 +40,12 @@ export const authAPI = {
     return response.data;
   },
   
-  register: async (username, email, password) => {
+  register: async (username, email, password, termsAccepted = false) => {
     const response = await api.post('/api/auth/register', { 
       username, 
       email, 
-      password 
+      password,
+      terms_accepted: termsAccepted
     });
     return response.data;
   },

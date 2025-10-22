@@ -12,7 +12,7 @@ import {
   Linking,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authAPI } from '../services/api';
+import { authAPI, BASE_URL } from '../services/api';
 import { useLoading } from '../contexts/LoadingContext';
 
 export default function RegisterScreen({ navigation }) {
@@ -46,7 +46,7 @@ export default function RegisterScreen({ navigation }) {
 
     const loadingId = startLoading('Creating account...');
     try {
-      const response = await authAPI.register(username, email, password);
+      const response = await authAPI.register(username, email, password, termsAccepted);
       
       if (response.token) {
         await AsyncStorage.setItem('authToken', response.token);
@@ -119,7 +119,7 @@ export default function RegisterScreen({ navigation }) {
                   style={styles.termsLink}
                   onPress={(e) => {
                     e.stopPropagation();
-                    Linking.openURL('https://web-production-535bd.up.railway.app/terms');
+                    Linking.openURL(`${BASE_URL}/terms`);
                   }}
                 >
                   Terms and Conditions

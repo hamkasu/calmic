@@ -180,11 +180,13 @@ def register():
             email = data.get('email', '').strip().lower()
             password = data.get('password', '')
             confirm_password = data.get('password', '')  # Mobile app doesn't send confirm_password
+            terms_accepted = data.get('terms_accepted', False)
         else:
             username = request.form.get('username', '').strip()
             email = request.form.get('email', '').strip().lower()
             password = request.form.get('password', '')
             confirm_password = request.form.get('confirm_password', '')
+            terms_accepted = request.form.get('terms_accepted')
         
         # Basic validation
         if not all([username, email, password]):
@@ -224,6 +226,13 @@ def register():
         
         if not is_api_request and password != confirm_password:
             flash('Passwords do not match.', 'error')
+            return render_template('register.html')
+        
+        # Validate Terms & Conditions acceptance (required for both web and API)
+        if not terms_accepted:
+            if is_api_request:
+                return jsonify({'error': 'You must accept the Terms and Conditions to register'}), 400
+            flash('You must accept the Terms and Conditions to register.', 'error')
             return render_template('register.html')
         
         # Check if user already exists
