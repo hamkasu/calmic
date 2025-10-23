@@ -1016,3 +1016,11 @@ Fixed web sharpening failing with "Authorization token is missing" error:
     - Database cleanup script to fix corrupted photo filenames
     - Includes testing checklist and prevention measures
     - User can deploy fixes to Railway when ready
+
+[x] 290. Fix dashboard welcome text visibility - COMPLETED: Improved text readability on dark background
+    - Problem: "Welcome back, hamka!" and "Here's your StoryKeep overview" barely visible (white text with 0.9 opacity on dark blue)
+    - Solution: Added text-shadow for better contrast and visibility
+    - Welcome text: Added "text-shadow: 2px 2px 4px rgba(0,0,0,0.5)" and font-weight: 600
+    - Overview text: Added "text-shadow: 1px 1px 3px rgba(0,0,0,0.5)" and increased font-size to 1.1rem
+    - PhotoVault Server restarted with fix applied
+    - Note: This fix is on local Replit - user needs to deploy to Railway for production
