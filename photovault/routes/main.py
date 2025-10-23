@@ -2,7 +2,7 @@
 PhotoVault Main Routes Blueprint
 This should only contain routes, not a Flask app
 """
-from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify
+from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify, send_file
 from flask_login import current_user, login_required
 
 # Create the main blueprint
@@ -711,3 +711,58 @@ def test_recording_upload(photo_id):
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@main_bp.route('/download-all')
+@login_required
+def download_all():
+    """Download all user photos as a ZIP file"""
+    import os
+    import zipfile
+    import tempfile
+    from datetime import datetime
+    from photovault.models import Photo
+    
+    try:
+        # Get all photos for the current user
+        photos = Photo.query.filter_by(user_id=current_user.id).all()
+        
+        if not photos:
+            flash('No photos to download', 'warning')
+            return redirect(url_for('main.dashboard'))
+        
+        # Create a temporary ZIP file
+        temp_zip = tempfile.NamedTemporaryFile(delete=False, suffix='.zip')
+        
+        with zipfile.ZipFile(temp_zip.name, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for photo in photos:
+                # Add original photo
+                original_path = os.path.join('photovault', 'static', 'uploads', str(photo.user_id), photo.filename)
+                if os.path.exists(original_path):
+                    # Use original name or filename in the ZIP
+                    archive_name = f"original/{photo.original_name or photo.filename}"
+                    zipf.write(original_path, archive_name)
+                
+                # Add edited photo if exists
+                if photo.edited_filename:
+                    edited_path = os.path.join('photovault', 'static', 'uploads', str(photo.user_id), photo.edited_filename)
+                    if os.path.exists(edited_path):
+                        archive_name = f"edited/{photo.original_name or photo.edited_filename}"
+                        zipf.write(edited_path, archive_name)
+        
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        download_filename = f"StoryKeep_Photos_{current_user.username}_{timestamp}.zip"
+        
+        # Send the file
+        return send_file(
+            temp_zip.name,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name=download_filename
+        )
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        flash(f'Error creating download: {str(e)}', 'error')
+        return redirect(url_for('main.dashboard'))

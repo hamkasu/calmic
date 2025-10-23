@@ -39,6 +39,9 @@ CALMIC SDN BHD - "Committed to Excellence"
                     <a href="{{ url_for('main.advanced_enhancement') }}" class="btn btn-info" title="Enhance" data-bs-toggle="tooltip">
                         <i class="bi bi-magic"></i><span class="btn-text"> Enhance</span>
                     </a>
+                    <button onclick="downloadAllImages()" class="btn btn-warning" title="Download All Images" data-bs-toggle="tooltip" id="downloadAllBtn">
+                        <i class="bi bi-download"></i><span class="btn-text"> Download All</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -656,6 +659,24 @@ function applySharpen() {
 function quickAnnotate(photoId) {
     // Open quick annotation tool
     window.location.href = `/photos/${photoId}/edit`;
+}
+
+function downloadAllImages() {
+    const btn = document.getElementById('downloadAllBtn');
+    const originalHtml = btn.innerHTML;
+    
+    // Show loading state
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span><span class="btn-text"> Preparing...</span>';
+    
+    // Navigate to download URL
+    window.location.href = '/download-all';
+    
+    // Reset button after a delay (download will trigger)
+    setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    }, 3000);
 }
 
 // Update slider value display
