@@ -4,6 +4,15 @@
 StoryKeep is a comprehensive photo management and enhancement platform offering a professional-grade experience. It includes a professional camera interface, automatic photo upload and organization, secure storage, face detection and recognition, advanced photo enhancement and restoration, AI-powered smart tagging, family vault sharing, and social media integration. The platform uses a subscription-based model and aims to provide advanced photo management solutions to a broad market.
 
 ## Recent Changes
+**October 23, 2025** - Added Download All Images Feature:
+- Added "Download All" button to dashboard header button group for quick photo backup
+- Created `/download-all` route that generates ZIP file containing all user photos
+- ZIP file organizes photos into "original/" and "edited/" folders for easy navigation
+- Implemented loading state with spinner while preparing download
+- Timestamped filename format: `StoryKeep_Photos_username_YYYYMMDD_HHMMSS.zip`
+- Proper error handling for empty photo libraries and file access issues
+- Server restarted successfully with new download feature enabled
+
 **October 22, 2025** - Professional Photo Restoration Enhancement Pipeline:
 - Added comprehensive post-processing enhancement pipeline to dramatically improve repaired photo quality
 - Implemented sharpen_image() using unsharp masking (strength 1.5) to restore detail lost during damage repair
@@ -107,7 +116,7 @@ The mobile app is fully cross-platform, supporting both iOS and Android with pla
 
 ### Feature Specifications
 - **Authentication & Authorization**: User registration, login, password reset, session management, admin/superuser roles, subscription-based access.
-- **Photo Management**: Upload with metadata extraction, automatic face detection and tagging, enhancement, restoration, colorization, AI smart tagging, gallery organization, search, and filtering. Includes bulk deletion.
+- **Photo Management**: Upload with metadata extraction, automatic face detection and tagging, enhancement, restoration, colorization, AI smart tagging, gallery organization, search, and filtering. Includes bulk deletion and download all photos as ZIP backup.
 - **Family Vaults**: Shared collections, member invitations, stories, and collaborative management.
 - **Subscription System**: Multiple pricing tiers (Free, Basic, Standard, Pro, Premium) with feature-based access, Stripe payment integration, and Malaysian pricing (MYR) with SST.
 - **Admin Features**: CSV/Excel export of user data, batch user operations.
