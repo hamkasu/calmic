@@ -2,9 +2,11 @@
 
 ## What Was Fixed
 
-Improved the visibility of the dashboard welcome text that was barely readable due to low contrast.
+Improved the visibility of all dashboard text elements that were barely readable due to low contrast on dark blue backgrounds.
 
 ### Changes Made:
+
+#### 1. Welcome Header Text
 - **Welcome Header**: "Welcome back, [username]!" 
   - Added text shadow: `text-shadow: 2px 2px 4px rgba(0,0,0,0.5)`
   - Increased font weight to 600 for better readability
@@ -13,6 +15,24 @@ Improved the visibility of the dashboard welcome text that was barely readable d
   - Added text shadow: `text-shadow: 1px 1px 3px rgba(0,0,0,0.5)`
   - Increased font size to 1.1rem
   - Removed low opacity that was making text hard to see
+
+#### 2. Stats Cards Text (NEW)
+- **Stats Numbers**: Made bright white with larger, bolder text
+  - Color: `#fff` (bright white)
+  - Font weight: 700 (bold)
+  - Font size: 2.5rem (larger and more prominent)
+  
+- **Stats Labels**: Made bright white with proper weight
+  - Color: `#fff` (bright white)
+  - Font weight: 600 (semi-bold)
+  - Opacity: 1 (fully opaque)
+  
+- Applied to all stat cards:
+  - Total Photos
+  - Edited Photos
+  - Enhanced Photos
+  - Storage (MB)
+  - Total Users (admin only)
 
 ## File Modified:
 - `photovault/templates/dashboard.html` (lines 32-33)

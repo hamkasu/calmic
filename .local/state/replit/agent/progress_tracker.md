@@ -1024,3 +1024,12 @@ Fixed web sharpening failing with "Authorization token is missing" error:
     - Overview text: Added "text-shadow: 1px 1px 3px rgba(0,0,0,0.5)" and increased font-size to 1.1rem
     - PhotoVault Server restarted with fix applied
     - Note: This fix is on local Replit - user needs to deploy to Railway for production
+
+[x] 291. Fix stats cards text visibility - COMPLETED: Made all stats numbers and labels bright white
+    - Problem: Stats card text (numbers and labels) hard to read on blue background
+    - Solution: Added inline styles for maximum visibility
+    - Stats numbers: color: #fff, font-weight: 700, font-size: 2.5rem
+    - Stats labels: color: #fff, font-weight: 600, opacity: 1
+    - Applied to all 5 stat cards (Total Photos, Edited Photos, Enhanced Photos, Storage, Total Users)
+    - PhotoVault Server restarted with fix applied
+    - Note: This fix is on local Replit - user needs to deploy to Railway for production
