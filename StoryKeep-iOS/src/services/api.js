@@ -165,6 +165,11 @@ export const photoAPI = {
     const response = await api.get(`/api/photos/${photoId}/ai-metadata`);
     return response.data;
   },
+  
+  repairDamage: async (photoId, options = {}) => {
+    const response = await api.post(`/api/photos/${photoId}/repair`, options);
+    return response.data;
+  },
 };
 
 export const vaultAPI = {

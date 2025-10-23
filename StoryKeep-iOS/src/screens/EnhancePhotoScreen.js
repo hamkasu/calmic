@@ -32,6 +32,12 @@ export default function EnhancePhotoScreen({ route, navigation }) {
   const [sharpenIntensity, setSharpenIntensity] = useState(1.5);
   const [sharpenRadius, setSharpenRadius] = useState(2.0);
   const [sharpenThreshold, setSharpenThreshold] = useState(3);
+  
+  // AI Restoration controls modal state
+  const [showAIRestorationControls, setShowAIRestorationControls] = useState(false);
+  const [aiModel, setAIModel] = useState('codeformer'); // 'gfpgan' or 'codeformer'
+  const [aiQuality, setAIQuality] = useState('balanced'); // 'fast', 'balanced', 'quality', 'maximum'
+  const [fidelity, setFidelity] = useState(0.5); // CodeFormer fidelity (0.0-1.0)
 
   useEffect(() => {
     loadAuthToken();
@@ -141,6 +147,43 @@ export default function EnhancePhotoScreen({ route, navigation }) {
     }
   };
 
+  const handleAIRestorationWithControls = () => {
+    setShowAIRestorationControls(true);
+  };
+
+  const applyAIRestoration = async () => {
+    setShowAIRestorationControls(false);
+    setProcessing(true);
+    try {
+      console.log('Applying AI restoration with:', { model: aiModel, quality: aiQuality, fidelity });
+      const response = await photoAPI.repairDamage(photo.id, {
+        type: 'ai',
+        model: aiModel,
+        quality: aiQuality,
+        fidelity: fidelity
+      });
+      
+      // Fetch the updated photo data
+      const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
+
+      Alert.alert('Success', `Photo restored successfully using ${aiModel.toUpperCase()}!`, [
+        {
+          text: 'View',
+          onPress: () => {
+            // Navigate back and replace the photo data
+            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
+          },
+        },
+      ]);
+    } catch (error) {
+      const errorMsg = error.response?.data?.error || 'Failed to restore photo with AI';
+      Alert.alert('Error', errorMsg);
+      console.error(error);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const EnhancementOption = ({ icon, title, description, onPress, color, disabled = false }) => (
     <TouchableOpacity
       style={[styles.option, disabled && styles.optionDisabled]}
@@ -230,6 +273,16 @@ export default function EnhancePhotoScreen({ route, navigation }) {
         )}
 
         <View style={styles.options}>
+          <Text style={styles.sectionTitle}>AI-Powered Restoration</Text>
+
+          <EnhancementOption
+            icon="sparkles"
+            title="AI Restore (Professional)"
+            description="Dramatically improve damaged/cracked photos using AI"
+            onPress={handleAIRestorationWithControls}
+            color="#E85D75"
+          />
+
           <Text style={styles.sectionTitle}>Legacy Photo Restoration</Text>
 
           <EnhancementOption
@@ -395,6 +448,112 @@ export default function EnhancePhotoScreen({ route, navigation }) {
                 onPress={applySharpen}
               >
                 <Text style={styles.applyButtonText}>Apply Sharpen</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showAIRestorationControls}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAIRestorationControls(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>AI Restoration Settings</Text>
+              <TouchableOpacity onPress={() => setShowAIRestorationControls(false)}>
+                <Ionicons name="close" size={28} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              <View style={styles.controlGroup}>
+                <Text style={styles.controlLabel}>AI Model</Text>
+                <View style={styles.modelButtons}>
+                  <TouchableOpacity
+                    style={[styles.modelButton, aiModel === 'gfpgan' && styles.modelButtonActive]}
+                    onPress={() => setAIModel('gfpgan')}
+                  >
+                    <Text style={[styles.modelButtonText, aiModel === 'gfpgan' && styles.modelButtonTextActive]}>
+                      GFPGAN
+                    </Text>
+                    <Text style={styles.modelSubtext}>Fast, preserves identity</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modelButton, aiModel === 'codeformer' && styles.modelButtonActive]}
+                    onPress={() => setAIModel('codeformer')}
+                  >
+                    <Text style={[styles.modelButtonText, aiModel === 'codeformer' && styles.modelButtonTextActive]}>
+                      CodeFormer
+                    </Text>
+                    <Text style={styles.modelSubtext}>Best for severe damage</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.controlGroup}>
+                <Text style={styles.controlLabel}>Quality Preset</Text>
+                <View style={styles.qualityButtons}>
+                  {['fast', 'balanced', 'quality', 'maximum'].map((q) => (
+                    <TouchableOpacity
+                      key={q}
+                      style={[styles.qualityButton, aiQuality === q && styles.qualityButtonActive]}
+                      onPress={() => setAIQuality(q)}
+                    >
+                      <Text style={[styles.qualityButtonText, aiQuality === q && styles.qualityButtonTextActive]}>
+                        {q.charAt(0).toUpperCase() + q.slice(1)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {aiModel === 'codeformer' && (
+                <View style={styles.controlGroup}>
+                  <View style={styles.controlHeader}>
+                    <Text style={styles.controlLabel}>Fidelity</Text>
+                    <Text style={styles.controlValue}>{fidelity.toFixed(2)}</Text>
+                  </View>
+                  <Slider
+                    style={styles.slider}
+                    minimumValue={0.0}
+                    maximumValue={1.0}
+                    step={0.05}
+                    value={fidelity}
+                    onValueChange={setFidelity}
+                    minimumTrackTintColor="#E85D75"
+                    maximumTrackTintColor="#ddd"
+                    thumbTintColor="#E85D75"
+                  />
+                  <Text style={styles.controlDescription}>
+                    Lower values = more enhancement, higher values = preserve original look
+                  </Text>
+                </View>
+              )}
+
+              <View style={styles.infoBox}>
+                <Ionicons name="information-circle" size={20} color="#E85D75" />
+                <Text style={styles.infoText}>
+                  AI restoration works best on photos with faces. Processing may take 30-60 seconds.
+                </Text>
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setShowAIRestorationControls(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.applyButton]}
+                onPress={applyAIRestoration}
+              >
+                <Text style={styles.applyButtonText}>Restore with AI</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -631,5 +790,82 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  modelButtons: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 10,
+  },
+  modelButton: {
+    flex: 1,
+    backgroundColor: '#f8f8f8',
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    borderRadius: 12,
+    padding: 15,
+    alignItems: 'center',
+  },
+  modelButtonActive: {
+    backgroundColor: '#FFE5EC',
+    borderColor: '#E85D75',
+  },
+  modelButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#666',
+    marginBottom: 5,
+  },
+  modelButtonTextActive: {
+    color: '#E85D75',
+  },
+  modelSubtext: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'center',
+  },
+  qualityButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+  },
+  qualityButton: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: '#f8f8f8',
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    alignItems: 'center',
+  },
+  qualityButtonActive: {
+    backgroundColor: '#FFE5EC',
+    borderColor: '#E85D75',
+  },
+  qualityButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  qualityButtonTextActive: {
+    color: '#E85D75',
+    fontWeight: 'bold',
+  },
+  infoBox: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF5F7',
+    borderRadius: 10,
+    padding: 15,
+    marginTop: 10,
+    alignItems: 'flex-start',
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#666',
+    marginLeft: 10,
+    lineHeight: 20,
   },
 });

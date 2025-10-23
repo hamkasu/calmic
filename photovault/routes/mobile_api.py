@@ -3027,7 +3027,129 @@ def repair_damage_mobile(current_user, photo_id):
         
         # Get repair type
         data = request.get_json() or {}
-        repair_type = data.get('type', 'comprehensive')  # 'scratches', 'stains', 'cracks', or 'comprehensive'
+        repair_type = data.get('type', 'comprehensive')  # 'scratches', 'stains', 'cracks', 'comprehensive', or 'ai'
+        sensitivity = int(data.get('sensitivity', 5))
+        
+        # Handle AI restoration
+        if repair_type == 'ai':
+            from photovault.utils.ai_restoration import ai_restoration as ai_service
+            
+            if not ai_service.enabled:
+                return jsonify({
+                    'success': False,
+                    'error': 'AI restoration not available. Please configure REPLICATE_API_TOKEN'
+                }), 503
+            
+            # Get AI parameters
+            model = data.get('model', 'codeformer')  # 'gfpgan' or 'codeformer'
+            quality = data.get('quality', 'balanced')  # 'fast', 'balanced', 'quality', 'maximum'
+            fidelity = float(data.get('fidelity', 0.5))  # CodeFormer only
+            
+            from photovault.utils.app_storage import app_storage
+            from datetime import datetime
+            import random
+            
+            # Get original file path
+            if app_storage.is_available() and photo.file_path.startswith('uploads/'):
+                original_path = app_storage.download_to_temp(photo.file_path)
+            else:
+                original_path = photo.file_path
+            
+            # Generate filename for AI restored version
+            from werkzeug.utils import secure_filename as sanitize_name
+            date = datetime.now().strftime('%Y%m%d')
+            random_number = random.randint(100000, 999999)
+            safe_username = sanitize_name(current_user.username)
+            ai_filename = f"{safe_username}.{date}.ai_{model}.{random_number}.jpg"
+            
+            upload_folder = current_app.config.get('UPLOAD_FOLDER', 'photovault/uploads')
+            user_upload_folder = os.path.join(upload_folder, str(current_user.id))
+            os.makedirs(user_upload_folder, exist_ok=True)
+            temp_ai_filepath = os.path.join(user_upload_folder, ai_filename)
+            
+            # Perform AI restoration
+            logger.info(f"Starting AI restoration for mobile photo {photo_id} with model={model}, quality={quality}")
+            
+            if model == 'gfpgan':
+                # Map quality presets to GFPGAN parameters
+                scale_map = {'fast': 1, 'balanced': 2, 'quality': 2, 'maximum': 4}
+                version_map = {'fast': 'v1.3', 'balanced': 'v1.4', 'quality': 'v1.4', 'maximum': 'v1.4'}
+                
+                output_path, stats = ai_service.restore_with_gfpgan(
+                    original_path,
+                    temp_ai_filepath,
+                    scale=scale_map.get(quality, 2),
+                    version=version_map.get(quality, 'v1.4')
+                )
+            elif model == 'codeformer':
+                # Map quality presets to CodeFormer parameters
+                if quality == 'fast':
+                    upscale, bg_enhance, face_up = 1, False, False
+                elif quality == 'balanced':
+                    upscale, bg_enhance, face_up = 2, False, True
+                elif quality == 'quality':
+                    upscale, bg_enhance, face_up = 2, True, True
+                else:  # maximum
+                    upscale, bg_enhance, face_up = 4, True, True
+                
+                output_path, stats = ai_service.restore_with_codeformer(
+                    original_path,
+                    temp_ai_filepath,
+                    fidelity=fidelity,
+                    upscale=upscale,
+                    background_enhance=bg_enhance,
+                    face_upsample=face_up
+                )
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': f'Unknown AI model: {model}. Use "gfpgan" or "codeformer"'
+                }), 400
+            
+            # Upload to storage if available
+            ai_filepath = temp_ai_filepath
+            if app_storage.is_available():
+                import io
+                with open(temp_ai_filepath, 'rb') as f:
+                    img_bytes = io.BytesIO(f.read())
+                    success, storage_path = app_storage.upload_file(
+                        img_bytes, ai_filename, str(current_user.id)
+                    )
+                    if success:
+                        ai_filepath = storage_path
+                        try:
+                            os.remove(temp_ai_filepath)
+                        except:
+                            pass
+            
+            # Update photo with AI restored version
+            photo.edited_filename = ai_filename
+            photo.edited_path = ai_filepath
+            photo.enhancement_metadata = {
+                'ai_restoration': {
+                    'model': model,
+                    'quality': quality,
+                    'fidelity': fidelity,
+                    'timestamp': datetime.now().isoformat(),
+                    'stats': stats
+                }
+            }
+            db.session.commit()
+            
+            logger.info(f"Photo {photo_id} AI restoration completed successfully (model: {model})")
+            
+            return jsonify({
+                'success': True,
+                'photo_id': photo.id,
+                'repaired_url': f'/uploads/{current_user.id}/{ai_filename}',
+                'repair_type': 'ai',
+                'model': model,
+                'quality': quality,
+                'stats': stats,
+                'message': f'AI restoration completed successfully using {model.upper()}'
+            })
+        
+        # Original OpenCV repair types below
         sensitivity = int(data.get('sensitivity', 5))
         
         from photovault.utils.damage_repair import damage_repair
