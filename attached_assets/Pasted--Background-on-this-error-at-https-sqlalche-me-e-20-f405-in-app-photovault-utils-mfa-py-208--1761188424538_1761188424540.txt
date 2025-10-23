@@ -1,0 +1,60 @@
+(Background on this error at: https://sqlalche.me/e/20/f405) [in /app/photovault/utils/mfa.py:208]
+[2025-10-23 02:58:33,403] ERROR in mfa: Failed to check MFA status: (psycopg2.errors.UndefinedTable) relation "mfa_secret" does not exist
+LINE 2: FROM mfa_secret 
+             ^
+[SQL: SELECT mfa_secret.id AS mfa_secret_id, mfa_secret.user_id AS mfa_secret_user_id, mfa_secret.secret AS mfa_secret_secret, mfa_secret.is_enabled AS mfa_secret_is_enabled, mfa_secret.backup_codes AS mfa_secret_backup_codes, mfa_secret.enabled_at AS mfa_secret_enabled_at, mfa_secret.created_at AS mfa_secret_created_at, mfa_secret.last_used_at AS mfa_secret_last_used_at 
+FROM mfa_secret 
+WHERE mfa_secret.user_id = %(user_id_1)s AND mfa_secret.is_enabled = true 
+ LIMIT %(param_1)s]
+[parameters: {'user_id_1': 2, 'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+ERROR:photovault.utils.mfa:Failed to check MFA status: (psycopg2.errors.UndefinedTable) relation "mfa_secret" does not exist
+LINE 2: FROM mfa_secret 
+             ^
+[SQL: SELECT mfa_secret.id AS mfa_secret_id, mfa_secret.user_id AS mfa_secret_user_id, mfa_secret.secret AS mfa_secret_secret, mfa_secret.is_enabled AS mfa_secret_is_enabled, mfa_secret.backup_codes AS mfa_secret_backup_codes, mfa_secret.enabled_at AS mfa_secret_enabled_at, mfa_secret.created_at AS mfa_secret_created_at, mfa_secret.last_used_at AS mfa_secret_last_used_at 
+FROM mfa_secret 
+WHERE mfa_secret.user_id = %(user_id_1)s AND mfa_secret.is_enabled = true 
+ LIMIT %(param_1)s]
+[parameters: {'user_id_1': 2, 'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2025-10-23 02:58:33,448] INFO in main: Loading dashboard for user hamka (ID: 2), page 1
+2025-10-23 02:58:33,448 INFO: Loading dashboard for user hamka (ID: 2), page 1 [in /app/photovault/routes/main.py:92]
+2025-10-23 02:58:33,448 INFO: Loading dashboard for user hamka (ID: 2), page 1 [in /app/photovault/routes/main.py:92]
+INFO:photovault.routes.main:Loading dashboard for user hamka (ID: 2), page 1
+[2025-10-23 02:58:33,455] INFO in main: Total photos: 106
+2025-10-23 02:58:33,455 INFO: Total photos: 106 [in /app/photovault/routes/main.py:101]
+2025-10-23 02:58:33,455 INFO: Total photos: 106 [in /app/photovault/routes/main.py:101]
+INFO:photovault.routes.main:Total photos: 106
+[2025-10-23 02:58:33,460] INFO in main: Edited photos: 8, Original: 98
+2025-10-23 02:58:33,460 INFO: Edited photos: 8, Original: 98 [in /app/photovault/routes/main.py:108]
+2025-10-23 02:58:33,460 INFO: Edited photos: 8, Original: 98 [in /app/photovault/routes/main.py:108]
+INFO:photovault.routes.main:Edited photos: 8, Original: 98
+[2025-10-23 02:58:33,472] INFO in main: Storage used: 63.0 MB
+2025-10-23 02:58:33,472 INFO: Storage used: 63.0 MB [in /app/photovault/routes/main.py:114]
+2025-10-23 02:58:33,472 INFO: Storage used: 63.0 MB [in /app/photovault/routes/main.py:114]
+INFO:photovault.routes.main:Storage used: 63.0 MB
+2025-10-23 02:58:33,477 INFO: Subscription: premium, Limit: 512000 MB [in /app/photovault/routes/main.py:120]
+2025-10-23 02:58:33,477 INFO: Subscription: premium, Limit: 512000 MB [in /app/photovault/routes/main.py:120]
+[2025-10-23 02:58:33,477] INFO in main: Subscription: premium, Limit: 512000 MB
+INFO:photovault.routes.main:Subscription: premium, Limit: 512000 MB
+[2025-10-23 02:58:33,478] INFO in main: Stats calculated: {'total_photos': 106, 'edited_photos': 8, 'original_photos': 98, 'total_size_mb': 63.0, 'storage_limit_mb': 512000, 'storage_usage_percent': 0.01}
+2025-10-23 02:58:33,478 INFO: Stats calculated: {'total_photos': 106, 'edited_photos': 8, 'original_photos': 98, 'total_size_mb': 63.0, 'storage_limit_mb': 512000, 'storage_usage_percent': 0.01} [in /app/photovault/routes/main.py:137]
+2025-10-23 02:58:33,478 INFO: Stats calculated: {'total_photos': 106, 'edited_photos': 8, 'original_photos': 98, 'total_size_mb': 63.0, 'storage_limit_mb': 512000, 'storage_usage_percent': 0.01} [in /app/photovault/routes/main.py:137]
+INFO:photovault.routes.main:Stats calculated: {'total_photos': 106, 'edited_photos': 8, 'original_photos': 98, 'total_size_mb': 63.0, 'storage_limit_mb': 512000, 'storage_usage_percent': 0.01}
+2025-10-23 02:58:33,487 INFO: Rendering dashboard with 25 photos [in /app/photovault/routes/main.py:170]
+2025-10-23 02:58:33,487 INFO: Rendering dashboard with 25 photos [in /app/photovault/routes/main.py:170]
+[2025-10-23 02:58:33,487] INFO in main: Rendering dashboard with 25 photos
+INFO:photovault.routes.main:Rendering dashboard with 25 photos
+[2025-10-23 02:58:55,312] ERROR in gallery: Error serving file (f,"'int' object is not iterable") for user 2: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2025-10-23 02:58:55,312 ERROR: Error serving file (f,"'int' object is not iterable") for user 2: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again. [in /app/photovault/routes/gallery.py:596]
+2025-10-23 02:58:55,312 ERROR: Error serving file (f,"'int' object is not iterable") for user 2: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again. [in /app/photovault/routes/gallery.py:596]
+ERROR:photovault:Error serving file (f,"'int' object is not iterable") for user 2: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2025-10-23 02:58:55,312] WARNING in gallery: Serving placeholder due to exception: (f,"'int' object is not iterable")
+2025-10-23 02:58:55,312 WARNING: Serving placeholder due to exception: (f,"'int' object is not iterable") [in /app/photovault/routes/gallery.py:598]
+2025-10-23 02:58:55,312 WARNING: Serving placeholder due to exception: (f,"'int' object is not iterable") [in /app/photovault/routes/gallery.py:598]
+WARNING:photovault:Serving placeholder due to exception: (f,"'int' object is not iterable")
+[2025-10-23 02:58:55,313] ERROR in app: Exception on /uploads/2/(f,"'int' object is not iterable") [GET]
+Traceback (most recent call last):
+  File "/app/photovault/routes/gallery.py", line 394, in uploaded_file
+    abort(404)
+  File "/opt/venv/lib/python3.11/site-packages/flask/app.py", line 865, in dispatch_request
