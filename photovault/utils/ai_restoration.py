@@ -69,19 +69,16 @@ class AIRestoration:
         logger.info(f"Restoring with GFPGAN (scale={scale}, version={version}): {image_path}")
         
         try:
-            # Open and prepare image
+            # Run GFPGAN model with file handle
             with open(image_path, 'rb') as f:
-                image_data = f.read()
-            
-            # Run GFPGAN model
-            output = replicate.run(
-                self.GFPGAN_MODEL,
-                input={
-                    "img": image_data,
-                    "version": version,
-                    "scale": scale
-                }
-            )
+                output = replicate.run(
+                    self.GFPGAN_MODEL,
+                    input={
+                        "img": f,
+                        "version": version,
+                        "scale": scale
+                    }
+                )
             
             # Download result
             if output_path is None:
@@ -144,21 +141,18 @@ class AIRestoration:
         logger.info(f"Restoring with CodeFormer (fidelity={fidelity}, upscale={upscale}): {image_path}")
         
         try:
-            # Open and prepare image
+            # Run CodeFormer model with file handle
             with open(image_path, 'rb') as f:
-                image_data = f.read()
-            
-            # Run CodeFormer model
-            output = replicate.run(
-                self.CODEFORMER_MODEL,
-                input={
-                    "image": image_data,
-                    "codeformer_fidelity": fidelity,
-                    "upscale": upscale,
-                    "background_enhance": background_enhance,
-                    "face_upsample": face_upsample
-                }
-            )
+                output = replicate.run(
+                    self.CODEFORMER_MODEL,
+                    input={
+                        "image": f,
+                        "codeformer_fidelity": fidelity,
+                        "upscale": upscale,
+                        "background_enhance": background_enhance,
+                        "face_upsample": face_upsample
+                    }
+                )
             
             # Download result
             if output_path is None:
