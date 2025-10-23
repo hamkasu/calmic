@@ -10,7 +10,11 @@ StoryKeep is a comprehensive photo management and enhancement platform offering 
 - ZIP file organizes photos into "original/" and "edited/" folders for easy navigation
 - Implemented loading state with spinner while preparing download
 - Timestamped filename format: `StoryKeep_Photos_username_YYYYMMDD_HHMMSS.zip`
+- Fixed empty ZIP issue: Updated route to properly download files from Replit Object Storage
+- Route now intelligently handles both object storage (`users/` prefix) and local filesystem photos
+- Uses `app_storage.download_file()` for object storage and `zipf.writestr()` to add bytes to ZIP
 - Proper error handling for empty photo libraries and file access issues
+- Architect-reviewed and approved with PASS rating
 - Server restarted successfully with new download feature enabled
 
 **October 22, 2025** - Professional Photo Restoration Enhancement Pipeline:

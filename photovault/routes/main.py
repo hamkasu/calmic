@@ -721,6 +721,8 @@ def download_all():
     import tempfile
     from datetime import datetime
     from photovault.models import Photo
+    from photovault.services.app_storage_service import app_storage
+    from flask import current_app
     
     try:
         # Get all photos for the current user
@@ -735,19 +737,47 @@ def download_all():
         
         with zipfile.ZipFile(temp_zip.name, 'w', zipfile.ZIP_DEFLATED) as zipf:
             for photo in photos:
-                # Add original photo
-                original_path = os.path.join('photovault', 'static', 'uploads', str(photo.user_id), photo.filename)
-                if os.path.exists(original_path):
-                    # Use original name or filename in the ZIP
-                    archive_name = f"original/{photo.original_name or photo.filename}"
-                    zipf.write(original_path, archive_name)
+                # Process original photo
+                if photo.filename:
+                    file_added = False
+                    
+                    # Check if file is in object storage (starts with users/ or uploads/)
+                    if photo.filename.startswith('users/') or photo.filename.startswith('uploads/'):
+                        # Download from object storage
+                        success, file_bytes = app_storage.download_file(photo.filename)
+                        if success:
+                            archive_name = f"original/{photo.original_name or os.path.basename(photo.filename)}"
+                            zipf.writestr(archive_name, file_bytes)
+                            file_added = True
+                    else:
+                        # Try local file system
+                        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'photovault/uploads')
+                        original_path = os.path.join(upload_folder, str(photo.user_id), photo.filename)
+                        if os.path.exists(original_path):
+                            archive_name = f"original/{photo.original_name or photo.filename}"
+                            zipf.write(original_path, archive_name)
+                            file_added = True
                 
-                # Add edited photo if exists
+                # Process edited photo if exists
                 if photo.edited_filename:
-                    edited_path = os.path.join('photovault', 'static', 'uploads', str(photo.user_id), photo.edited_filename)
-                    if os.path.exists(edited_path):
-                        archive_name = f"edited/{photo.original_name or photo.edited_filename}"
-                        zipf.write(edited_path, archive_name)
+                    file_added = False
+                    
+                    # Check if file is in object storage
+                    if photo.edited_filename.startswith('users/') or photo.edited_filename.startswith('uploads/'):
+                        # Download from object storage
+                        success, file_bytes = app_storage.download_file(photo.edited_filename)
+                        if success:
+                            archive_name = f"edited/{photo.original_name or os.path.basename(photo.edited_filename)}"
+                            zipf.writestr(archive_name, file_bytes)
+                            file_added = True
+                    else:
+                        # Try local file system
+                        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'photovault/uploads')
+                        edited_path = os.path.join(upload_folder, str(photo.user_id), photo.edited_filename)
+                        if os.path.exists(edited_path):
+                            archive_name = f"edited/{photo.original_name or photo.edited_filename}"
+                            zipf.write(edited_path, archive_name)
+                            file_added = True
         
         # Generate filename with timestamp
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
