@@ -410,8 +410,11 @@ def uploaded_file(current_user, user_id, filename):
         
         # Try to serve from App Storage first, then fallback to local filesystem
         
+        # For thumbnail requests, serve the original file
+        filename_to_serve = original_filename if is_thumbnail_request else filename
+        
         # Check if this is likely an App Storage path (based on how we store photos)
-        app_storage_path = f"users/{user_id}/{filename}"
+        app_storage_path = f"users/{user_id}/{filename_to_serve}"
         
         if file_exists_enhanced(app_storage_path):
             # Serve from App Storage
@@ -459,9 +462,9 @@ def uploaded_file(current_user, user_id, filename):
         
         file_to_serve = None
         
-        if photo.filename == filename:
+        if photo.filename == filename_to_serve:
             # User requested the original - construct canonical path
-            file_to_serve = os.path.join(uploads_dir, filename)
+            file_to_serve = os.path.join(uploads_dir, filename_to_serve)
             
             # If not found in canonical location, try fallback locations for legacy data
             # BUT reject any fallback that points to the edited file
@@ -504,9 +507,9 @@ def uploaded_file(current_user, user_id, filename):
                     if not (photo.edited_filename and fallback_basename == photo.edited_filename):
                         file_to_serve = fallback_path
                             
-        elif photo.edited_filename == filename:
+        elif photo.edited_filename == filename_to_serve:
             # User requested the edited version
-            file_to_serve = os.path.join(uploads_dir, filename)
+            file_to_serve = os.path.join(uploads_dir, filename_to_serve)
             
             # If not found, try edited_path if available
             if not os.path.exists(file_to_serve) and hasattr(photo, 'edited_path') and photo.edited_path:
@@ -523,7 +526,7 @@ def uploaded_file(current_user, user_id, filename):
                     file_to_serve = os.path.join(uploads_dir, edited_path)
         else:
             # Unknown filename - try uploads directory
-            file_to_serve = os.path.join(uploads_dir, filename)
+            file_to_serve = os.path.join(uploads_dir, filename_to_serve)
         
         # Check if file is in object storage first (profile pictures)
         if photo.file_path and (photo.file_path.startswith('users/') or photo.file_path.startswith('uploads/')):
@@ -584,7 +587,7 @@ def uploaded_file(current_user, user_id, filename):
                     fallback_locations.append(os.path.join(upload_folder, photo.file_path))
             
             # Fallback 2: Try base upload folder without user subdirectory
-            fallback_locations.append(os.path.join(upload_folder, filename))
+            fallback_locations.append(os.path.join(upload_folder, filename_to_serve))
             
             # Fallback 3: If file_path is an App Storage path, try converting it to local
             if photo.file_path and (photo.file_path.startswith('users/') or photo.file_path.startswith('uploads/')):
