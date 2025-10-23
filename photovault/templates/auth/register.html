@@ -106,36 +106,46 @@
             const passwordInput = document.getElementById('password');
             const passwordError = document.getElementById('password-error');
             
-            termsCheckbox.addEventListener('change', function() {
-                createAccountBtn.disabled = !this.checked;
-            });
+            // Enable/disable button based on terms checkbox
+            if (termsCheckbox && createAccountBtn) {
+                termsCheckbox.addEventListener('change', function() {
+                    createAccountBtn.disabled = !this.checked;
+                });
+            }
             
-            passwordInput.addEventListener('input', function() {
-                if (this.value.length > 0 && this.value.length < 12) {
-                    this.classList.add('is-invalid');
-                    passwordError.style.display = 'block';
-                } else {
-                    this.classList.remove('is-invalid');
-                    passwordError.style.display = 'none';
-                }
-            });
+            // Password validation
+            if (passwordInput && passwordError) {
+                passwordInput.addEventListener('input', function() {
+                    if (this.value.length > 0 && this.value.length < 12) {
+                        this.classList.add('is-invalid');
+                        passwordError.style.display = 'block';
+                    } else {
+                        this.classList.remove('is-invalid');
+                        passwordError.style.display = 'none';
+                    }
+                });
+                
+                passwordInput.addEventListener('blur', function() {
+                    if (this.value.length > 0 && this.value.length < 12) {
+                        this.classList.add('is-invalid');
+                        passwordError.style.display = 'block';
+                    }
+                });
+            }
             
-            passwordInput.addEventListener('blur', function() {
-                if (this.value.length > 0 && this.value.length < 12) {
-                    this.classList.add('is-invalid');
-                    passwordError.style.display = 'block';
-                }
-            });
-            
-            document.querySelector('form').addEventListener('submit', function(e) {
-                if (passwordInput.value.length < 12) {
-                    e.preventDefault();
-                    passwordInput.classList.add('is-invalid');
-                    passwordError.style.display = 'block';
-                    passwordInput.focus();
-                    return false;
-                }
-            });
+            // Form submission validation
+            const form = document.querySelector('form');
+            if (form && passwordInput) {
+                form.addEventListener('submit', function(e) {
+                    if (passwordInput.value.length < 12) {
+                        e.preventDefault();
+                        passwordInput.classList.add('is-invalid');
+                        passwordError.style.display = 'block';
+                        passwordInput.focus();
+                        return false;
+                    }
+                });
+            }
         });
     </script>
 </body>

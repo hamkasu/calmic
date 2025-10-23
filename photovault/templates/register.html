@@ -104,44 +104,74 @@ CALMIC SDN BHD - "Committed to Excellence"
 </div>
 {% endblock %}
 
-{% block scripts %}
+{% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const termsCheckbox = document.getElementById('terms_accepted');
-        const createAccountBtn = document.getElementById('create-account-btn');
-        const passwordInput = document.getElementById('password');
-        const passwordError = document.getElementById('password-error');
+    // Registration form validation
+    (function() {
+        // Wait for DOM to be fully loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initRegistrationForm);
+        } else {
+            initRegistrationForm();
+        }
         
-        termsCheckbox.addEventListener('change', function() {
-            createAccountBtn.disabled = !this.checked;
-        });
-        
-        passwordInput.addEventListener('input', function() {
-            if (this.value.length > 0 && this.value.length < 12) {
-                this.classList.add('is-invalid');
-                passwordError.style.display = 'block';
-            } else {
-                this.classList.remove('is-invalid');
-                passwordError.style.display = 'none';
+        function initRegistrationForm() {
+            const termsCheckbox = document.getElementById('terms_accepted');
+            const createAccountBtn = document.getElementById('create-account-btn');
+            const passwordInput = document.getElementById('password');
+            const passwordError = document.getElementById('password-error');
+            
+            console.log('Registration form initialized');
+            console.log('Terms checkbox:', termsCheckbox);
+            console.log('Create Account button:', createAccountBtn);
+            
+            // Enable/disable button based on terms checkbox
+            if (termsCheckbox && createAccountBtn) {
+                // Set initial state based on checkbox
+                createAccountBtn.disabled = !termsCheckbox.checked;
+                
+                termsCheckbox.addEventListener('change', function() {
+                    console.log('Checkbox changed. Checked:', this.checked);
+                    createAccountBtn.disabled = !this.checked;
+                });
             }
-        });
-        
-        passwordInput.addEventListener('blur', function() {
-            if (this.value.length > 0 && this.value.length < 12) {
-                this.classList.add('is-invalid');
-                passwordError.style.display = 'block';
+            
+            // Password validation
+            if (passwordInput && passwordError) {
+                passwordInput.addEventListener('input', function() {
+                    if (this.value.length > 0 && this.value.length < 12) {
+                        this.classList.add('is-invalid');
+                        passwordError.style.display = 'block';
+                    } else {
+                        this.classList.remove('is-invalid');
+                        passwordError.style.display = 'none';
+                    }
+                });
+                
+                passwordInput.addEventListener('blur', function() {
+                    if (this.value.length > 0 && this.value.length < 12) {
+                        this.classList.add('is-invalid');
+                        passwordError.style.display = 'block';
+                    }
+                });
             }
-        });
-        
-        document.querySelector('form').addEventListener('submit', function(e) {
-            if (passwordInput.value.length < 12) {
-                e.preventDefault();
-                passwordInput.classList.add('is-invalid');
-                passwordError.style.display = 'block';
-                passwordInput.focus();
-                return false;
+            
+            // Form submission validation
+            const form = document.querySelector('form');
+            if (form && passwordInput) {
+                form.addEventListener('submit', function(e) {
+                    if (passwordInput.value.length < 12) {
+                        e.preventDefault();
+                        passwordInput.classList.add('is-invalid');
+                        if (passwordError) {
+                            passwordError.style.display = 'block';
+                        }
+                        passwordInput.focus();
+                        return false;
+                    }
+                });
             }
-        });
-    });
+        }
+    })();
 </script>
 {% endblock %}
