@@ -139,32 +139,13 @@ CALMIC SDN BHD - "Committed to Excellence"
                     <div class="photo-checkbox">
                         <input type="checkbox" class="form-check-input photo-select" value="{{ photo.id }}" onchange="updateSelection()">
                     </div>
-                    <!-- Display thumbnail if available, fallback to full image -->
-                    {% if photo.thumbnail_path %}
-                        <img src="{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.thumbnail_path.split('/')[-1]) }}" 
-                             class="card-img-top photo-preview-trigger" 
-                             alt="{{ photo.original_name }}"
-                             onclick="showPhotoPreview({{ photo.id }})"
-                             style="cursor: pointer;"
-                             onerror="this.onerror=null; this.src='{{ url_for('static', filename='img/placeholder.png') }}'; this.onclick=null; this.style.cursor='default';"
-                             data-full-src="{% if photo.edited_filename %}{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.edited_filename) }}{% else %}{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.filename) }}{% endif %}">
-                    {% elif photo.edited_filename %}
-                        <img src="{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.edited_filename) }}" 
-                             class="card-img-top photo-preview-trigger" 
-                             alt="{{ photo.original_name }} (Edited)"
-                             onclick="showPhotoPreview({{ photo.id }})"
-                             style="cursor: pointer;"
-                             onerror="this.onerror=null; this.src='{{ url_for('static', filename='img/placeholder.png') }}'; this.onclick=null; this.style.cursor='default';"
-                             data-full-src="{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.edited_filename) }}">
-                    {% else %}
-                        <img src="{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.filename) }}" 
-                             class="card-img-top photo-preview-trigger" 
-                             alt="{{ photo.original_name }}"
-                             onclick="showPhotoPreview({{ photo.id }})"
-                             style="cursor: pointer;"
-                             onerror="this.onerror=null; this.src='{{ url_for('static', filename='img/placeholder.png') }}'; this.onclick=null; this.style.cursor='default';"
-                             data-full-src="{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.filename) }}">
-                    {% endif %}
+                    <!-- Display photo using actual filename (no thumbnails) -->
+                    <img src="{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.filename) }}" 
+                         class="card-img-top photo-preview-trigger" 
+                         alt="{{ photo.original_name }}"
+                         onclick="showPhotoPreview({{ photo.id }})"
+                         style="cursor: pointer;"
+                         data-full-src="{% if photo.edited_filename %}{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.edited_filename) }}{% else %}{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.filename) }}{% endif %}">
                 </div>
                 
                 <div class="card-body d-flex flex-column">
