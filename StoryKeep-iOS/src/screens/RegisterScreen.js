@@ -34,8 +34,18 @@ export default function RegisterScreen({ navigation }) {
       return;
     }
 
+    // Validate password requirements
     if (password.length < 12) {
-      Alert.alert('Error', 'Password must be at least 12 characters with uppercase, lowercase, digit, and special character');
+      Alert.alert('Error', 'Password must be at least 12 characters long');
+      return;
+    }
+    
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    
+    if (!hasUpperCase || !hasLowerCase || !hasNumber) {
+      Alert.alert('Error', 'Password must contain uppercase letters, lowercase letters, and numbers');
       return;
     }
 
@@ -97,6 +107,9 @@ export default function RegisterScreen({ navigation }) {
               onChangeText={setPassword}
               secureTextEntry
             />
+            <Text style={styles.passwordHint}>
+              Password must be 12 characters long with a mix of uppercase, lowercase letters, and numbers
+            </Text>
 
             <TextInput
               style={styles.input}
@@ -114,7 +127,7 @@ export default function RegisterScreen({ navigation }) {
                 {termsAccepted && <Text style={styles.checkmark}>✓</Text>}
               </View>
               <Text style={styles.termsText}>
-                I agree to the{' '}
+                I have read and understand the{' '}
                 <Text
                   style={styles.termsLink}
                   onPress={(e) => {
@@ -235,5 +248,13 @@ const styles = StyleSheet.create({
     color: '#E85D75',
     fontWeight: 'bold',
     textDecorationLine: 'underline',
+  },
+  passwordHint: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: -10,
+    marginBottom: 15,
+    paddingHorizontal: 5,
+    lineHeight: 16,
   },
 });

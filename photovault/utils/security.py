@@ -19,7 +19,7 @@ PASSWORD_MUST_HAVE = {
     'uppercase': True,
     'lowercase': True,
     'digit': True,
-    'special': True
+    'special': False
 }
 SPECIAL_CHARACTERS = "!@#$%^&*()_+-=[]{}|;:,.<>?"
 
