@@ -9,11 +9,26 @@ import os
 import zipfile
 import tempfile
 import time
+import io
 from photovault.utils.enhanced_file_handler import get_file_content, file_exists_enhanced
 from photovault.utils.jwt_auth import hybrid_auth
 
 # Create the gallery blueprint
 gallery_bp = Blueprint('gallery', __name__)
+
+def generate_placeholder_image():
+    """Generate a simple 1x1 transparent PNG as placeholder"""
+    from PIL import Image
+    
+    # Create a 200x200 light gray placeholder
+    img = Image.new('RGB', (200, 200), color=(240, 240, 240))
+    
+    # Save to bytes
+    img_io = io.BytesIO()
+    img.save(img_io, 'PNG')
+    img_io.seek(0)
+    
+    return img_io
 
 @gallery_bp.route('/gallery')
 @login_required
@@ -383,13 +398,13 @@ def uploaded_file(current_user, user_id, filename):
                 return response
             else:
                 current_app.logger.error(f"Avatar file not found: {avatar_path}")
-                return send_file('static/img/placeholder.png', mimetype='image/png')
+                return send_file(generate_placeholder_image(), mimetype='image/png')
         
         # For regular photos (not avatars), photo record must exist
         if not photo:
             if is_thumbnail_request:
                 current_app.logger.warning(f"Photo record not found for thumbnail: {filename}")
-                return redirect(url_for('static', filename='img/placeholder.png'))
+                return send_file(generate_placeholder_image(), mimetype='image/png')
             else:
                 abort(404)
         
@@ -422,7 +437,7 @@ def uploaded_file(current_user, user_id, filename):
                 # If it's a thumbnail request, serve placeholder instead of 404
                 if is_thumbnail_request:
                     current_app.logger.warning(f"Serving placeholder for failed thumbnail: {filename}")
-                    return redirect(url_for('static', filename='img/placeholder.png'))
+                    return send_file(generate_placeholder_image(), mimetype='image/png')
                 abort(404)
         
         # Fallback to local filesystem
@@ -590,13 +605,13 @@ def uploaded_file(current_user, user_id, filename):
             current_app.logger.error(f"File not found: {file_to_serve} (requested filename: {filename}). Tried fallbacks: {fallback_locations}")
             # Serve placeholder for both thumbnails and regular images instead of 404
             current_app.logger.warning(f"Serving placeholder for missing file: {file_to_serve}")
-            return send_file('static/img/placeholder.png', mimetype='image/png')
+            return send_file(generate_placeholder_image(), mimetype='image/png')
         
     except Exception as e:
         current_app.logger.error(f"Error serving file {filename} for user {user_id}: {e}")
         # Serve placeholder for any exception instead of 404
         current_app.logger.warning(f"Serving placeholder due to exception: {filename}")
-        return send_file('static/img/placeholder.png', mimetype='image/png')
+        return send_file(generate_placeholder_image(), mimetype='image/png')
 
 @gallery_bp.route('/api/photos/bulk-download', methods=['POST'])
 @login_required
