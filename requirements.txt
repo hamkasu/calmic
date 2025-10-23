@@ -60,6 +60,7 @@ replit-object-storage==1.0.2
 # AI Integration
 openai>=1.0.0
 google-genai
+replicate>=1.0.0
 
 # Excel Export
 openpyxl

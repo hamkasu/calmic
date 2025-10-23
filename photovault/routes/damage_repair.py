@@ -360,6 +360,125 @@ def detect_damage(photo_id):
         }), 500
 
 
+@damage_repair_bp.route('/api/photos/<int:photo_id>/repair/ai', methods=['POST'])
+@login_required
+def ai_restoration(photo_id):
+    """Use AI to restore damaged photos with GFPGAN or CodeFormer"""
+    try:
+        photo = Photo.query.get_or_404(photo_id)
+        
+        # Verify ownership
+        if photo.user_id != current_user.id and not current_user.is_admin:
+            return jsonify({
+                'success': False,
+                'error': 'Unauthorized access to this photo'
+            }), 403
+        
+        # Import AI restoration service
+        from photovault.utils.ai_restoration import ai_restoration as ai_service
+        
+        if not ai_service.enabled:
+            return jsonify({
+                'success': False,
+                'error': 'AI restoration not available. Please configure REPLICATE_API_TOKEN'
+            }), 503
+        
+        # Get parameters
+        data = request.get_json() or {}
+        model = data.get('model', 'codeformer')  # 'gfpgan' or 'codeformer'
+        quality = data.get('quality', 'balanced')  # 'fast', 'balanced', 'quality', 'maximum'
+        fidelity = float(data.get('fidelity', 0.5))  # CodeFormer only
+        
+        # Create output path
+        output_dir = os.path.dirname(photo.file_path)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        output_filename = f"{current_user.username}_ai_{model}_{timestamp}.jpg"
+        output_path = os.path.join(output_dir, output_filename)
+        
+        # Perform AI restoration
+        logger.info(f"Starting AI restoration for photo {photo_id} with model={model}, quality={quality}")
+        
+        if model == 'gfpgan':
+            # Map quality presets to GFPGAN parameters
+            scale_map = {'fast': 1, 'balanced': 2, 'quality': 2, 'maximum': 4}
+            version_map = {'fast': 'v1.3', 'balanced': 'v1.4', 'quality': 'v1.4', 'maximum': 'v1.4'}
+            
+            result_path, stats = ai_service.restore_with_gfpgan(
+                photo.file_path,
+                output_path,
+                scale=scale_map.get(quality, 2),
+                version=version_map.get(quality, 'v1.4')
+            )
+        elif model == 'codeformer':
+            # Map quality presets to CodeFormer parameters
+            if quality == 'fast':
+                upscale, bg_enhance, face_up = 1, False, False
+            elif quality == 'balanced':
+                upscale, bg_enhance, face_up = 2, False, True
+            elif quality == 'quality':
+                upscale, bg_enhance, face_up = 2, True, True
+            else:  # maximum
+                upscale, bg_enhance, face_up = 4, True, True
+            
+            result_path, stats = ai_service.restore_with_codeformer(
+                photo.file_path,
+                output_path,
+                fidelity=fidelity,
+                upscale=upscale,
+                background_enhance=bg_enhance,
+                face_upsample=face_up
+            )
+        else:
+            return jsonify({
+                'success': False,
+                'error': f'Unknown AI model: {model}. Use "gfpgan" or "codeformer"'
+            }), 400
+        
+        # Create thumbnail
+        thumbnail_path = create_thumbnail(result_path, current_user.id)
+        
+        # Get image info
+        image_info = get_image_info(result_path)
+        
+        # Create new photo record
+        new_photo = Photo(
+            filename=output_filename,
+            original_name=f"ai_{model}_{photo.original_name}",
+            file_path=result_path,
+            thumbnail_path=thumbnail_path,
+            file_size=image_info.get('size_bytes') if image_info else None,
+            width=image_info.get('width') if image_info else None,
+            height=image_info.get('height') if image_info else None,
+            mime_type=f"image/{image_info.get('format', 'jpeg').lower()}" if image_info else 'image/jpeg',
+            upload_source='ai_restoration',
+            user_id=current_user.id,
+            album_id=photo.album_id
+        )
+        
+        db.session.add(new_photo)
+        db.session.commit()
+        
+        logger.info(f"AI restoration completed for photo {photo_id}, new photo {new_photo.id}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'AI restoration completed successfully using {model.upper()}',
+            'original_photo_id': photo_id,
+            'repaired_photo_id': new_photo.id,
+            'repaired_filename': new_photo.filename,
+            'user_id': current_user.id,
+            'stats': stats
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in AI restoration for photo {photo_id}: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @damage_repair_bp.route('/api/photos/<int:photo_id>/repair/ai-inpaint', methods=['POST'])
 @login_required
 def ai_inpaint(photo_id):

@@ -252,7 +252,15 @@ body {
                 <!-- Repair Type Selection -->
                 <div class="control-group">
                     <label>Repair Type</label>
-                    <div class="repair-type-btn active" data-type="comprehensive" onclick="selectRepairType('comprehensive', this)">
+                    <div class="repair-type-btn" data-type="ai_gfpgan" onclick="selectRepairType('ai_gfpgan', this)">
+                        <strong><i class="bi bi-stars"></i> AI Restoration (Fast)</strong><br>
+                        <small>GFPGAN - Best for faces</small>
+                    </div>
+                    <div class="repair-type-btn active" data-type="ai_codeformer" onclick="selectRepairType('ai_codeformer', this)">
+                        <strong><i class="bi bi-stars"></i> AI Restoration (Quality)</strong><br>
+                        <small>CodeFormer - Severely damaged</small>
+                    </div>
+                    <div class="repair-type-btn" data-type="comprehensive" onclick="selectRepairType('comprehensive', this)">
                         <strong>Comprehensive Repair</strong><br>
                         <small>All-in-one fix</small>
                     </div>
@@ -288,6 +296,28 @@ body {
                         <span class="slider-value" id="strengthValue">1.5</span>
                     </div>
                     <small class="text-muted">Higher values apply stronger correction</small>
+                </div>
+
+                <!-- AI Quality Control (for AI restoration) -->
+                <div class="control-group" id="aiQualityControl" style="display: block;">
+                    <label for="aiQuality">AI Quality</label>
+                    <select id="aiQuality" class="photo-selector">
+                        <option value="fast">Fast (1x upscale)</option>
+                        <option value="balanced" selected>Balanced (2x upscale)</option>
+                        <option value="quality">Quality (2x + background enhance)</option>
+                        <option value="maximum">Maximum (4x + all enhancements)</option>
+                    </select>
+                    <small class="text-muted">Higher quality takes longer and uses more credits</small>
+                </div>
+
+                <!-- AI Fidelity Control (for CodeFormer only) -->
+                <div class="control-group" id="fidelityControl" style="display: block;">
+                    <label for="fidelity">Fidelity vs Quality</label>
+                    <div class="slider-container">
+                        <input type="range" id="fidelity" class="form-range" min="0" max="1" step="0.1" value="0.5">
+                        <span class="slider-value" id="fidelityValue">0.5</span>
+                    </div>
+                    <small class="text-muted">Lower = higher quality, Higher = preserves identity</small>
                 </div>
 
                 <!-- Apply Button -->
@@ -347,7 +377,7 @@ body {
 {% block extra_js %}
 <script>
 let selectedPhotoId = null;
-let selectedRepairType = 'comprehensive';
+let selectedRepairType = 'ai_codeformer';
 
 // Repair type selection
 function selectRepairType(type, element) {
@@ -362,16 +392,28 @@ function selectRepairType(type, element) {
     // Show/hide appropriate controls
     const sensitivityControl = document.getElementById('sensitivityControl');
     const strengthControl = document.getElementById('strengthControl');
+    const aiQualityControl = document.getElementById('aiQualityControl');
+    const fidelityControl = document.getElementById('fidelityControl');
     
-    if (type === 'stains') {
-        sensitivityControl.style.display = 'none';
+    // Hide all controls first
+    sensitivityControl.style.display = 'none';
+    strengthControl.style.display = 'none';
+    aiQualityControl.style.display = 'none';
+    fidelityControl.style.display = 'none';
+    
+    // Show controls based on repair type
+    if (type === 'ai_gfpgan') {
+        aiQualityControl.style.display = 'block';
+    } else if (type === 'ai_codeformer') {
+        aiQualityControl.style.display = 'block';
+        fidelityControl.style.display = 'block';
+    } else if (type === 'stains') {
         strengthControl.style.display = 'block';
     } else if (type === 'comprehensive') {
         sensitivityControl.style.display = 'block';
         strengthControl.style.display = 'block';
     } else {
         sensitivityControl.style.display = 'block';
-        strengthControl.style.display = 'none';
     }
 }
 
@@ -382,6 +424,10 @@ document.getElementById('sensitivity').addEventListener('input', function() {
 
 document.getElementById('strength').addEventListener('input', function() {
     document.getElementById('strengthValue').textContent = this.value;
+});
+
+document.getElementById('fidelity').addEventListener('input', function() {
+    document.getElementById('fidelityValue').textContent = this.value;
 });
 
 // Photo selection
@@ -413,6 +459,8 @@ document.getElementById('applyRepair').addEventListener('click', async function(
 
     const sensitivity = parseInt(document.getElementById('sensitivity').value);
     const strength = parseFloat(document.getElementById('strength').value);
+    const aiQuality = document.getElementById('aiQuality').value;
+    const fidelity = parseFloat(document.getElementById('fidelity').value);
 
     const loadingOverlay = document.getElementById('loadingOverlay');
     loadingOverlay.classList.add('show');
@@ -424,6 +472,21 @@ document.getElementById('applyRepair').addEventListener('click', async function(
         let body = {};
         
         switch(selectedRepairType) {
+            case 'ai_gfpgan':
+                endpoint = `/api/photos/${selectedPhotoId}/repair/ai`;
+                body = {
+                    model: 'gfpgan',
+                    quality: aiQuality
+                };
+                break;
+            case 'ai_codeformer':
+                endpoint = `/api/photos/${selectedPhotoId}/repair/ai`;
+                body = {
+                    model: 'codeformer',
+                    quality: aiQuality,
+                    fidelity: fidelity
+                };
+                break;
             case 'comprehensive':
                 endpoint = `/api/photos/${selectedPhotoId}/repair/comprehensive`;
                 body = {
