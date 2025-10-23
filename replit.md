@@ -4,6 +4,23 @@
 StoryKeep is a comprehensive photo management and enhancement platform offering a professional-grade experience. It includes a professional camera interface, automatic photo upload and organization, secure storage, face detection and recognition, advanced photo enhancement and restoration, AI-powered smart tagging, family vault sharing, and social media integration. The platform uses a subscription-based model and aims to provide advanced photo management solutions to a broad market.
 
 ## Recent Changes
+**October 23, 2025** - AI-Powered Photo Restoration Implementation:
+- Integrated Replicate API for professional-grade AI photo restoration using GFPGAN and CodeFormer models
+- Created AI restoration service (photovault/utils/ai_restoration.py) with automatic fallback and error handling
+- Added GFPGAN model support: Fast face restoration with identity preservation (scales 1-4, versions v1.3/v1.4)
+- Added CodeFormer model support: Superior quality for severely damaged photos (fidelity 0.0-1.0, upscale 1-4x, background enhancement, face upsample)
+- Implemented quality presets: Fast (1x, minimal processing), Balanced (2x, standard restoration), Quality (2x, enhanced), Maximum (4x, full enhancement)
+- Web UI: Added AI restoration section in damage repair page with model selection dropdown, quality presets, and fidelity slider
+- Web API: Created `/api/photos/<id>/repair/ai` endpoint with comprehensive parameter mapping
+- Mobile API: Extended `/api/photos/<id>/repair` endpoint to handle `type: 'ai'` with full parameter support
+- iOS UI: Added professional AI restoration modal in EnhancePhotoScreen with model toggles, quality buttons, and fidelity control
+- iOS API: Integrated repairDamage function with AI type support for seamless mobile restoration
+- Added replicate>=1.0.0 to requirements.txt for deployment
+- Processing time: 30-60 seconds per photo (communicated to users via UI)
+- All implementations architect-reviewed and approved with PASS rating
+- Endpoints properly aligned: web uses dedicated /repair/ai route, mobile uses unified /repair route with type parameter
+- Server restarted successfully with AI restoration features fully operational
+
 **October 23, 2025** - Added Download All Images Feature:
 - Added "Download All" button to dashboard header button group for quick photo backup
 - Created `/download-all` route that generates ZIP file containing all user photos
