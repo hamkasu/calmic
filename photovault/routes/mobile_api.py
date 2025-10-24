@@ -2072,7 +2072,23 @@ def colorize_photo_ai_mobile(current_user, photo_id):
     try:
         from photovault.services.ai_service import get_ai_service
         from photovault.services.app_storage_service import app_storage
+        from photovault.utils.quota_manager import check_ai_quota, increment_ai_usage
         import io
+        
+        # Check AI quota before processing
+        has_quota, quota_info, error_message = check_ai_quota(current_user)
+        if not has_quota:
+            return jsonify({
+                'success': False,
+                'error': error_message,
+                'quota_info': {
+                    'quota_limit': quota_info['quota_limit'],
+                    'quota_used': quota_info['quota_used'],
+                    'quota_remaining': quota_info['quota_remaining'],
+                    'reset_date': quota_info['reset_date'].isoformat() if quota_info['reset_date'] else None,
+                    'plan_name': quota_info['plan_name']
+                }
+            }), 429  # 429 Too Many Requests
         
         # Check if AI service is available
         ai_service = get_ai_service()
@@ -2148,7 +2164,12 @@ def colorize_photo_ai_mobile(current_user, photo_id):
         photo.updated_at = datetime.utcnow()
         db.session.commit()
         
-        logger.info(f"✅ Photo {photo_id} AI-colorized successfully using {metadata['method']}")
+        # Increment AI quota usage (atomic operation)
+        success, new_usage, usage_error = increment_ai_usage(current_user)
+        if not success:
+            logger.error(f"Quota increment failed after colorization: {usage_error}")
+        else:
+            logger.info(f"✅ Photo {photo_id} AI-colorized successfully using {metadata['method']} (quota: {new_usage}/{quota_info['quota_limit']})")
         
         return jsonify({
             'success': True,
@@ -2167,6 +2188,39 @@ def colorize_photo_ai_mobile(current_user, photo_id):
         logger.error(f"💥 Mobile AI colorize error for photo {photo_id}: {str(e)}")
         db.session.rollback()
         return jsonify({'success': False, 'error': 'AI Colorization failed'}), 500
+
+
+@mobile_api_bp.route('/quota', methods=['GET'])
+@csrf.exempt
+@token_required
+def get_quota_info(current_user):
+    """
+    Get AI enhancement quota information for the current user
+    Returns quota limit, usage, and remaining count
+    """
+    try:
+        from photovault.utils.quota_manager import get_ai_quota_info
+        
+        quota_info = get_ai_quota_info(current_user)
+        
+        return jsonify({
+            'success': True,
+            'quota': {
+                'limit': quota_info['quota_limit'],
+                'used': quota_info['quota_used'],
+                'remaining': quota_info['quota_remaining'],
+                'reset_date': quota_info['reset_date'].isoformat() if quota_info['reset_date'] else None,
+                'unlimited': quota_info['unlimited'],
+                'plan_name': quota_info['plan_name']
+            }
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Failed to get quota info for user {current_user.id}: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to retrieve quota information'
+        }), 500
 
 
 @mobile_api_bp.route('/photos/<int:photo_id>/check-grayscale', methods=['GET'])
@@ -3033,6 +3087,22 @@ def repair_damage_mobile(current_user, photo_id):
         # Handle AI restoration
         if repair_type == 'ai':
             from photovault.utils.ai_restoration import ai_restoration as ai_service
+            from photovault.utils.quota_manager import check_ai_quota, increment_ai_usage
+            
+            # Check AI quota before processing
+            has_quota, quota_info, error_message = check_ai_quota(current_user)
+            if not has_quota:
+                return jsonify({
+                    'success': False,
+                    'error': error_message,
+                    'quota_info': {
+                        'quota_limit': quota_info['quota_limit'],
+                        'quota_used': quota_info['quota_used'],
+                        'quota_remaining': quota_info['quota_remaining'],
+                        'reset_date': quota_info['reset_date'].isoformat() if quota_info['reset_date'] else None,
+                        'plan_name': quota_info['plan_name']
+                    }
+                }), 429  # 429 Too Many Requests
             
             if not ai_service.enabled:
                 return jsonify({
@@ -3136,7 +3206,12 @@ def repair_damage_mobile(current_user, photo_id):
             }
             db.session.commit()
             
-            logger.info(f"Photo {photo_id} AI restoration completed successfully (model: {model})")
+            # Increment AI quota usage (atomic operation)
+            success, new_usage, usage_error = increment_ai_usage(current_user)
+            if not success:
+                logger.error(f"Quota increment failed after restoration: {usage_error}")
+            else:
+                logger.info(f"Photo {photo_id} AI restoration completed successfully (model: {model}, quota: {new_usage}/{quota_info['quota_limit']})")
             
             return jsonify({
                 'success': True,
