@@ -23,7 +23,7 @@ except ImportError:
 class AdvancedPhotoDetector:
     """Advanced multi-strategy photo detection with robust edge detection"""
     
-    def __init__(self):
+    def __init__(self, fast_mode=True):
         self.min_photo_area = 200000
         self.max_photo_area_ratio = 0.85
         self.min_aspect_ratio = 0.3
@@ -31,9 +31,10 @@ class AdvancedPhotoDetector:
         self.contour_area_threshold = 0.008
         self.enable_perspective_correction = True
         self.enable_edge_refinement = True
+        self.fast_mode = fast_mode
         
-        # Multi-scale detection parameters (removed small scale to avoid tiny detections)
-        self.scales = [1.0, 0.85]
+        # Multi-scale detection parameters (single scale for fast mode)
+        self.scales = [1.0] if fast_mode else [1.0, 0.85]
         
         # Detection confidence thresholds (increased to reduce false positives)
         self.min_confidence = 0.72
@@ -58,7 +59,8 @@ class AdvancedPhotoDetector:
                 logger.error(f"Could not load image: {image_path}")
                 return []
                 
-            logger.info(f"Starting advanced photo detection on {image_path}")
+            mode = "fast" if self.fast_mode else "comprehensive"
+            logger.info(f"Starting photo detection ({mode} mode) on {image_path}")
             
             height, width = image.shape[:2]
             if height * width > 25000000:
@@ -67,18 +69,17 @@ class AdvancedPhotoDetector:
             
             original_area = width * height
             
-            # Strategy 1: Multi-scale pyramid detection
+            # Fast mode: use only primary detection
             all_detections = []
-            all_detections.extend(self._multi_scale_detection(image, original_area))
-            
-            # Strategy 2: Polaroid-specific detection (white border)
-            all_detections.extend(self._detect_polaroids(image, original_area))
-            
-            # Strategy 3: Faded/low-contrast photo detection
-            all_detections.extend(self._detect_faded_photos(image, original_area))
-            
-            # Strategy 4: Watershed segmentation for touching photos
-            all_detections.extend(self._watershed_detection(image, original_area))
+            if self.fast_mode:
+                # Single-scale optimized detection
+                all_detections.extend(self._fast_detection(image, original_area))
+            else:
+                # Full multi-strategy detection
+                all_detections.extend(self._multi_scale_detection(image, original_area))
+                all_detections.extend(self._detect_polaroids(image, original_area))
+                all_detections.extend(self._detect_faded_photos(image, original_area))
+                all_detections.extend(self._watershed_detection(image, original_area))
             
             # Merge overlapping detections (NMS - Non-Maximum Suppression)
             merged_detections = self._merge_overlapping_detections(all_detections)
@@ -90,7 +91,8 @@ class AdvancedPhotoDetector:
             if len(merged_detections) > 15:
                 merged_detections = merged_detections[:15]
             
-            logger.info(f"Detected {len(merged_detections)} photos with advanced detection")
+            mode = "fast" if self.fast_mode else "comprehensive"
+            logger.info(f"Detected {len(merged_detections)} photos using {mode} detection")
             return merged_detections
             
         except MemoryError:
@@ -158,6 +160,98 @@ class AdvancedPhotoDetector:
                     })
         
         return all_candidates
+    
+    def _fast_detection(self, image: np.ndarray, original_area: int) -> List[Dict]:
+        """Fast, optimized photo detection for production use"""
+        all_candidates = []
+        
+        # Simplified preprocessing for speed
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        
+        # Quick illumination normalization
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        enhanced = clahe.apply(gray)
+        
+        # Simple denoising
+        denoised = cv2.GaussianBlur(enhanced, (5, 5), 0)
+        
+        # Fast edge detection - single strategy
+        median_val = float(np.median(denoised))
+        sigma = 0.33
+        lower = int(max(0, (1.0 - sigma) * median_val))
+        upper = int(min(255, (1.0 + sigma) * median_val))
+        edges = cv2.Canny(denoised, lower, upper, apertureSize=3)
+        
+        # Minimal morphological operations
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        closed = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
+        dilated = cv2.dilate(closed, kernel, iterations=1)
+        
+        # Find contours
+        contours, hierarchy = cv2.findContours(
+            dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
+        )
+        
+        # Sort and filter by area
+        contours = sorted(contours, key=cv2.contourArea, reverse=True)
+        min_area = original_area * self.contour_area_threshold
+        filtered = [c for c in contours if cv2.contourArea(c) > min_area][:20]
+        
+        # Process candidates
+        for i, contour in enumerate(filtered):
+            x, y, w, h = cv2.boundingRect(contour)
+            area = w * h
+            
+            if not self._is_valid_photo_region(x, y, w, h, original_area):
+                continue
+            
+            # Fast confidence calculation
+            confidence = self._calculate_fast_confidence(contour, x, y, w, h, image)
+            
+            if confidence > self.min_confidence:
+                corners = self._get_photo_corners_refined(contour, 1.0)
+                all_candidates.append({
+                    'x': int(x),
+                    'y': int(y),
+                    'width': int(w),
+                    'height': int(h),
+                    'area': int(area),
+                    'confidence': float(confidence),
+                    'aspect_ratio': float(w/h),
+                    'contour': contour.tolist(),
+                    'corners': corners.tolist(),
+                    'detection_method': 'fast'
+                })
+        
+        return all_candidates
+    
+    def _calculate_fast_confidence(
+        self, contour, x: int, y: int, w: int, h: int, image: np.ndarray
+    ) -> float:
+        """Fast confidence calculation with fewer checks"""
+        confidence = 0.0
+        
+        # Shape rectangularity (0.0 - 0.4)
+        contour_area = cv2.contourArea(contour)
+        bbox_area = w * h
+        area_ratio = contour_area / bbox_area if bbox_area > 0 else 0
+        confidence += area_ratio * 0.4
+        
+        # Aspect ratio match (0.0 - 0.3)
+        aspect_ratio = w / h
+        common_ratios = [1.0, 4/3, 3/2, 16/9, 5/4, 0.75, 0.67]
+        min_diff = min([abs(aspect_ratio - ratio) for ratio in common_ratios])
+        aspect_score = max(0, 1 - min_diff * 2) * 0.3
+        confidence += aspect_score
+        
+        # Corner quality (0.0 - 0.3)
+        corners = self._get_photo_corners_refined(contour, 1.0)
+        if len(corners) == 4:
+            corner_angles = self._calculate_corner_angles(corners)
+            angle_score = sum([1 for angle in corner_angles if 70 < angle < 110]) / 4
+            confidence += angle_score * 0.3
+        
+        return min(1.0, confidence)
     
     def _advanced_preprocessing(self, image: np.ndarray) -> np.ndarray:
         """
