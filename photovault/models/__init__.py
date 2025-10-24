@@ -507,7 +507,7 @@ class SubscriptionPlan(db.Model):
     sst_rate = db.Column(db.Numeric(5, 2), default=6.00)  # 6% Service Tax (SST)
     
     # Features and limits
-    storage_gb = db.Column(db.Integer, nullable=False)  # Storage limit in GB
+    storage_gb = db.Column(db.Numeric(10, 2), nullable=False)  # Storage limit in GB (allows decimals like 0.5)
     max_photos = db.Column(db.Integer)  # Max photos (null = unlimited)
     max_family_vaults = db.Column(db.Integer, default=0)  # Number of family vaults allowed
     ai_enhancement_quota = db.Column(db.Integer, default=0)  # Monthly AI enhancement quota (colorization/restoration)
