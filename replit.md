@@ -23,12 +23,14 @@ The Mobile Digitizer App (React Native/Expo) features a smart camera with real-t
 - **Photo Management**: Upload with metadata extraction, automatic face detection and tagging, enhancement, restoration, colorization, AI smart tagging, gallery organization, search, filtering, bulk deletion, and "Download All" as ZIP backup.
 - **Family Vaults**: Shared collections, member invitations, stories, and collaborative management.
 - **Subscription System**: Multiple pricing tiers with feature-based access, Stripe payment integration, and Malaysian pricing (MYR) with SST.
+- **AI Enhancement Quota System**: Monthly quotas for AI enhancements (colorization, restoration) to prevent excessive API costs. Atomic quota enforcement with SELECT FOR UPDATE locking prevents concurrent request bypass. Quotas: Free (5), Personal (25), Family (75), Pro (250), Business (1000). Auto-resets on 1st of each month via cron job.
 - **Admin Features**: CSV/Excel export of user data, batch user operations.
 - **Photo Annotations**: Text comments and voice memos for photos.
 
 ### System Design Choices
 - **Database**: PostgreSQL for all environments, SQLAlchemy ORM, connection pooling, SSL for production.
 - **Security**: CSRF protection, password hashing, secure session cookies, file upload validation, SQL injection prevention.
+- **Quota Management**: Atomic quota consumption using database-level row locking (SELECT FOR UPDATE) to prevent race conditions. Monthly reset via cron job handles both active subscriptions and legacy NULL reset dates.
 - **Image Processing**: Utilizes OpenCV, Pillow, and NumPy for robust image manipulation and analysis, including EXIF metadata extraction.
 - **Persistence**: Replit Object Storage for persistent image storage, organized by user.
 - **Deployment**: Configured for Replit Autoscale with Gunicorn.
