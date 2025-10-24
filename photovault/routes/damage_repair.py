@@ -241,6 +241,81 @@ def repair_cracks(photo_id):
         }), 500
 
 
+@damage_repair_bp.route('/api/photos/<int:photo_id>/repair/severe-cracks', methods=['POST'])
+@login_required
+def repair_severe_cracks(photo_id):
+    """Repair severe cracks in a heavily damaged photo"""
+    try:
+        photo = Photo.query.get_or_404(photo_id)
+        
+        # Verify ownership
+        if photo.user_id != current_user.id and not current_user.is_admin:
+            return jsonify({
+                'success': False,
+                'error': 'Unauthorized access to this photo'
+            }), 403
+        
+        # Get parameters
+        data = request.get_json() or {}
+        intensity = data.get('intensity', 'high')  # 'medium', 'high', 'maximum'
+        
+        # Create output path
+        output_dir = os.path.dirname(photo.file_path)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        output_filename = f"{current_user.username}_severe_crack_repaired_{timestamp}.jpg"
+        output_path = os.path.join(output_dir, output_filename)
+        
+        # Repair severe cracks
+        logger.info(f"Starting severe crack repair for photo {photo_id} with {intensity} intensity")
+        result_path, stats = damage_repair.repair_severe_cracks(
+            photo.file_path, output_path, intensity
+        )
+        
+        # Create thumbnail
+        thumbnail_path = create_thumbnail(result_path, current_user.id)
+        
+        # Get image info
+        image_info = get_image_info(result_path)
+        
+        # Create new photo record
+        new_photo = Photo(
+            filename=output_filename,
+            original_name=f"severe_crack_repaired_{photo.original_name}",
+            file_path=result_path,
+            thumbnail_path=thumbnail_path,
+            file_size=image_info.get('size_bytes') if image_info else None,
+            width=image_info.get('width') if image_info else None,
+            height=image_info.get('height') if image_info else None,
+            mime_type=f"image/{image_info.get('format', 'jpeg').lower()}" if image_info else 'image/jpeg',
+            upload_source='severe_damage_repair',
+            user_id=current_user.id,
+            album_id=photo.album_id
+        )
+        
+        db.session.add(new_photo)
+        db.session.commit()
+        
+        logger.info(f"Severe cracks repaired for photo {photo_id}, new photo {new_photo.id}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Severe cracks repaired successfully ({stats["crack_percentage"]:.2f}% damage repaired with {stats["inpaint_passes"]} passes)',
+            'original_photo_id': photo_id,
+            'repaired_photo_id': new_photo.id,
+            'repaired_filename': new_photo.filename,
+            'user_id': current_user.id,
+            'stats': stats
+        })
+        
+    except Exception as e:
+        logger.error(f"Error repairing severe cracks for photo {photo_id}: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @damage_repair_bp.route('/api/photos/<int:photo_id>/repair/comprehensive', methods=['POST'])
 @login_required
 def comprehensive_repair(photo_id):

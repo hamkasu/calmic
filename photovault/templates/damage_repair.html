@@ -276,6 +276,21 @@ body {
                         <strong>Repair Cracks</strong><br>
                         <small>Fix photo cracks</small>
                     </div>
+                    <div class="repair-type-btn" data-type="severe_cracks" onclick="selectRepairType('severe_cracks', this)">
+                        <strong><i class="bi bi-exclamation-triangle"></i> Severe Damage</strong><br>
+                        <small>Heavy crack removal</small>
+                    </div>
+                </div>
+
+                <!-- Intensity Control (for severe cracks) -->
+                <div class="control-group" id="intensityControl" style="display: none;">
+                    <label for="intensity">Repair Intensity</label>
+                    <select id="intensity" class="photo-selector">
+                        <option value="medium">Medium (10px radius, 2 passes)</option>
+                        <option value="high" selected>High (15px radius, 2 passes)</option>
+                        <option value="maximum">Maximum (20px radius, 3 passes)</option>
+                    </select>
+                    <small class="text-muted">Higher intensity for more severe damage</small>
                 </div>
 
                 <!-- Sensitivity Control (for scratches & cracks) -->
@@ -394,12 +409,14 @@ function selectRepairType(type, element) {
     const strengthControl = document.getElementById('strengthControl');
     const aiQualityControl = document.getElementById('aiQualityControl');
     const fidelityControl = document.getElementById('fidelityControl');
+    const intensityControl = document.getElementById('intensityControl');
     
     // Hide all controls first
     sensitivityControl.style.display = 'none';
     strengthControl.style.display = 'none';
     aiQualityControl.style.display = 'none';
     fidelityControl.style.display = 'none';
+    intensityControl.style.display = 'none';
     
     // Show controls based on repair type
     if (type === 'ai_gfpgan') {
@@ -409,6 +426,8 @@ function selectRepairType(type, element) {
         fidelityControl.style.display = 'block';
     } else if (type === 'stains') {
         strengthControl.style.display = 'block';
+    } else if (type === 'severe_cracks') {
+        intensityControl.style.display = 'block';
     } else if (type === 'comprehensive') {
         sensitivityControl.style.display = 'block';
         strengthControl.style.display = 'block';
@@ -512,6 +531,12 @@ document.getElementById('applyRepair').addEventListener('click', async function(
                 endpoint = `/api/photos/${selectedPhotoId}/repair/cracks`;
                 body = {
                     sensitivity: sensitivity
+                };
+                break;
+            case 'severe_cracks':
+                endpoint = `/api/photos/${selectedPhotoId}/repair/severe-cracks`;
+                body = {
+                    intensity: document.getElementById('intensity').value
                 };
                 break;
         }
