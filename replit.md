@@ -18,6 +18,11 @@ The `AdvancedPhotoDetector` implements production-grade edge detection with mult
 
 The Mobile Digitizer App (React Native/Expo) features a smart camera with real-time edge detection, batch capture, client-side photo enhancement, server-side AI photo detection and extraction, an offline queue, upload service with progress tracking, JWT authentication, React Navigation, family vault management with multi-select deletion and permission-based access, and device photo library uploads. It supports voice memo recording and playback using expo-av. Profile picture uploads support HEIC/HEIF with automatic conversion to JPEG.
 
+**Recent Enhancements (Oct 2025):**
+- **Progress Indicators**: Added reusable ProgressBar component with animated progress tracking for all time-consuming operations including photo enhancement (sharpen, colorize DNN, colorize AI, AI restoration), photo upload/detection, and batch processing. Progress bars show percentage completion and user-friendly status messages.
+- **Gallery Optimization**: Implemented pagination (30 photos per page) with lazy loading, optimized FlatList rendering with `initialNumToRender`, `windowSize`, and `removeClippedSubviews` for better performance. Added initial loading screen with progress indicator.
+- **Photo Detection Sensitivity**: Adjusted detection parameters to reduce false positives (min_confidence=0.65, min_photo_area=100k pixels, stricter Polaroid detection with white_threshold=220) to prevent white clothing from being detected as photos.
+
 ### Feature Specifications
 - **Authentication & Authorization**: User registration, login, password reset, session management, admin/superuser roles, subscription-based access.
 - **Photo Management**: Upload with metadata extraction, automatic face detection and tagging, enhancement, restoration, colorization, AI smart tagging, gallery organization, search, filtering, bulk deletion, and "Download All" as ZIP backup.
