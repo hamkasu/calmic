@@ -281,6 +281,173 @@ class DamageRepair:
             logger.error(f"Error repairing cracks: {e}")
             raise
     
+    def repair_severe_cracks(self, image_path: str, output_path: str = None,
+                            intensity: str = 'high') -> Tuple[str, Dict]:
+        """
+        Advanced crack repair for severely damaged photographs with thick, visible cracks
+        
+        Uses multi-stage detection and inpainting optimized for thick white/light cracks
+        that are common in old, damaged photographs.
+        
+        Args:
+            image_path: Path to input image
+            output_path: Path for output (if None, overwrites original)
+            intensity: Repair intensity ('medium', 'high', 'maximum')
+            
+        Returns:
+            Tuple of (output_path, repair_stats)
+        """
+        if not OPENCV_AVAILABLE:
+            raise RuntimeError("OpenCV required for crack repair")
+        
+        if not os.path.exists(image_path):
+            raise FileNotFoundError(f"Image file not found: {image_path}")
+        
+        logger.info(f"Repairing severe cracks with {intensity} intensity: {image_path}")
+        
+        try:
+            # Load image
+            img = cv2.imread(image_path)
+            if img is None:
+                raise ValueError(f"Could not load image: {image_path}")
+            
+            h, w = img.shape[:2]
+            
+            # Convert to LAB for better crack detection
+            lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+            l_channel, a_channel, b_channel = cv2.split(lab)
+            
+            # Multi-strategy crack detection
+            
+            # Strategy 1: Detect bright/white cracks (most common in old photos)
+            # Threshold the L channel to find very bright pixels (cracks are usually lighter)
+            _, bright_mask = cv2.threshold(l_channel, 200, 255, cv2.THRESH_BINARY)
+            
+            # Strategy 2: Detect thin line structures using morphological operations
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            
+            # Apply adaptive thresholding to handle varying lighting
+            adaptive = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
+                                            cv2.THRESH_BINARY, 15, 2)
+            adaptive_inv = cv2.bitwise_not(adaptive)
+            
+            # Strategy 3: Edge detection for crack boundaries
+            blurred = cv2.GaussianBlur(gray, (3, 3), 0)
+            edges = cv2.Canny(blurred, 20, 60)
+            
+            # Morphological operations to connect crack segments
+            kernel_connect = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+            edges_connected = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel_connect, iterations=2)
+            
+            # Strategy 4: Detect texture discontinuities using Laplacian
+            laplacian = cv2.Laplacian(gray, cv2.CV_64F, ksize=3)
+            laplacian_abs = np.absolute(laplacian)
+            laplacian_norm = np.uint8(255 * laplacian_abs / laplacian_abs.max())
+            _, texture_mask = cv2.threshold(laplacian_norm, 100, 255, cv2.THRESH_BINARY)
+            
+            # Combine all detection strategies
+            combined_mask = cv2.bitwise_or(bright_mask, edges_connected)
+            combined_mask = cv2.bitwise_or(combined_mask, adaptive_inv)
+            combined_mask = cv2.bitwise_or(combined_mask, texture_mask)
+            
+            # Clean up mask - remove noise, keep only significant cracks
+            kernel_clean = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2))
+            combined_mask = cv2.morphologyEx(combined_mask, cv2.MORPH_OPEN, kernel_clean)
+            
+            # Dilate mask slightly to ensure we catch the full width of cracks
+            if intensity == 'maximum':
+                dilate_size = 5
+                inpaint_radius = 20
+                passes = 3
+            elif intensity == 'high':
+                dilate_size = 4
+                inpaint_radius = 15
+                passes = 2
+            else:  # medium
+                dilate_size = 3
+                inpaint_radius = 10
+                passes = 2
+            
+            kernel_dilate = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (dilate_size, dilate_size))
+            crack_mask = cv2.dilate(combined_mask, kernel_dilate, iterations=1)
+            
+            # Count crack pixels for statistics
+            crack_pixels = np.count_nonzero(crack_mask)
+            total_pixels = h * w
+            crack_percent = (crack_pixels / total_pixels) * 100
+            
+            logger.info(f"Detected {crack_percent:.2f}% crack coverage, using {passes} inpainting passes")
+            
+            # Multi-pass inpainting for severe damage
+            repaired = img.copy()
+            for i in range(passes):
+                # Use Telea algorithm (INPAINT_TELEA) for first pass, NS for refinement
+                method = cv2.INPAINT_TELEA if i == 0 else cv2.INPAINT_NS
+                repaired = cv2.inpaint(repaired, crack_mask, inpaint_radius, method)
+                
+                # Reduce mask for subsequent passes to focus on remaining damage
+                if i < passes - 1:
+                    crack_mask = cv2.erode(crack_mask, kernel_clean, iterations=1)
+            
+            # Edge-aware smoothing to blend repairs seamlessly
+            # Use bilateral filter to preserve edges while smoothing crack repairs
+            repaired = cv2.bilateralFilter(repaired, 7, 75, 75)
+            
+            # Apply guided filter for better texture preservation
+            # This helps maintain the original photo's texture while removing cracks
+            radius = 8
+            epsilon = 0.1 ** 2
+            mean_I = cv2.boxFilter(repaired, cv2.CV_64F, (radius, radius))
+            mean_p = mean_I
+            corr_I = cv2.boxFilter(repaired.astype(np.float64) ** 2, cv2.CV_64F, (radius, radius))
+            var_I = corr_I - mean_I ** 2
+            
+            a = var_I / (var_I + epsilon)
+            b = mean_p - a * mean_I
+            
+            mean_a = cv2.boxFilter(a, cv2.CV_64F, (radius, radius))
+            mean_b = cv2.boxFilter(b, cv2.CV_64F, (radius, radius))
+            
+            repaired_guided = mean_a * repaired.astype(np.float64) + mean_b
+            repaired = np.uint8(np.clip(repaired_guided, 0, 255))
+            
+            # Final enhancement pipeline
+            # 1. Denoise while preserving edges
+            repaired = self.denoise_preserve_edges(repaired)
+            
+            # 2. Gentle contrast enhancement
+            repaired = self.enhance_contrast_clahe(repaired, clip_limit=2.0)
+            
+            # 3. Subtle sharpening to restore detail
+            repaired = self.sharpen_image(repaired, strength=1.2)
+            
+            # 4. Final brightness/contrast normalization
+            repaired = self.normalize_brightness_contrast(repaired)
+            
+            # Save result
+            if output_path is None:
+                output_path = image_path
+            
+            cv2.imwrite(output_path, repaired, [cv2.IMWRITE_JPEG_QUALITY, 95])
+            
+            stats = {
+                'crack_pixels': int(crack_pixels),
+                'total_pixels': int(total_pixels),
+                'crack_percentage': round(crack_percent, 2),
+                'intensity': intensity,
+                'inpaint_radius': inpaint_radius,
+                'inpaint_passes': passes,
+                'method': 'multi_stage_severe_damage',
+                'strategies': 'brightness+edges+adaptive+texture+multi_pass_inpaint+guided_filter'
+            }
+            
+            logger.info(f"Severe crack repair completed: {crack_percent:.2f}% damage repaired with {passes} passes")
+            return output_path, stats
+            
+        except Exception as e:
+            logger.error(f"Error repairing severe cracks: {e}")
+            raise
+    
     def sharpen_image(self, img: np.ndarray, strength: float = 1.5) -> np.ndarray:
         """
         Apply unsharp masking to sharpen image details
@@ -523,6 +690,12 @@ def repair_cracks(image_path: str, output_path: str = None,
                  sensitivity: int = 5) -> Tuple[str, Dict]:
     """Convenience function for crack repair"""
     return damage_repair.repair_cracks(image_path, output_path, sensitivity)
+
+
+def repair_severe_cracks(image_path: str, output_path: str = None,
+                        intensity: str = 'high') -> Tuple[str, Dict]:
+    """Convenience function for severe crack repair"""
+    return damage_repair.repair_severe_cracks(image_path, output_path, intensity)
 
 
 def comprehensive_repair(image_path: str, output_path: str = None,
