@@ -24,11 +24,11 @@ class AdvancedPhotoDetector:
     """Advanced multi-strategy photo detection with robust edge detection"""
     
     def __init__(self):
-        self.min_photo_area = 100000
+        self.min_photo_area = 200000
         self.max_photo_area_ratio = 0.85
-        self.min_aspect_ratio = 0.2
-        self.max_aspect_ratio = 5.0
-        self.contour_area_threshold = 0.005
+        self.min_aspect_ratio = 0.3
+        self.max_aspect_ratio = 4.0
+        self.contour_area_threshold = 0.008
         self.enable_perspective_correction = True
         self.enable_edge_refinement = True
         
@@ -36,8 +36,8 @@ class AdvancedPhotoDetector:
         self.scales = [1.0, 0.85]
         
         # Detection confidence thresholds (increased to reduce false positives)
-        self.min_confidence = 0.65
-        self.high_confidence = 0.80
+        self.min_confidence = 0.72
+        self.high_confidence = 0.85
         
     def detect_photos(self, image_path: str) -> List[Dict]:
         """
@@ -305,8 +305,8 @@ class AdvancedPhotoDetector:
                 bbox_area = w * h
                 rectangularity = contour_area / bbox_area if bbox_area > 0 else 0
                 
-                # Only accept if it's very rectangular (>0.85) to avoid clothing
-                if rectangularity < 0.85:
+                # Only accept if it's very rectangular (>0.88) to avoid clothing
+                if rectangularity < 0.88:
                     continue
                 
                 # Check edge strength - real photos have strong edges
@@ -316,7 +316,7 @@ class AdvancedPhotoDetector:
                 edge_density = np.sum(edges > 0) / (w * h)
                 
                 # Require minimum edge density (photos have defined borders)
-                if edge_density < 0.02:
+                if edge_density < 0.025:
                     continue
                 
                 confidence = 0.65
@@ -528,13 +528,13 @@ class AdvancedPhotoDetector:
             return False
         
         # Require minimum dimensions to avoid small items within photos
-        # Photos should be at least 250x250 pixels in both dimensions to avoid clothing/small objects
-        if w < 250 or h < 250:
+        # Photos should be at least 400x400 pixels in both dimensions to avoid clothing/small objects
+        if w < 400 or h < 400:
             return False
         
         # Additional perimeter check to filter out thin/small objects
         perimeter = 2 * (w + h)
-        if perimeter < 1200:
+        if perimeter < 1800:
             return False
         
         return True
