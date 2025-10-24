@@ -45,8 +45,11 @@ export default function CameraScreen({ navigation }) {
   const [cameraKey, setCameraKey] = useState(0);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadMessage, setUploadMessage] = useState('');
+  const [focusPoint, setFocusPoint] = useState(null);
+  const [autoFocusMode, setAutoFocusMode] = useState('on');
   const cameraRef = useRef(null);
   const baseZoom = useRef(0);
+  const focusTimeout = useRef(null);
 
   // Force camera remount when screen is focused to prevent black screen
   useEffect(() => {
@@ -55,6 +58,15 @@ export default function CameraScreen({ navigation }) {
     });
     return unsubscribe;
   }, [navigation]);
+
+  // Cleanup focus timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (focusTimeout.current) {
+        clearTimeout(focusTimeout.current);
+      }
+    };
+  }, []);
 
   // Pinch to zoom gesture
   const pinchGesture = Gesture.Pinch()
@@ -66,12 +78,46 @@ export default function CameraScreen({ navigation }) {
       baseZoom.current = zoom;
     });
 
+  // Tap to focus handler - toggles autofocus to trigger refocus
+  const handleCameraTap = (event) => {
+    const { locationX, locationY } = event.nativeEvent;
+    const point = {
+      x: locationX,
+      y: locationY,
+    };
+    
+    setFocusPoint(point);
+    
+    // Trigger refocus by toggling autofocus mode
+    setAutoFocusMode('off');
+    setTimeout(() => setAutoFocusMode('on'), 100);
+    
+    // Clear previous timeout
+    if (focusTimeout.current) {
+      clearTimeout(focusTimeout.current);
+    }
+    
+    // Hide focus indicator after 1.5 seconds
+    focusTimeout.current = setTimeout(() => {
+      setFocusPoint(null);
+    }, 1500);
+  };
+
+  // Auto-focus when detection boxes appear
+  useEffect(() => {
+    if (detectedBoundaries.length > 0) {
+      // Trigger refocus when photos are detected
+      setAutoFocusMode('off');
+      setTimeout(() => setAutoFocusMode('on'), 100);
+    }
+  }, [detectedBoundaries.length]);
+
   const previewDetection = async () => {
     if (cameraRef.current) {
       try {
         setShowingPreview(true);
         const photo = await cameraRef.current.takePictureAsync({
-          quality: 0.5,
+          quality: 1.0,
           base64: false,
         });
 
@@ -125,7 +171,7 @@ export default function CameraScreen({ navigation }) {
       try {
         setProcessing(true);
         const photo = await cameraRef.current.takePictureAsync({
-          quality: 0.8,
+          quality: 1.0,
           base64: false,
           exif: true,
         });
@@ -283,7 +329,7 @@ export default function CameraScreen({ navigation }) {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: batchMode,
-        quality: 0.8,
+        quality: 1.0,
         allowsEditing: false,
       });
 
@@ -345,15 +391,38 @@ export default function CameraScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <GestureDetector gesture={pinchGesture}>
-        <CameraView
-          key={cameraKey}
-          ref={cameraRef}
-          style={styles.camera}
-          facing={CAMERA_TYPE.back}
-          flash={flashMode}
-          zoom={zoom}
-        />
+        <TouchableOpacity 
+          style={styles.camera} 
+          activeOpacity={1}
+          onPress={handleCameraTap}
+        >
+          <CameraView
+            key={cameraKey}
+            ref={cameraRef}
+            style={styles.camera}
+            facing={CAMERA_TYPE.back}
+            flash={flashMode}
+            zoom={zoom}
+            autoFocus={autoFocusMode}
+            videoStabilizationMode="auto"
+          />
+        </TouchableOpacity>
       </GestureDetector>
+
+      {/* Focus Point Indicator */}
+      {focusPoint && (
+        <View
+          style={[
+            styles.focusIndicator,
+            {
+              left: focusPoint.x - 40,
+              top: focusPoint.y - 40,
+            },
+          ]}
+        >
+          <View style={styles.focusBox} />
+        </View>
+      )}
 
       {/* All UI elements overlaid with absolute positioning */}
       {showGuides && detectedBoundaries.length === 0 && (
@@ -724,5 +793,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
+  },
+  focusIndicator: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    pointerEvents: 'none',
+  },
+  focusBox: {
+    width: 60,
+    height: 60,
+    borderWidth: 2,
+    borderColor: '#FFD700',
+    borderRadius: 30,
+    backgroundColor: 'transparent',
   },
 });
