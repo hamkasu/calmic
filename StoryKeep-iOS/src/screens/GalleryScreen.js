@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -20,21 +20,28 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
 import { sharePhoto } from '../utils/sharePhoto';
 import { useLoading } from '../contexts/LoadingContext';
+import ProgressBar from '../components/ProgressBar';
 
 const { width } = Dimensions.get('window');
 const COLUMN_COUNT = 3;
 const ITEM_WIDTH = (width - 6) / COLUMN_COUNT; // 2px gap between items
 const BASE_URL = 'https://storykeep.calmic.com.my';
+const PAGE_SIZE = 30;
 
 export default function GalleryScreen({ navigation }) {
   const [allPhotos, setAllPhotos] = useState([]);
   const [displayPhotos, setDisplayPhotos] = useState([]);
+  const [paginatedPhotos, setPaginatedPhotos] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('all');
   const [authToken, setAuthToken] = useState(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState([]);
   const [downloadProgress, setDownloadProgress] = useState({ current: 0, total: 0, isDownloading: false });
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const { startLoading, stopLoading } = useLoading();
   
   // Vault sharing states
@@ -51,11 +58,20 @@ export default function GalleryScreen({ navigation }) {
     applyFilter();
   }, [filter, allPhotos]);
 
+  useEffect(() => {
+    paginatePhotos();
+  }, [displayPhotos, currentPage]);
+
   const loadPhotos = async () => {
     const loadingId = !refreshing ? startLoading('Loading gallery...') : null;
     try {
+      setInitialLoading(true);
+      setLoadingProgress(0);
+      
       const token = await AsyncStorage.getItem('authToken');
       setAuthToken(token);
+      
+      setLoadingProgress(30);
       
       // Get ALL photos from dashboard endpoint
       const dashboardResponse = await fetch(`${BASE_URL}/api/dashboard`, {
@@ -65,11 +81,15 @@ export default function GalleryScreen({ navigation }) {
       });
       const dashboardData = await dashboardResponse.json();
       
+      setLoadingProgress(70);
+      
       if (dashboardData.all_photos && dashboardData.all_photos.length > 0) {
         setAllPhotos(dashboardData.all_photos);
       } else {
         setAllPhotos([]);
       }
+      
+      setLoadingProgress(100);
     } catch (error) {
       console.error('Gallery error:', error);
       Alert.alert('Error', 'Failed to load photos');
@@ -78,6 +98,23 @@ export default function GalleryScreen({ navigation }) {
         stopLoading(loadingId);
       }
       setRefreshing(false);
+      setInitialLoading(false);
+      setCurrentPage(1);
+    }
+  };
+
+  const paginatePhotos = useCallback(() => {
+    const endIndex = currentPage * PAGE_SIZE;
+    setPaginatedPhotos(displayPhotos.slice(0, endIndex));
+  }, [displayPhotos, currentPage]);
+
+  const loadMorePhotos = () => {
+    if (!loadingMore && paginatedPhotos.length < displayPhotos.length) {
+      setLoadingMore(true);
+      setTimeout(() => {
+        setCurrentPage(prev => prev + 1);
+        setLoadingMore(false);
+      }, 300);
     }
   };
 
@@ -112,6 +149,7 @@ export default function GalleryScreen({ navigation }) {
 
   const onRefresh = () => {
     setRefreshing(true);
+    setCurrentPage(1);
     loadPhotos();
   };
 
@@ -544,7 +582,17 @@ export default function GalleryScreen({ navigation }) {
         <FilterButton label="Colorized" value="colorized" />
       </View>
 
-      {displayPhotos.length === 0 ? (
+      {initialLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#E85D75" style={{ marginBottom: 20 }} />
+          <ProgressBar 
+            progress={loadingProgress} 
+            message="Loading gallery..."
+            color="#E85D75"
+            showPercentage={true}
+          />
+        </View>
+      ) : displayPhotos.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="images-outline" size={80} color="#ccc" />
           <Text style={styles.emptyText}>No photos yet</Text>
@@ -557,7 +605,7 @@ export default function GalleryScreen({ navigation }) {
         </View>
       ) : (
         <FlatList
-          data={displayPhotos}
+          data={paginatedPhotos}
           renderItem={renderPhoto}
           keyExtractor={(item) => item.id.toString()}
           numColumns={COLUMN_COUNT}
@@ -565,6 +613,19 @@ export default function GalleryScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          onEndReached={loadMorePhotos}
+          onEndReachedThreshold={0.5}
+          initialNumToRender={PAGE_SIZE}
+          maxToRenderPerBatch={PAGE_SIZE}
+          windowSize={5}
+          removeClippedSubviews={true}
+          ListFooterComponent={() => 
+            loadingMore ? (
+              <View style={{ padding: 20, alignItems: 'center' }}>
+                <ActivityIndicator size="small" color="#E85D75" />
+              </View>
+            ) : null
           }
         />
       )}
@@ -650,6 +711,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#000',
+    paddingHorizontal: 40,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000',
+  },
+  emptyText: {
+    fontSize: 18,
+    color: '#666',
+    marginTop: 20,
+    marginBottom: 30,
+  },
+  captureButton: {
+    backgroundColor: '#E85D75',
+    paddingHorizontal: 30,
+    paddingVertical: 15,
+    borderRadius: 25,
+  },
+  captureButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   header: {
     flexDirection: 'row',
