@@ -510,6 +510,7 @@ class SubscriptionPlan(db.Model):
     storage_gb = db.Column(db.Integer, nullable=False)  # Storage limit in GB
     max_photos = db.Column(db.Integer)  # Max photos (null = unlimited)
     max_family_vaults = db.Column(db.Integer, default=0)  # Number of family vaults allowed
+    ai_enhancement_quota = db.Column(db.Integer, default=0)  # Monthly AI enhancement quota (colorization/restoration)
     
     # Feature flags
     face_detection = db.Column(db.Boolean, default=False)
@@ -585,6 +586,10 @@ class UserSubscription(db.Model):
     # Metadata
     cancel_at_period_end = db.Column(db.Boolean, default=False)
     cancel_reason = db.Column(db.Text)
+    
+    # AI Enhancement tracking
+    ai_enhancements_used = db.Column(db.Integer, default=0)  # Current month's usage
+    ai_enhancements_reset_date = db.Column(db.DateTime)  # When to reset the counter
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
