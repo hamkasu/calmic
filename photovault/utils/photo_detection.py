@@ -24,7 +24,7 @@ class AdvancedPhotoDetector:
     """Advanced multi-strategy photo detection with robust edge detection"""
     
     def __init__(self):
-        self.min_photo_area = 50000
+        self.min_photo_area = 100000
         self.max_photo_area_ratio = 0.85
         self.min_aspect_ratio = 0.2
         self.max_aspect_ratio = 5.0
@@ -36,8 +36,8 @@ class AdvancedPhotoDetector:
         self.scales = [1.0, 0.85]
         
         # Detection confidence thresholds (increased to reduce false positives)
-        self.min_confidence = 0.50
-        self.high_confidence = 0.75
+        self.min_confidence = 0.65
+        self.high_confidence = 0.80
         
     def detect_photos(self, image_path: str) -> List[Dict]:
         """
@@ -272,15 +272,20 @@ class AdvancedPhotoDetector:
         return filtered[:25], hierarchy
     
     def _detect_polaroids(self, image: np.ndarray, original_area: int) -> List[Dict]:
-        """Detect Polaroid-style photos by looking for white borders"""
+        """Detect Polaroid-style photos by looking for white borders with strict validation"""
         candidates = []
         
         # Convert to LAB color space for better white detection
         lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
         l_channel = lab[:, :, 0]
         
-        # Detect very bright regions (white borders)
-        _, white_mask = cv2.threshold(l_channel, 200, 255, cv2.THRESH_BINARY)
+        # Detect very bright regions (white borders) - increased threshold to be more selective
+        _, white_mask = cv2.threshold(l_channel, 220, 255, cv2.THRESH_BINARY)
+        
+        # Apply morphological operations to clean up noise
+        kernel = np.ones((5, 5), np.uint8)
+        white_mask = cv2.morphologyEx(white_mask, cv2.MORPH_CLOSE, kernel)
+        white_mask = cv2.morphologyEx(white_mask, cv2.MORPH_OPEN, kernel)
         
         # Find contours in white regions
         contours, _ = cv2.findContours(white_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -295,7 +300,26 @@ class AdvancedPhotoDetector:
             # Check if this has the characteristic Polaroid shape
             aspect_ratio = w / h
             if 0.8 <= aspect_ratio <= 1.2:  # Polaroids are typically square-ish
-                confidence = 0.7
+                # Additional validation: check for strong rectangular edges
+                contour_area = cv2.contourArea(contour)
+                bbox_area = w * h
+                rectangularity = contour_area / bbox_area if bbox_area > 0 else 0
+                
+                # Only accept if it's very rectangular (>0.85) to avoid clothing
+                if rectangularity < 0.85:
+                    continue
+                
+                # Check edge strength - real photos have strong edges
+                gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                roi = gray[y:y+h, x:x+w]
+                edges = cv2.Canny(roi, 50, 150)
+                edge_density = np.sum(edges > 0) / (w * h)
+                
+                # Require minimum edge density (photos have defined borders)
+                if edge_density < 0.02:
+                    continue
+                
+                confidence = 0.65
                 corners = self._get_photo_corners_refined(contour, 1.0)
                 
                 candidates.append({
@@ -504,13 +528,13 @@ class AdvancedPhotoDetector:
             return False
         
         # Require minimum dimensions to avoid small items within photos
-        # Photos should be at least 200x200 pixels in both dimensions
-        if w < 200 or h < 200:
+        # Photos should be at least 250x250 pixels in both dimensions to avoid clothing/small objects
+        if w < 250 or h < 250:
             return False
         
         # Additional perimeter check to filter out thin/small objects
         perimeter = 2 * (w + h)
-        if perimeter < 1000:
+        if perimeter < 1200:
             return False
         
         return True
