@@ -24,20 +24,20 @@ class AdvancedPhotoDetector:
     """Advanced multi-strategy photo detection with robust edge detection"""
     
     def __init__(self):
-        self.min_photo_area = 2000
-        self.max_photo_area_ratio = 0.92
-        self.min_aspect_ratio = 0.15
-        self.max_aspect_ratio = 6.0
-        self.contour_area_threshold = 0.003
+        self.min_photo_area = 50000
+        self.max_photo_area_ratio = 0.85
+        self.min_aspect_ratio = 0.2
+        self.max_aspect_ratio = 5.0
+        self.contour_area_threshold = 0.005
         self.enable_perspective_correction = True
         self.enable_edge_refinement = True
         
-        # Multi-scale detection parameters
-        self.scales = [1.0, 0.75, 0.5]
+        # Multi-scale detection parameters (removed small scale to avoid tiny detections)
+        self.scales = [1.0, 0.85]
         
-        # Detection confidence thresholds
-        self.min_confidence = 0.15
-        self.high_confidence = 0.65
+        # Detection confidence thresholds (increased to reduce false positives)
+        self.min_confidence = 0.50
+        self.high_confidence = 0.75
         
     def detect_photos(self, image_path: str) -> List[Dict]:
         """
@@ -501,6 +501,16 @@ class AdvancedPhotoDetector:
             return False
         
         if x < 5 or y < 5:
+            return False
+        
+        # Require minimum dimensions to avoid small items within photos
+        # Photos should be at least 200x200 pixels in both dimensions
+        if w < 200 or h < 200:
+            return False
+        
+        # Additional perimeter check to filter out thin/small objects
+        perimeter = 2 * (w + h)
+        if perimeter < 1000:
             return False
         
         return True

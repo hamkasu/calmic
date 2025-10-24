@@ -1,134 +1,129 @@
-# 📸 Photo Detection Improvements - Cleaner Crops
+# Photo Detection Sensitivity Improvements
 
-## Overview
-Significantly enhanced the photograph detection and extraction system to produce much cleaner, more accurate crops of detected photos.
+## Problem Solved
+The edge detection was **too sensitive** and was extracting items WITHIN photographs, such as:
+- Picture frames on walls in photos
+- Photos displayed on phones/tablets in images
+- Small posters or artwork in the background
+- Stickers, cards, or small objects
 
-## Key Improvements
+## Changes Made
 
-### 1. ✨ Perspective Correction
-- **Automatic tilt detection** - Detects when photos are at an angle
-- **Perspective transformation** - Applies mathematical correction to straighten tilted photos
-- **Corner detection** - Finds the 4 corners of each photo for precise boundaries
-- **Result**: Photos scanned at angles are automatically straightened and cropped perfectly
+### 1. **Minimum Photo Area** (25x increase!)
+- **Before**: 2,000 pixels
+- **After**: 50,000 pixels
+- **Impact**: Filters out tiny objects and items within photos
 
-### 2. 🎯 Advanced Contour Detection
-- **Polygon approximation** - Uses sophisticated algorithms to detect actual photo boundaries (not just bounding boxes)
-- **4-point quadrilateral detection** - Identifies the exact corners of rectangular photos
-- **Fallback to rotated rectangles** - Uses minimum area rectangles when quad detection fails
-- **Result**: Much tighter, more accurate crop boundaries
+### 2. **Minimum Confidence Threshold** (3.3x stricter!)
+- **Before**: 0.15 (accepts almost anything)
+- **After**: 0.50 (only confident detections)
+- **Impact**: Dramatically reduces false positives
 
-### 3. 🔧 Adaptive Padding
-- **Smart padding calculation** - Padding is now 2% of the smallest photo dimension (not fixed 10px)
-- **Size-aware margins** - Larger photos get more padding, smaller photos get less
-- **Prevents over-cropping** - Ensures no photo content is lost at edges
-- **Result**: Perfectly balanced margins around extracted photos
+### 3. **Multi-Scale Detection** (removed small scale)
+- **Before**: Scales [1.0, 0.75, 0.5] - detects very small objects
+- **After**: Scales [1.0, 0.85] - focuses on full-size photos
+- **Impact**: No longer detects tiny items at small scales
 
-### 4. 🌟 Enhanced Edge Detection
-- **Bilateral filtering** - Reduces noise while preserving sharp edges
-- **CLAHE enhancement** - Contrast Limited Adaptive Histogram Equalization for better edge visibility
-- **Optimized Canny parameters** - Improved edge detection with L2 gradient for smoother edges
-- **Morphological operations** - Closes gaps and strengthens edge connections
-- **Result**: More accurate boundary detection even in challenging lighting
+### 4. **Minimum Dimensions** (NEW!)
+- **Requirement**: Photos must be at least 200x200 pixels
+- **Impact**: Prevents detection of small items in photographs
 
-### 5. 🧹 Edge Refinement & Cleanup
-- **Border artifact removal** - Automatically removes thin border artifacts from extraction
-- **Bilateral post-processing** - Smooths final result while preserving photo detail
-- **Auto-cropping black borders** - Removes any remaining black edges from transformation
-- **Result**: Clean, professional-looking extracted photos
+### 5. **Minimum Perimeter** (NEW!)
+- **Requirement**: Perimeter must be at least 1,000 pixels
+- **Impact**: Filters out thin/small objects
 
-## Technical Details
+### 6. **Aspect Ratio Refinement**
+- **Before**: 0.15 to 6.0 (extremely wide range)
+- **After**: 0.2 to 5.0 (more reasonable range)
+- **Impact**: Rejects extreme shapes that aren't typical photos
 
-### Image Processing Pipeline
-
-```
-Original Image
-    ↓
-[1] Bilateral Denoising (preserves edges)
-    ↓
-[2] CLAHE Contrast Enhancement
-    ↓
-[3] Adaptive Thresholding
-    ↓
-[4] Optimized Canny Edge Detection
-    ↓
-[5] Morphological Operations (close gaps)
-    ↓
-[6] Contour Detection & Polygon Approximation
-    ↓
-[7] 4-Point Corner Detection
-    ↓
-[8] Perspective Transformation (if tilted)
-    ↓
-[9] Edge Refinement & Cleanup
-    ↓
-Clean Extracted Photo
-```
-
-### Configuration Options
-
-The improvements can be controlled via class properties:
-
-```python
-detector = PhotoDetector()
-detector.enable_perspective_correction = True   # Auto-straighten tilted photos
-detector.enable_edge_refinement = True         # Clean up edges
-```
-
-### Quality Settings
-
-- **JPEG Quality**: 95% (high quality)
-- **Edge Detection**: L2 gradient for smoother edges
-- **Canny Thresholds**: 30-100 (optimized for photos)
-- **Border Cleanup**: 2-pixel border removal
-
-## Usage
-
-The improvements are automatically active in the Digitizer feature. When you:
-
-1. **Capture multiple photos** - Use the camera to photograph several photos at once
-2. **Auto-detection runs** - The enhanced system detects each photo's boundaries
-3. **Perspective correction applied** - Tilted photos are automatically straightened
-4. **Clean extraction** - Each photo is extracted with perfect crop boundaries
-5. **Edge cleanup** - Final photos have clean, artifact-free edges
-
-## Benefits
-
-✅ **Better Accuracy** - Perspective correction handles tilted photos  
-✅ **Cleaner Crops** - Tighter boundaries with no wasted space  
-✅ **Professional Results** - Edge refinement removes artifacts  
-✅ **Adaptive Quality** - Size-aware padding prevents content loss  
-✅ **Robust Detection** - Enhanced edge detection works in various lighting
-
-## Examples of Improvements
-
-### Before:
-- Simple bounding box with fixed 10px padding
-- No tilt correction (tilted photos stay tilted)
-- Basic edge detection missed subtle boundaries
-- Border artifacts remained in final images
-
-### After:
-- Polygon approximation for exact boundaries
-- Automatic perspective correction for tilted photos
-- Enhanced edge detection with CLAHE and bilateral filtering
-- Clean edges with artifact removal
-- Adaptive padding (2% of photo size)
-
-## Deployment
-
-These improvements are:
-- ✅ Active on local Replit development server
-- ⏳ Pending deployment to Railway production
-
-To deploy to Railway, push the updated `photovault/utils/photo_detection.py` file to your GitHub repository.
-
-## Performance
-
-- **Minimal overhead** - Perspective correction only applied when needed
-- **Graceful fallback** - If advanced detection fails, falls back to traditional method
-- **Memory efficient** - All processing uses streaming and cleanup
-- **Quality first** - Prioritizes accuracy over speed
+### 7. **Maximum Photo Area Ratio**
+- **Before**: 0.92 (92% of image)
+- **After**: 0.85 (85% of image)
+- **Impact**: More conservative maximum size
 
 ---
 
-**Result**: Your digitized photos will now have significantly cleaner, more accurate crops with automatic tilt correction! 📸✨
+## Summary of Parameters
+
+| Parameter | Before | After | Change |
+|-----------|--------|-------|--------|
+| Min Area | 2,000 | 50,000 | **+2,400%** |
+| Min Confidence | 0.15 | 0.50 | **+233%** |
+| Min Width/Height | None | 200px | **NEW** |
+| Min Perimeter | None | 1,000px | **NEW** |
+| Detection Scales | 3 scales | 2 scales | **-33%** |
+| Aspect Ratio Min | 0.15 | 0.2 | **+33%** |
+| Aspect Ratio Max | 6.0 | 5.0 | **-17%** |
+
+---
+
+## What This Means
+
+**Before:**
+- ✅ Detects everything (including noise)
+- ❌ Extracts items WITHIN photos
+- ❌ Too many false positives
+- ❌ Tiny objects detected
+
+**After:**
+- ✅ Only detects actual physical photos
+- ✅ Ignores items within photos
+- ✅ Much fewer false positives
+- ✅ Focuses on meaningful photo sizes
+
+---
+
+## Testing Recommendations
+
+### Good Test Cases (Should Be Detected):
+1. Standard 4x6 inch photos on a table
+2. Polaroid photos with white borders
+3. Large family portraits on walls
+4. Photo albums (individual photos)
+5. Stacks of photos
+
+### Should NOT Be Detected:
+1. ❌ Picture frames visible in photos
+2. ❌ Photos displayed on phone screens in images
+3. ❌ Small stickers or cards
+4. ❌ Posters in the background of photos
+5. ❌ Tiny artwork or decorations
+
+---
+
+## Railway Deployment
+
+Your local Replit environment has been updated ✅
+
+To deploy to Railway production:
+1. Push changes to GitHub
+2. Railway will auto-deploy
+3. No SQL changes needed - this is a code-only update
+
+---
+
+## Still Too Sensitive?
+
+If you find it's still detecting too many items, you can further increase:
+
+```python
+# In photovault/utils/photo_detection.py, line ~30
+
+self.min_photo_area = 75000  # Increase from 50,000
+self.min_confidence = 0.60    # Increase from 0.50
+```
+
+## Too Strict Now?
+
+If legitimate photos are being missed, you can decrease:
+
+```python
+self.min_photo_area = 30000   # Decrease from 50,000
+self.min_confidence = 0.40     # Decrease from 0.50
+```
+
+---
+
+**Status**: ✅ Applied to Replit (local development)  
+**Next Step**: Test with real photo extraction, then deploy to Railway
