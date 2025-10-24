@@ -7,6 +7,7 @@ import {
   Alert,
   ActivityIndicator,
   Dimensions,
+  Modal,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +15,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { photoAPI } from '../services/api';
+import ProgressBar from '../components/ProgressBar';
 
 const { width, height } = Dimensions.get('window');
 
@@ -41,6 +43,8 @@ export default function CameraScreen({ navigation }) {
   const [detectedBoundaries, setDetectedBoundaries] = useState([]);
   const [showingPreview, setShowingPreview] = useState(false);
   const [cameraKey, setCameraKey] = useState(0);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadMessage, setUploadMessage] = useState('');
   const cameraRef = useRef(null);
   const baseZoom = useRef(0);
 
@@ -155,6 +159,9 @@ export default function CameraScreen({ navigation }) {
 
   const processAndUpload = async (photoUri, showAlerts = true) => {
     try {
+      setUploadProgress(10);
+      setUploadMessage('Preparing image...');
+      
       const formData = new FormData();
       formData.append('image', {
         uri: photoUri,
@@ -162,7 +169,18 @@ export default function CameraScreen({ navigation }) {
         name: `photo_${Date.now()}.jpg`,
       });
 
+      setUploadProgress(30);
+      setUploadMessage('Uploading photo...');
+
       const response = await photoAPI.detectAndExtract(formData);
+
+      setUploadProgress(70);
+      setUploadMessage('Detecting photos...');
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      setUploadProgress(100);
+      setUploadMessage('Complete!');
 
       if (showAlerts) {
         if (response.success) {
@@ -187,6 +205,9 @@ export default function CameraScreen({ navigation }) {
         Alert.alert('Upload Failed', error.response?.data?.message || 'Please try again');
       }
       throw error;
+    } finally {
+      setUploadProgress(0);
+      setUploadMessage('');
     }
   };
 
@@ -200,10 +221,17 @@ export default function CameraScreen({ navigation }) {
     let successCount = 0;
     
     try {
-      for (const photo of capturedPhotos) {
+      for (let i = 0; i < capturedPhotos.length; i++) {
+        const photo = capturedPhotos[i];
+        setUploadMessage(`Uploading photo ${i + 1} of ${capturedPhotos.length}...`);
+        setUploadProgress((i / capturedPhotos.length) * 100);
+        
         await processAndUpload(photo.uri, false);
         successCount++;
       }
+
+      setUploadProgress(100);
+      setUploadMessage('All photos uploaded!');
 
       Alert.alert(
         'Batch Complete',
@@ -238,6 +266,8 @@ export default function CameraScreen({ navigation }) {
       );
     } finally {
       setProcessing(false);
+      setUploadProgress(0);
+      setUploadMessage('');
     }
   };
 
@@ -472,6 +502,25 @@ export default function CameraScreen({ navigation }) {
           <Text style={styles.zoomText}>{(1 + zoom * 9).toFixed(1)}x</Text>
         </View>
       )}
+
+      {/* Upload Progress Modal */}
+      <Modal
+        visible={processing && uploadProgress > 0}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.uploadModalOverlay}>
+          <View style={styles.uploadModalContent}>
+            <ActivityIndicator size="large" color="#E85D75" style={{ marginBottom: 20 }} />
+            <ProgressBar 
+              progress={uploadProgress} 
+              message={uploadMessage}
+              color="#E85D75"
+              showPercentage={true}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -658,5 +707,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
+  },
+  uploadModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  uploadModalContent: {
+    backgroundColor: '#fff',
+    padding: 30,
+    borderRadius: 15,
+    width: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
 });

@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { photoAPI } from '../services/api';
+import ProgressBar from '../components/ProgressBar';
 
 const { width } = Dimensions.get('window');
 const BASE_URL = 'https://storykeep.calmic.com.my';
@@ -26,6 +27,8 @@ export default function EnhancePhotoScreen({ route, navigation }) {
   const [authToken, setAuthToken] = useState(null);
   const [isBlackAndWhite, setIsBlackAndWhite] = useState(null);
   const [detectingColor, setDetectingColor] = useState(true);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [processingMessage, setProcessingMessage] = useState('');
   
   // Sharpen controls modal state
   const [showSharpenControls, setShowSharpenControls] = useState(false);
@@ -85,6 +88,9 @@ export default function EnhancePhotoScreen({ route, navigation }) {
   const applySharpen = async () => {
     setShowSharpenControls(false);
     setProcessing(true);
+    setProcessingProgress(0);
+    setProcessingMessage('Preparing to sharpen...');
+    
     try {
       const options = {
         intensity: sharpenIntensity,
@@ -94,10 +100,19 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       };
       
       console.log('Applying sharpen with options:', options);
+      setProcessingProgress(30);
+      setProcessingMessage('Applying sharpen filter...');
+      
       const response = await photoAPI.sharpenPhoto(photo.id, options);
+      
+      setProcessingProgress(70);
+      setProcessingMessage('Fetching updated photo...');
       
       // Fetch the updated photo data
       const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
+
+      setProcessingProgress(100);
+      setProcessingMessage('Complete!');
 
       Alert.alert('Success', 'Photo sharpened successfully!', [
         {
@@ -113,21 +128,38 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       console.error(error);
     } finally {
       setProcessing(false);
+      setProcessingProgress(0);
+      setProcessingMessage('');
     }
   };
 
   const handleColorize = async (useAI = false) => {
     setProcessing(true);
+    setProcessingProgress(0);
+    setProcessingMessage(`Initializing ${useAI ? 'AI' : 'DNN'} colorization...`);
+    
     try {
       let response;
+      setProcessingProgress(20);
+      
       if (useAI) {
+        setProcessingMessage('Processing with AI model (this may take 30-60 seconds)...');
+        setProcessingProgress(30);
         response = await photoAPI.colorizePhotoAI(photo.id);
       } else {
+        setProcessingMessage('Applying DNN colorization...');
+        setProcessingProgress(40);
         response = await photoAPI.colorizePhoto(photo.id, 'auto');
       }
 
+      setProcessingProgress(75);
+      setProcessingMessage('Fetching colorized photo...');
+      
       // Fetch the updated photo data
       const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
+
+      setProcessingProgress(100);
+      setProcessingMessage('Complete!');
 
       Alert.alert('Success', `Photo colorized successfully using ${useAI ? 'AI' : 'DNN'}!`, [
         {
@@ -144,6 +176,8 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       console.error(error);
     } finally {
       setProcessing(false);
+      setProcessingProgress(0);
+      setProcessingMessage('');
     }
   };
 
@@ -154,8 +188,17 @@ export default function EnhancePhotoScreen({ route, navigation }) {
   const applyAIRestoration = async () => {
     setShowAIRestorationControls(false);
     setProcessing(true);
+    setProcessingProgress(0);
+    setProcessingMessage(`Initializing ${aiModel.toUpperCase()} model...`);
+    
     try {
       console.log('Applying AI restoration with:', { model: aiModel, quality: aiQuality, fidelity });
+      setProcessingProgress(15);
+      setProcessingMessage('Loading AI model...');
+      
+      setProcessingProgress(25);
+      setProcessingMessage(`Analyzing photo with ${aiModel.toUpperCase()} (30-90 seconds)...`);
+      
       const response = await photoAPI.repairDamage(photo.id, {
         type: 'ai',
         model: aiModel,
@@ -163,8 +206,14 @@ export default function EnhancePhotoScreen({ route, navigation }) {
         fidelity: fidelity
       });
       
+      setProcessingProgress(80);
+      setProcessingMessage('Fetching restored photo...');
+      
       // Fetch the updated photo data
       const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
+
+      setProcessingProgress(100);
+      setProcessingMessage('Restoration complete!');
 
       Alert.alert('Success', `Photo restored successfully using ${aiModel.toUpperCase()}!`, [
         {
@@ -181,6 +230,8 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       console.error(error);
     } finally {
       setProcessing(false);
+      setProcessingProgress(0);
+      setProcessingMessage('');
     }
   };
 
@@ -314,8 +365,15 @@ export default function EnhancePhotoScreen({ route, navigation }) {
 
         {processing && (
           <View style={styles.processingOverlay}>
-            <ActivityIndicator size="large" color="#E85D75" />
-            <Text style={styles.processingText}>Processing...</Text>
+            <View style={styles.processingContent}>
+              <ActivityIndicator size="large" color="#E85D75" />
+              <ProgressBar 
+                progress={processingProgress} 
+                message={processingMessage}
+                color="#E85D75"
+                showPercentage={true}
+              />
+            </View>
           </View>
         )}
       </ScrollView>
@@ -670,9 +728,20 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: 'rgba(255,255,255,0.95)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  processingContent: {
+    backgroundColor: '#fff',
+    padding: 30,
+    borderRadius: 15,
+    width: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
   processingText: {
     fontSize: 16,
