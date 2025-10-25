@@ -23,16 +23,21 @@ class PhotoDetector:
     """Simple, robust photo detection using clean edge detection"""
     
     def __init__(self):
-        # Detection parameters
-        self.min_photo_area = 100000  # Minimum 100k pixels (~316x316)
+        # Detection parameters - RELAXED for better detection
+        self.min_photo_area = 50000  # Minimum 50k pixels (~224x224) - LOWERED
         self.max_photo_area_ratio = 0.90  # Max 90% of image area
         self.min_aspect_ratio = 0.4  # Width/height ratio limits
         self.max_aspect_ratio = 3.0
-        self.min_dimension = 250  # Minimum width or height in pixels
+        self.min_dimension = 200  # Minimum width or height in pixels - LOWERED
+        self.min_rectangularity = 0.65  # Minimum rectangularity score - LOWERED
+        self.min_confidence = 0.35  # Minimum confidence - LOWERED
         
-        # Edge detection parameters
-        self.canny_low = 50
-        self.canny_high = 150
+        # Edge detection parameters - Multiple sensitivity levels
+        self.canny_configs = [
+            (50, 150),   # Standard sensitivity
+            (30, 100),   # Higher sensitivity for subtle edges
+            (20, 80),    # Very high sensitivity for beige-on-beige
+        ]
         self.blur_kernel = 5
         
     def detect_photos(self, image_path: str) -> List[Dict]:
@@ -82,8 +87,8 @@ class PhotoDetector:
             return []
     
     def _find_photo_rectangles(self, image: np.ndarray, image_area: int) -> List[Dict]:
-        """Find rectangular photo regions using edge detection"""
-        detections = []
+        """Find rectangular photo regions using adaptive multi-level edge detection"""
+        all_detections = []
         
         # Convert to grayscale
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -91,40 +96,55 @@ class PhotoDetector:
         # Apply Gaussian blur to reduce noise
         blurred = cv2.GaussianBlur(gray, (self.blur_kernel, self.blur_kernel), 0)
         
-        # Apply Canny edge detection
-        edges = cv2.Canny(blurred, self.canny_low, self.canny_high)
-        
-        # Dilate edges to connect nearby edges
-        kernel = np.ones((3, 3), np.uint8)
-        dilated = cv2.dilate(edges, kernel, iterations=2)
-        
-        # Find contours
-        contours, hierarchy = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        
-        logger.info(f"Found {len(contours)} contours")
-        
-        # Analyze each contour
-        for contour in contours:
-            # Get bounding rectangle
-            x, y, w, h = cv2.boundingRect(contour)
-            area = w * h
+        # Try multiple Canny threshold levels for different edge sensitivities
+        for canny_low, canny_high in self.canny_configs:
+            # Apply Canny edge detection
+            edges = cv2.Canny(blurred, canny_low, canny_high)
             
-            # Validate size
-            if not self._is_valid_size(w, h, area, image_area):
-                continue
+            # Dilate edges to connect nearby edges
+            kernel = np.ones((3, 3), np.uint8)
+            dilated = cv2.dilate(edges, kernel, iterations=2)
             
-            # Check if contour is rectangular
-            rectangularity = self._calculate_rectangularity(contour, w, h)
-            if rectangularity < 0.75:  # Must be at least 75% rectangular
-                continue
+            # Find contours
+            contours, hierarchy = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             
-            # Calculate confidence based on edge strength and rectangularity
-            confidence = self._calculate_confidence(
-                image, x, y, w, h, rectangularity, edges
-            )
+            logger.info(f"Canny({canny_low},{canny_high}): Found {len(contours)} contours")
             
-            if confidence > 0.5:  # Minimum 50% confidence
-                detections.append({
+            # Analyze each contour
+            valid_count = 0
+            rejected_size = 0
+            rejected_rectangularity = 0
+            rejected_confidence = 0
+            
+            for contour in contours:
+                # Get bounding rectangle
+                x, y, w, h = cv2.boundingRect(contour)
+                area = w * h
+                
+                # Validate size
+                if not self._is_valid_size(w, h, area, image_area):
+                    rejected_size += 1
+                    continue
+                
+                # Check if contour is rectangular
+                rectangularity = self._calculate_rectangularity(contour, w, h)
+                if rectangularity < self.min_rectangularity:
+                    rejected_rectangularity += 1
+                    logger.debug(f"Rejected: rectangularity {rectangularity:.2f} < {self.min_rectangularity}")
+                    continue
+                
+                # Calculate confidence based on edge strength and rectangularity
+                confidence = self._calculate_confidence(
+                    image, x, y, w, h, rectangularity, edges
+                )
+                
+                if confidence < self.min_confidence:
+                    rejected_confidence += 1
+                    logger.debug(f"Rejected: confidence {confidence:.2f} < {self.min_confidence}")
+                    continue
+                
+                valid_count += 1
+                all_detections.append({
                     'x': int(x),
                     'y': int(y),
                     'width': int(w),
@@ -132,13 +152,16 @@ class PhotoDetector:
                     'area': int(area),
                     'confidence': float(confidence),
                     'aspect_ratio': float(w / h),
-                    'rectangularity': float(rectangularity)
+                    'rectangularity': float(rectangularity),
+                    'canny_level': f"{canny_low}-{canny_high}"
                 })
+            
+            logger.info(f"  Valid: {valid_count}, Rejected - Size: {rejected_size}, Rectangularity: {rejected_rectangularity}, Confidence: {rejected_confidence}")
         
         # Sort by confidence
-        detections.sort(key=lambda d: d['confidence'], reverse=True)
+        all_detections.sort(key=lambda d: d['confidence'], reverse=True)
         
-        return detections
+        return all_detections
     
     def _is_valid_size(self, width: int, height: int, area: int, image_area: int) -> bool:
         """Check if detection has valid dimensions"""
