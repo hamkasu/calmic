@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,200 +6,60 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  Dimensions,
-  Modal,
+  ScrollView,
+  Image,
 } from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { photoAPI } from '../services/api';
 import ProgressBar from '../components/ProgressBar';
 
-const { width, height } = Dimensions.get('window');
-
-// Flash mode constants for expo-camera v17+
-const FLASH_MODE = {
-  off: 'off',
-  on: 'on',
-  auto: 'auto',
-};
-
-// Camera type constants for expo-camera v17+
-const CAMERA_TYPE = {
-  back: 'back',
-  front: 'front',
-};
-
 export default function CameraScreen({ navigation }) {
-  const [permission, requestPermission] = useCameraPermissions();
-  const [flashMode, setFlashMode] = useState(FLASH_MODE.off);
   const [batchMode, setBatchMode] = useState(false);
   const [capturedPhotos, setCapturedPhotos] = useState([]);
   const [processing, setProcessing] = useState(false);
-  const [showGuides, setShowGuides] = useState(true);
-  const [zoom, setZoom] = useState(0);
-  const [detectedBoundaries, setDetectedBoundaries] = useState([]);
-  const [showingPreview, setShowingPreview] = useState(false);
-  const [cameraKey, setCameraKey] = useState(0);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadMessage, setUploadMessage] = useState('');
-  const [focusPoint, setFocusPoint] = useState(null);
-  const [autoFocusMode, setAutoFocusMode] = useState('on');
-  const cameraRef = useRef(null);
-  const baseZoom = useRef(0);
-  const focusTimeout = useRef(null);
 
-  // Force camera remount when screen is focused to prevent black screen
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      setCameraKey(prevKey => prevKey + 1);
-    });
-    return unsubscribe;
-  }, [navigation]);
-
-  // Cleanup focus timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (focusTimeout.current) {
-        clearTimeout(focusTimeout.current);
+  const launchNativeCamera = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      
+      if (!permissionResult.granted) {
+        Alert.alert('Permission Required', 'Please allow camera access to take photos');
+        return;
       }
-    };
-  }, []);
 
-  // Pinch to zoom gesture
-  const pinchGesture = Gesture.Pinch()
-    .onUpdate((event) => {
-      const newZoom = Math.min(Math.max(baseZoom.current + (event.scale - 1) * 0.5, 0), 1);
-      setZoom(newZoom);
-    })
-    .onEnd(() => {
-      baseZoom.current = zoom;
-    });
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 1.0,
+        exif: true,
+      });
 
-  // Tap to focus handler - toggles autofocus to trigger refocus
-  const handleCameraTap = (event) => {
-    const { locationX, locationY } = event.nativeEvent;
-    const point = {
-      x: locationX,
-      y: locationY,
-    };
-    
-    setFocusPoint(point);
-    
-    // Trigger refocus by toggling autofocus mode
-    setAutoFocusMode('off');
-    setTimeout(() => setAutoFocusMode('on'), 100);
-    
-    // Clear previous timeout
-    if (focusTimeout.current) {
-      clearTimeout(focusTimeout.current);
-    }
-    
-    // Hide focus indicator after 1.5 seconds
-    focusTimeout.current = setTimeout(() => {
-      setFocusPoint(null);
-    }, 1500);
-  };
-
-  // Auto-focus when detection boxes appear
-  useEffect(() => {
-    if (detectedBoundaries.length > 0) {
-      // Trigger refocus when photos are detected
-      setAutoFocusMode('off');
-      setTimeout(() => setAutoFocusMode('on'), 100);
-    }
-  }, [detectedBoundaries.length]);
-
-  const previewDetection = async () => {
-    if (cameraRef.current) {
-      try {
-        setShowingPreview(true);
-        const photo = await cameraRef.current.takePictureAsync({
-          quality: 1.0,
-          base64: false,
-        });
-
-        const formData = new FormData();
-        formData.append('image', {
-          uri: photo.uri,
-          type: 'image/jpeg',
-          name: 'preview.jpg',
-        });
-
-        const response = await photoAPI.previewDetection(formData);
-        
-        if (response.success && response.detections && response.detections.length > 0) {
-          setDetectedBoundaries(response.detections);
-          Alert.alert(
-            'Detection Preview',
-            `Found ${response.detected_count} photo(s)!`,
-            [{ text: 'OK' }]
-          );
-        } else {
-          setDetectedBoundaries([]);
-          Alert.alert('No Photos Detected', 'Try adjusting your camera angle or lighting');
-        }
-      } catch (error) {
-        console.error('Preview detection error:', error);
-        Alert.alert('Preview Failed', 'Could not analyze frame');
-      } finally {
-        setShowingPreview(false);
-      }
-    }
-  };
-
-  const toggleFlash = () => {
-    setFlashMode((current) =>
-      current === FLASH_MODE.off
-        ? FLASH_MODE.on
-        : current === FLASH_MODE.on
-        ? FLASH_MODE.auto
-        : FLASH_MODE.off
-    );
-  };
-
-  const getFlashIcon = () => {
-    if (flashMode === FLASH_MODE.off) return 'flash-off';
-    if (flashMode === FLASH_MODE.on) return 'flash';
-    return 'flash-outline';
-  };
-
-  const capturePhoto = async () => {
-    if (cameraRef.current) {
-      try {
+      if (!result.canceled && result.assets && result.assets.length > 0) {
         setProcessing(true);
-        const photo = await cameraRef.current.takePictureAsync({
-          quality: 1.0,
-          base64: false,
-          exif: true,
-        });
 
-        // Auto-enhance the captured photo
         const enhancedPhoto = await ImageManipulator.manipulateAsync(
-          photo.uri,
-          [
-            { resize: { width: 1920 } },
-          ],
-          {
-            compress: 0.8,
-            format: ImageManipulator.SaveFormat.JPEG,
-          }
+          result.assets[0].uri,
+          [{ resize: { width: 1920 } }],
+          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
         );
 
         if (batchMode) {
           setCapturedPhotos([...capturedPhotos, enhancedPhoto]);
           Alert.alert('Photo Captured', `${capturedPhotos.length + 1} photos in batch`);
+          setProcessing(false);
         } else {
           await processAndUpload(enhancedPhoto.uri);
+          setProcessing(false);
         }
-      } catch (error) {
-        Alert.alert('Error', 'Failed to capture photo');
-        console.error(error);
-      } finally {
-        setProcessing(false);
       }
+    } catch (error) {
+      console.error('Camera error:', error);
+      Alert.alert('Error', 'Failed to launch camera');
+      setProcessing(false);
     }
   };
 
@@ -257,64 +117,44 @@ export default function CameraScreen({ navigation }) {
     }
   };
 
-  const finishBatch = async () => {
+  const uploadBatch = async () => {
     if (capturedPhotos.length === 0) {
-      Alert.alert('No Photos', 'Please capture some photos first');
+      Alert.alert('No Photos', 'Capture some photos first');
       return;
     }
 
     setProcessing(true);
     let successCount = 0;
-    
-    try {
-      for (let i = 0; i < capturedPhotos.length; i++) {
-        const photo = capturedPhotos[i];
-        setUploadMessage(`Uploading photo ${i + 1} of ${capturedPhotos.length}...`);
-        setUploadProgress((i / capturedPhotos.length) * 100);
-        
-        await processAndUpload(photo.uri, false);
+    let failCount = 0;
+
+    for (let i = 0; i < capturedPhotos.length; i++) {
+      try {
+        setUploadMessage(`Uploading ${i + 1} of ${capturedPhotos.length}...`);
+        await processAndUpload(capturedPhotos[i].uri, false);
         successCount++;
+      } catch (error) {
+        failCount++;
       }
-
-      setUploadProgress(100);
-      setUploadMessage('All photos uploaded!');
-
-      Alert.alert(
-        'Batch Complete',
-        `Successfully uploaded ${successCount} of ${capturedPhotos.length} photos`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              setCapturedPhotos([]);
-              setBatchMode(false);
-              navigation.navigate('Gallery');
-            },
-          },
-        ]
-      );
-    } catch (error) {
-      Alert.alert(
-        'Batch Upload Error',
-        `Uploaded ${successCount} of ${capturedPhotos.length} photos. Some uploads failed.`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              setCapturedPhotos([]);
-              setBatchMode(false);
-              if (successCount > 0) {
-                navigation.navigate('Gallery');
-              }
-            },
-          },
-        ]
-      );
-    } finally {
-      setProcessing(false);
-      setUploadProgress(0);
-      setUploadMessage('');
     }
+
+    setProcessing(false);
+    setCapturedPhotos([]);
+
+    Alert.alert(
+      'Batch Upload Complete',
+      `Successfully uploaded: ${successCount}\nFailed: ${failCount}`,
+      [
+        {
+          text: 'OK',
+          onPress: () => navigation.navigate('Gallery'),
+        },
+      ]
+    );
+  };
+
+  const removeBatchPhoto = (index) => {
+    const newPhotos = capturedPhotos.filter((_, i) => i !== index);
+    setCapturedPhotos(newPhotos);
   };
 
   const pickFromLibrary = async () => {
@@ -370,226 +210,125 @@ export default function CameraScreen({ navigation }) {
     }
   };
 
-  if (!permission) {
-    return <View style={styles.container} />;
-  }
-
-  if (!permission.granted) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.permissionText}>No access to camera</Text>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={requestPermission}
-        >
-          <Text style={styles.buttonText}>Grant Permission</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
-      <GestureDetector gesture={pinchGesture}>
-        <TouchableOpacity 
-          style={styles.camera} 
-          activeOpacity={1}
-          onPress={handleCameraTap}
-        >
-          <CameraView
-            key={cameraKey}
-            ref={cameraRef}
-            style={styles.camera}
-            facing={CAMERA_TYPE.back}
-            flash={flashMode}
-            zoom={zoom}
-            autoFocus={autoFocusMode}
-            videoStabilizationMode="auto"
-          />
-        </TouchableOpacity>
-      </GestureDetector>
-
-      {/* Focus Point Indicator */}
-      {focusPoint && (
-        <View
-          style={[
-            styles.focusIndicator,
-            {
-              left: focusPoint.x - 40,
-              top: focusPoint.y - 40,
-            },
-          ]}
-        >
-          <View style={styles.focusBox} />
-        </View>
-      )}
-
-      {/* All UI elements overlaid with absolute positioning */}
-      {showGuides && detectedBoundaries.length === 0 && (
-        <View style={styles.guides}>
-          <View style={styles.guideFrame} />
-          <Text style={styles.guideText}>
-            Align photos within the frame - Multiple photos supported
-          </Text>
-        </View>
-      )}
-
-      {/* Red outlines for detected photos */}
-      {detectedBoundaries.length > 0 && (
-        <View style={styles.detectionOverlay}>
-          {detectedBoundaries.map((detection, index) => (
-            <View
-              key={index}
-              style={[
-                styles.detectedBoundary,
-                {
-                  left: detection.x,
-                  top: detection.y,
-                  width: detection.width,
-                  height: detection.height,
-                },
-              ]}
-            >
-              <View style={styles.detectedBoundaryInner} />
-              <Text style={styles.detectionLabel}>
-                Photo {index + 1} ({Math.round(detection.confidence * 100)}%)
-              </Text>
-            </View>
-          ))}
-          <Text style={styles.detectionCount}>
-            {detectedBoundaries.length} photo{detectedBoundaries.length !== 1 ? 's' : ''} detected
-          </Text>
-        </View>
-      )}
-
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="close" size={32} color="#fff" />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={28} color="#fff" />
         </TouchableOpacity>
-
-        <View style={styles.headerRight}>
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={previewDetection}
-            disabled={processing || showingPreview}
-          >
-            <Ionicons
-              name={detectedBoundaries.length > 0 ? 'scan-circle' : 'scan-circle-outline'}
-              size={28}
-              color={showingPreview ? '#FFA500' : detectedBoundaries.length > 0 ? '#4CAF50' : '#fff'}
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={pickFromLibrary}
-            disabled={processing}
-          >
-            <Ionicons
-              name="images"
-              size={28}
-              color={processing ? '#999' : '#fff'}
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={() => {
-              setShowGuides(!showGuides);
-              if (showGuides) setDetectedBoundaries([]);
-            }}
-          >
-            <Ionicons
-              name={showGuides ? 'grid' : 'grid-outline'}
-              size={28}
-              color="#fff"
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.iconButton} onPress={toggleFlash}>
-            <Ionicons name={getFlashIcon()} size={28} color="#fff" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.controls}>
+        <Text style={styles.headerTitle}>Digitizer</Text>
         <TouchableOpacity
-          style={[
-            styles.batchButton,
-            batchMode && styles.batchButtonActive,
-          ]}
           onPress={() => setBatchMode(!batchMode)}
+          style={styles.batchButton}
         >
           <Ionicons
-            name="albums"
-            size={24}
-            color={batchMode ? '#E85D75' : '#fff'}
+            name={batchMode ? 'albums' : 'albums-outline'}
+            size={28}
+            color={batchMode ? '#4CAF50' : '#fff'}
           />
-          <Text
-            style={[
-              styles.batchText,
-              batchMode && styles.batchTextActive,
-            ]}
-          >
-            {batchMode ? `Batch (${capturedPhotos.length})` : 'Single'}
+        </TouchableOpacity>
+      </View>
+
+      {/* Main Content */}
+      <View style={styles.content}>
+        {/* Info Card */}
+        <View style={styles.infoCard}>
+          <Ionicons name="camera" size={48} color="#E91E63" />
+          <Text style={styles.infoTitle}>Native iOS Camera</Text>
+          <Text style={styles.infoText}>
+            Tap the camera button to open the native iOS camera app with all its features
           </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.captureButton,
-            processing && styles.captureButtonDisabled,
-          ]}
-          onPress={capturePhoto}
-          disabled={processing}
-        >
-          {processing ? (
-            <ActivityIndicator color="#fff" size="large" />
-          ) : (
-            <View style={styles.captureButtonInner} />
+          {batchMode && (
+            <View style={styles.batchInfo}>
+              <Ionicons name="albums" size={24} color="#4CAF50" />
+              <Text style={styles.batchText}>Batch Mode Active</Text>
+              <Text style={styles.batchSubtext}>
+                Capture multiple photos before uploading
+              </Text>
+            </View>
           )}
-        </TouchableOpacity>
+        </View>
 
-        {batchMode && capturedPhotos.length > 0 ? (
-          <TouchableOpacity
-            style={styles.finishButton}
-            onPress={finishBatch}
-          >
-            <Ionicons name="checkmark-circle" size={32} color="#4CAF50" />
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.placeholder} />
+        {/* Batch Photos Preview */}
+        {batchMode && capturedPhotos.length > 0 && (
+          <View style={styles.batchPreviewContainer}>
+            <Text style={styles.batchPreviewTitle}>
+              {capturedPhotos.length} Photo{capturedPhotos.length !== 1 ? 's' : ''} Captured
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {capturedPhotos.map((photo, index) => (
+                <View key={index} style={styles.batchPhotoItem}>
+                  <Image source={{ uri: photo.uri }} style={styles.batchPhotoImage} />
+                  <TouchableOpacity
+                    style={styles.removePhotoButton}
+                    onPress={() => removeBatchPhoto(index)}
+                  >
+                    <Ionicons name="close-circle" size={24} color="#E91E63" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Processing Indicator */}
+        {processing && (
+          <View style={styles.processingContainer}>
+            <ActivityIndicator size="large" color="#E91E63" />
+            <Text style={styles.processingText}>Processing...</Text>
+          </View>
+        )}
+
+        {/* Upload Progress */}
+        {uploadProgress > 0 && (
+          <View style={styles.progressContainer}>
+            <Text style={styles.progressText}>{uploadMessage}</Text>
+            <ProgressBar progress={uploadProgress} />
+          </View>
         )}
       </View>
 
-      {/* Zoom Indicator */}
-      {zoom > 0 && (
-        <View style={styles.zoomIndicator}>
-          <Text style={styles.zoomText}>{(1 + zoom * 9).toFixed(1)}x</Text>
-        </View>
-      )}
+      {/* Bottom Controls */}
+      <View style={styles.controls}>
+        {/* Library Button */}
+        <TouchableOpacity
+          style={styles.controlButton}
+          onPress={pickFromLibrary}
+          disabled={processing}
+        >
+          <Ionicons name="images" size={32} color="#fff" />
+          <Text style={styles.controlButtonText}>Library</Text>
+        </TouchableOpacity>
 
-      {/* Upload Progress Modal */}
-      <Modal
-        visible={processing && uploadProgress > 0}
-        transparent={true}
-        animationType="fade"
-      >
-        <View style={styles.uploadModalOverlay}>
-          <View style={styles.uploadModalContent}>
-            <ActivityIndicator size="large" color="#E85D75" style={{ marginBottom: 20 }} />
-            <ProgressBar 
-              progress={uploadProgress} 
-              message={uploadMessage}
-              color="#E85D75"
-              showPercentage={true}
-            />
+        {/* Camera Button */}
+        <TouchableOpacity
+          style={[styles.captureButton, processing && styles.captureButtonDisabled]}
+          onPress={launchNativeCamera}
+          disabled={processing}
+        >
+          <Ionicons name="camera" size={40} color="#fff" />
+        </TouchableOpacity>
+
+        {/* Upload Batch or Info */}
+        {batchMode && capturedPhotos.length > 0 ? (
+          <TouchableOpacity
+            style={styles.controlButton}
+            onPress={uploadBatch}
+            disabled={processing}
+          >
+            <Ionicons name="cloud-upload" size={32} color="#4CAF50" />
+            <Text style={styles.controlButtonText}>Upload ({capturedPhotos.length})</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.controlButton}>
+            <Ionicons name="information-circle" size={32} color="#fff" />
+            <Text style={styles.controlButtonText}>
+              {batchMode ? 'Batch' : 'Single'}
+            </Text>
           </View>
-        </View>
-      </Modal>
+        )}
+      </View>
     </View>
   );
 }
@@ -597,217 +336,150 @@ export default function CameraScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
-  },
-  camera: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  permissionText: {
-    color: '#fff',
-    fontSize: 18,
-    marginBottom: 20,
-  },
-  button: {
-    backgroundColor: '#E85D75',
-    padding: 15,
-    borderRadius: 10,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  guides: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    pointerEvents: 'none',
-  },
-  guideFrame: {
-    width: width * 0.95,
-    height: height * 0.7,
-    borderWidth: 3,
-    borderColor: '#E85D75',
-    borderRadius: 10,
-    borderStyle: 'dashed',
-  },
-  guideText: {
-    color: '#fff',
-    fontSize: 16,
-    marginTop: 20,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    padding: 10,
-    borderRadius: 5,
-    fontWeight: '600',
+    backgroundColor: '#1a1a1a',
   },
   header: {
-    position: 'absolute',
-    top: 50,
-    left: 0,
-    right: 0,
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
+    paddingTop: 50,
     paddingHorizontal: 20,
+    paddingBottom: 15,
+    backgroundColor: '#2a2a2a',
   },
-  headerRight: {
-    flexDirection: 'row',
+  backButton: {
+    padding: 8,
   },
-  iconButton: {
-    padding: 10,
-    marginLeft: 10,
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  batchButton: {
+    padding: 8,
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  infoCard: {
+    backgroundColor: '#2a2a2a',
+    borderRadius: 16,
+    padding: 30,
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 400,
+  },
+  infoTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginTop: 15,
+    marginBottom: 10,
+  },
+  infoText: {
+    fontSize: 16,
+    color: '#bbb',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  batchInfo: {
+    marginTop: 20,
+    alignItems: 'center',
+    padding: 15,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    width: '100%',
+  },
+  batchText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#4CAF50',
+    marginTop: 8,
+  },
+  batchSubtext: {
+    fontSize: 14,
+    color: '#888',
+    marginTop: 4,
+  },
+  batchPreviewContainer: {
+    marginTop: 20,
+    width: '100%',
+  },
+  batchPreviewTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 10,
+  },
+  batchPhotoItem: {
+    marginRight: 10,
+    position: 'relative',
+  },
+  batchPhotoImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+  },
+  removePhotoButton: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+  },
+  processingContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  processingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#fff',
+  },
+  progressContainer: {
+    marginTop: 20,
+    width: '100%',
+  },
+  progressText: {
+    fontSize: 14,
+    color: '#fff',
+    marginBottom: 8,
+    textAlign: 'center',
   },
   controls: {
-    position: 'absolute',
-    bottom: 40,
-    left: 0,
-    right: 0,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
+    paddingVertical: 30,
     paddingHorizontal: 20,
+    backgroundColor: '#2a2a2a',
   },
-  batchButton: {
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    padding: 12,
-    borderRadius: 10,
+  controlButton: {
     alignItems: 'center',
-    minWidth: 80,
+    padding: 10,
   },
-  batchButtonActive: {
-    backgroundColor: '#fff',
-  },
-  batchText: {
+  controlButtonText: {
     color: '#fff',
     fontSize: 12,
-    marginTop: 4,
-  },
-  batchTextActive: {
-    color: '#E85D75',
+    marginTop: 5,
   },
   captureButton: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: '#E91E63',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 4,
-    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 8,
   },
   captureButtonDisabled: {
     opacity: 0.5,
-  },
-  captureButtonInner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#fff',
-  },
-  finishButton: {
-    padding: 10,
-  },
-  placeholder: {
-    width: 52,
-  },
-  zoomIndicator: {
-    position: 'absolute',
-    top: 120,
-    alignSelf: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  zoomText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  detectionOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    pointerEvents: 'none',
-  },
-  detectedBoundary: {
-    position: 'absolute',
-    borderWidth: 3,
-    borderColor: '#E85D75',
-    borderRadius: 8,
-    backgroundColor: 'rgba(232, 93, 117, 0.1)',
-  },
-  detectedBoundaryInner: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-    borderRadius: 6,
-    margin: 2,
-  },
-  detectionLabel: {
-    position: 'absolute',
-    top: -25,
-    left: 0,
-    backgroundColor: '#E85D75',
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  detectionCount: {
-    position: 'absolute',
-    bottom: 150,
-    alignSelf: 'center',
-    backgroundColor: 'rgba(76, 175, 80, 0.9)',
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  uploadModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  uploadModalContent: {
-    backgroundColor: '#fff',
-    padding: 30,
-    borderRadius: 15,
-    width: '80%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  focusIndicator: {
-    position: 'absolute',
-    width: 80,
-    height: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-    pointerEvents: 'none',
-  },
-  focusBox: {
-    width: 60,
-    height: 60,
-    borderWidth: 2,
-    borderColor: '#FFD700',
-    borderRadius: 30,
-    backgroundColor: 'transparent',
   },
 });
