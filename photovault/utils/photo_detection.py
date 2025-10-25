@@ -708,8 +708,8 @@ class AdvancedPhotoDetector:
     def _validate_perimeter_edges(self, edges: np.ndarray, x: int, y: int, w: int, h: int) -> float:
         """
         Validate that edges exist on all 4 sides of the detected region.
-        Real photo borders have edges around the entire perimeter.
-        Content inside photos only has edges in specific areas.
+        Real photo borders have strong continuous edges around the entire perimeter.
+        Content inside photos only has edges in specific areas (people, objects).
         Returns a score from 0.0 to 1.0 indicating perimeter edge quality.
         """
         if edges is None or x < 0 or y < 0:
@@ -720,9 +720,10 @@ class AdvancedPhotoDetector:
         if x + w > img_w or y + h > img_h:
             return 0.0
         
-        # Define border strips (10% of dimension width)
-        border_width = max(int(w * 0.1), 5)
-        border_height = max(int(h * 0.1), 5)
+        # Define narrow border strips to specifically check photo borders
+        # Use thinner strips (3-5% of dimension) to focus on actual borders
+        border_width = max(int(w * 0.05), 3)
+        border_height = max(int(h * 0.05), 3)
         
         # Extract edge density from each side
         try:
@@ -742,31 +743,61 @@ class AdvancedPhotoDetector:
             right_strip = edges[y:y+h, x+w-border_width:x+w]
             right_density = np.sum(right_strip > 0) / right_strip.size if right_strip.size > 0 else 0
             
-            # Real photo borders have edges on multiple sides
-            # Relax density requirement to handle faded/shadowed edges
-            min_edge_density = 0.10  # At least 10% edge pixels on each side
-            sides_with_edges = sum([
-                top_density >= min_edge_density,
-                bottom_density >= min_edge_density,
-                left_density >= min_edge_density,
-                right_density >= min_edge_density
+            # Check for continuous edges along each side (not just scattered pixels)
+            # Real photo borders have continuous lines, not scattered edge pixels
+            top_continuous = self._check_edge_continuity(top_strip, axis=1)  # horizontal continuity
+            bottom_continuous = self._check_edge_continuity(bottom_strip, axis=1)
+            left_continuous = self._check_edge_continuity(left_strip, axis=0)  # vertical continuity
+            right_continuous = self._check_edge_continuity(right_strip, axis=0)
+            
+            # Real photo borders have higher edge density (stronger borders)
+            # Increased from 0.10 to 0.15 to reject weak internal edges
+            min_edge_density = 0.15  # At least 15% edge pixels on each side
+            
+            # Count sides with both strong edges AND continuity
+            sides_with_strong_edges = sum([
+                top_density >= min_edge_density and top_continuous,
+                bottom_density >= min_edge_density and bottom_continuous,
+                left_density >= min_edge_density and left_continuous,
+                right_density >= min_edge_density and right_continuous
             ])
             
-            # Give partial credit for 2+ sides (real photos), reject if < 2
-            # This handles faded/glare borders while rejecting internal content
-            # Increased 2-side score to allow weak-corner photos to pass
-            if sides_with_edges < 2:
+            # Require at least 3 strong sides for a valid photo border
+            # This rejects internal content (people, objects) which lack complete borders
+            if sides_with_strong_edges < 3:
                 return 0.0
-            elif sides_with_edges == 2:
-                return 0.65  # Allows passage even without perfect corners
-            elif sides_with_edges == 3:
-                return 0.80
+            elif sides_with_strong_edges == 3:
+                return 0.75  # 3 sides - acceptable for photos with one faded edge
             else:
-                return 1.0
+                return 1.0  # 4 sides - perfect rectangular border
                 
         except Exception as e:
             logger.warning(f"Perimeter edge validation error: {e}")
             return 0.0
+    
+    def _check_edge_continuity(self, edge_strip: np.ndarray, axis: int) -> bool:
+        """
+        Check if edges are continuous along the specified axis.
+        Real photo borders have continuous lines, not scattered pixels.
+        axis=0: check vertical continuity (for left/right borders)
+        axis=1: check horizontal continuity (for top/bottom borders)
+        """
+        if edge_strip.size == 0:
+            return False
+        
+        # Project edges onto the specified axis
+        projection = np.sum(edge_strip > 0, axis=axis)
+        
+        # Check what percentage of the line has edges
+        # Real borders should have edges along most of the length
+        if len(projection) == 0:
+            return False
+        
+        coverage = np.sum(projection > 0) / len(projection)
+        
+        # Require at least 60% coverage for continuity
+        # This ensures we're detecting actual borders, not scattered content edges
+        return coverage >= 0.60
     
     def _calculate_advanced_confidence(
         self, contour, x: int, y: int, w: int, h: int, 
