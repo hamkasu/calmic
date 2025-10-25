@@ -227,7 +227,7 @@ def extract_detected_photos_api():
         try:
             
             for extracted_photo in extracted_photos:
-                file_path_full = extracted_photo['file_path']
+                file_path_full = extracted_photo['path']
                 filename = extracted_photo['filename']
                 
                 # Get image metadata
@@ -272,8 +272,8 @@ def extract_detected_photos_api():
             # Clean up extracted files since database save failed
             for extracted_photo in extracted_photos:
                 try:
-                    if os.path.exists(extracted_photo['file_path']):
-                        os.remove(extracted_photo['file_path'])
+                    if os.path.exists(extracted_photo['path']):
+                        os.remove(extracted_photo['path'])
                 except Exception:
                     pass
             
