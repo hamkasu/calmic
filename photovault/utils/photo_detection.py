@@ -24,18 +24,19 @@ class AdvancedPhotoDetector:
     """Advanced multi-strategy photo detection with robust edge detection"""
     
     def __init__(self, fast_mode=True):
-        self.min_photo_area = 80000
+        self.min_photo_area = 150000
         self.max_photo_area_ratio = 0.85
         self.min_aspect_ratio = 0.3
         self.max_aspect_ratio = 4.0
         self.enable_perspective_correction = True
         self.enable_edge_refinement = True
         self.fast_mode = fast_mode
+        self.min_dimension = 300
         
         # Multi-scale detection parameters (single scale for fast mode)
         self.scales = [1.0] if fast_mode else [1.0, 0.85]
         
-        # Detection confidence thresholds (balanced to detect smaller photos while reducing false positives)
+        # Detection confidence thresholds (balanced to avoid photo content while detecting real photos)
         self.min_confidence = 0.60
         self.high_confidence = 0.85
         
@@ -208,8 +209,8 @@ class AdvancedPhotoDetector:
             if not self._is_valid_photo_region(x, y, w, h, original_area):
                 continue
             
-            # Fast confidence calculation
-            confidence = self._calculate_fast_confidence(contour, x, y, w, h, image)
+            # Fast confidence calculation with perimeter edge validation
+            confidence = self._calculate_fast_confidence(contour, x, y, w, h, image, edges)
             
             if confidence > self.min_confidence:
                 corners = self._get_photo_corners_refined(contour, 1.0)
@@ -229,30 +230,54 @@ class AdvancedPhotoDetector:
         return all_candidates
     
     def _calculate_fast_confidence(
-        self, contour, x: int, y: int, w: int, h: int, image: np.ndarray
+        self, contour, x: int, y: int, w: int, h: int, image: np.ndarray, edges: np.ndarray = None
     ) -> float:
-        """Fast confidence calculation with fewer checks"""
+        """Fast confidence calculation with perimeter edge validation"""
         confidence = 0.0
         
-        # Shape rectangularity (0.0 - 0.4)
+        # Shape rectangularity (0.0 - 0.25) - soft scoring
         contour_area = cv2.contourArea(contour)
         bbox_area = w * h
         area_ratio = contour_area / bbox_area if bbox_area > 0 else 0
-        confidence += area_ratio * 0.4
         
-        # Aspect ratio match (0.0 - 0.3)
+        # Soft penalty for low rectangularity (no hard cutoff)
+        # Strong penalty below 0.60 (very irregular), gradual above
+        if area_ratio < 0.60:
+            rectangularity_score = 0.0
+        elif area_ratio < 0.75:
+            # Proportional penalty: 0.60->0.10, 0.75->0.20
+            rectangularity_score = 0.10 + (area_ratio - 0.60) * (0.10 / 0.15)
+        else:
+            # Full score above 0.75
+            rectangularity_score = 0.20 + (area_ratio - 0.75) * 0.20
+        
+        confidence += rectangularity_score
+        
+        # Aspect ratio match (0.0 - 0.2) - reduced weight
         aspect_ratio = w / h
         common_ratios = [1.0, 4/3, 3/2, 16/9, 5/4, 0.75, 0.67]
         min_diff = min([abs(aspect_ratio - ratio) for ratio in common_ratios])
-        aspect_score = max(0, 1 - min_diff * 2) * 0.3
+        aspect_score = max(0, 1 - min_diff * 2) * 0.2
         confidence += aspect_score
         
-        # Corner quality (0.0 - 0.3)
+        # Corner quality (0.0 - 0.15) - reduced weight to be more tolerant
         corners = self._get_photo_corners_refined(contour, 1.0)
         if len(corners) == 4:
             corner_angles = self._calculate_corner_angles(corners)
             angle_score = sum([1 for angle in corner_angles if 70 < angle < 110]) / 4
-            confidence += angle_score * 0.3
+            confidence += angle_score * 0.15
+        
+        # Perimeter edge validation (0.0 - 0.40) - NEW: highest weight
+        # This is the KEY to distinguishing photo borders from internal content
+        if edges is not None:
+            perimeter_score = self._validate_perimeter_edges(edges, x, y, w, h)
+            # Reject only if no edges detected (score 0), allow partial credit
+            if perimeter_score == 0.0:
+                return 0.0
+            confidence += perimeter_score * 0.40
+        else:
+            # If no edges provided, rely on other factors with adjusted weights
+            confidence += 0.15
         
         return min(1.0, confidence)
     
@@ -668,18 +693,80 @@ class AdvancedPhotoDetector:
         if x < 5 or y < 5:
             return False
         
-        # Require minimum dimensions based on min_photo_area (80k pixels = ~283x283 or 250x320)
-        # Allow smaller photos to detect multiple photos in a single camera frame
-        if w < 250 or h < 250:
+        # Require minimum dimensions (stricter to avoid detecting photo content)
+        if w < self.min_dimension or h < self.min_dimension:
             return False
         
         # Additional perimeter check to filter out thin/small objects
-        # For 250x250 minimum: perimeter = 1000
+        # For 300x300 minimum: perimeter = 1200
         perimeter = 2 * (w + h)
-        if perimeter < 1000:
+        if perimeter < 1200:
             return False
         
         return True
+    
+    def _validate_perimeter_edges(self, edges: np.ndarray, x: int, y: int, w: int, h: int) -> float:
+        """
+        Validate that edges exist on all 4 sides of the detected region.
+        Real photo borders have edges around the entire perimeter.
+        Content inside photos only has edges in specific areas.
+        Returns a score from 0.0 to 1.0 indicating perimeter edge quality.
+        """
+        if edges is None or x < 0 or y < 0:
+            return 0.0
+        
+        # Safety check for bounds
+        img_h, img_w = edges.shape[:2]
+        if x + w > img_w or y + h > img_h:
+            return 0.0
+        
+        # Define border strips (10% of dimension width)
+        border_width = max(int(w * 0.1), 5)
+        border_height = max(int(h * 0.1), 5)
+        
+        # Extract edge density from each side
+        try:
+            # Top edge
+            top_strip = edges[y:y+border_height, x:x+w]
+            top_density = np.sum(top_strip > 0) / top_strip.size if top_strip.size > 0 else 0
+            
+            # Bottom edge
+            bottom_strip = edges[y+h-border_height:y+h, x:x+w]
+            bottom_density = np.sum(bottom_strip > 0) / bottom_strip.size if bottom_strip.size > 0 else 0
+            
+            # Left edge
+            left_strip = edges[y:y+h, x:x+border_width]
+            left_density = np.sum(left_strip > 0) / left_strip.size if left_strip.size > 0 else 0
+            
+            # Right edge
+            right_strip = edges[y:y+h, x+w-border_width:x+w]
+            right_density = np.sum(right_strip > 0) / right_strip.size if right_strip.size > 0 else 0
+            
+            # Real photo borders have edges on multiple sides
+            # Relax density requirement to handle faded/shadowed edges
+            min_edge_density = 0.10  # At least 10% edge pixels on each side
+            sides_with_edges = sum([
+                top_density >= min_edge_density,
+                bottom_density >= min_edge_density,
+                left_density >= min_edge_density,
+                right_density >= min_edge_density
+            ])
+            
+            # Give partial credit for 2+ sides (real photos), reject if < 2
+            # This handles faded/glare borders while rejecting internal content
+            # Increased 2-side score to allow weak-corner photos to pass
+            if sides_with_edges < 2:
+                return 0.0
+            elif sides_with_edges == 2:
+                return 0.65  # Allows passage even without perfect corners
+            elif sides_with_edges == 3:
+                return 0.80
+            else:
+                return 1.0
+                
+        except Exception as e:
+            logger.warning(f"Perimeter edge validation error: {e}")
+            return 0.0
     
     def _calculate_advanced_confidence(
         self, contour, x: int, y: int, w: int, h: int, 
