@@ -1007,7 +1007,7 @@ class AdvancedPhotoDetector:
         
         return ordered.astype(np.float32)
     
-    def _apply_perspective_transform(self, image: np.ndarray, corners: np.ndarray) -> np.ndarray:
+    def _apply_perspective_transform(self, image: np.ndarray, corners: np.ndarray) -> Optional[np.ndarray]:
         """
         Apply perspective transformation with quality validation.
         This corrects tilted/rotated photos to be perfectly rectangular.
