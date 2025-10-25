@@ -24,11 +24,10 @@ class AdvancedPhotoDetector:
     """Advanced multi-strategy photo detection with robust edge detection"""
     
     def __init__(self, fast_mode=True):
-        self.min_photo_area = 200000
+        self.min_photo_area = 80000
         self.max_photo_area_ratio = 0.85
         self.min_aspect_ratio = 0.3
         self.max_aspect_ratio = 4.0
-        self.contour_area_threshold = 0.008
         self.enable_perspective_correction = True
         self.enable_edge_refinement = True
         self.fast_mode = fast_mode
@@ -36,8 +35,8 @@ class AdvancedPhotoDetector:
         # Multi-scale detection parameters (single scale for fast mode)
         self.scales = [1.0] if fast_mode else [1.0, 0.85]
         
-        # Detection confidence thresholds (increased to reduce false positives)
-        self.min_confidence = 0.72
+        # Detection confidence thresholds (balanced to detect smaller photos while reducing false positives)
+        self.min_confidence = 0.60
         self.high_confidence = 0.85
         
     def detect_photos(self, image_path: str) -> List[Dict]:
@@ -194,7 +193,8 @@ class AdvancedPhotoDetector:
         
         # Sort and filter by area
         contours = sorted(contours, key=cv2.contourArea, reverse=True)
-        min_area = original_area * self.contour_area_threshold
+        # Use 50% of min_photo_area as contour threshold (liberal filtering, strict validation later)
+        min_area = self.min_photo_area * 0.5
         filtered = [c for c in contours if cv2.contourArea(c) > min_area][:20]
         
         # Process candidates
@@ -359,8 +359,8 @@ class AdvancedPhotoDetector:
         # Sort by area
         contours = sorted(contours, key=cv2.contourArea, reverse=True)
         
-        # Filter by minimum area
-        min_area = processed.shape[0] * processed.shape[1] * self.contour_area_threshold
+        # Filter by minimum area (use 50% of min_photo_area for liberal contour filtering)
+        min_area = self.min_photo_area * 0.5
         filtered = [c for c in contours if cv2.contourArea(c) > min_area]
         
         return filtered[:25], hierarchy
@@ -621,14 +621,15 @@ class AdvancedPhotoDetector:
         if x < 5 or y < 5:
             return False
         
-        # Require minimum dimensions to avoid small items within photos
-        # Photos should be at least 400x400 pixels in both dimensions to avoid clothing/small objects
-        if w < 400 or h < 400:
+        # Require minimum dimensions based on min_photo_area (80k pixels = ~283x283 or 250x320)
+        # Allow smaller photos to detect multiple photos in a single camera frame
+        if w < 250 or h < 250:
             return False
         
         # Additional perimeter check to filter out thin/small objects
+        # For 250x250 minimum: perimeter = 1000
         perimeter = 2 * (w + h)
-        if perimeter < 1800:
+        if perimeter < 1000:
             return False
         
         return True

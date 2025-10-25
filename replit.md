@@ -21,7 +21,7 @@ The Mobile Digitizer App (React Native/Expo) features a smart camera with real-t
 **Recent Enhancements (Oct 2025):**
 - **Progress Indicators**: Added reusable ProgressBar component with animated progress tracking for all time-consuming operations including photo enhancement (sharpen, colorize DNN, colorize AI, AI restoration), photo upload/detection, and batch processing. Progress bars show percentage completion and user-friendly status messages.
 - **Gallery Optimization**: Implemented pagination (30 photos per page) with lazy loading, optimized FlatList rendering with `initialNumToRender`, `windowSize`, and `removeClippedSubviews` for better performance. Added initial loading screen with progress indicator.
-- **Photo Detection Sensitivity**: Adjusted detection parameters to reduce false positives (min_confidence=0.65, min_photo_area=100k pixels, stricter Polaroid detection with white_threshold=220) to prevent white clothing from being detected as photos.
+- **Photo Detection Sensitivity**: Optimized detection parameters to better detect smaller photos while maintaining quality (min_confidence=0.60, min_photo_area=80k pixels, min_dimension=250 pixels). The detector now successfully captures photos as small as 250x320 pixels, making it ideal for detecting multiple photos in a single camera frame.
 
 ### Feature Specifications
 - **Authentication & Authorization**: User registration, login, password reset, session management, admin/superuser roles, subscription-based access.
