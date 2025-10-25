@@ -1,4 +1,13 @@
+# Nixpacks configuration for Railway deployment with OpenCV support
 providers = ["python"]
+
+[phases.setup]
+# Add system dependencies required for OpenCV
+nixPkgs = [
+  "libGL",
+  "glib", 
+  "libgccjit"
+]
 
 [start]
 cmd = "python release.py && gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 --log-level info --access-logfile - --error-logfile -"
