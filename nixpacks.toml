@@ -2,11 +2,10 @@
 providers = ["python"]
 
 [phases.setup]
-# Add system dependencies required for OpenCV
-nixPkgs = [
-  "libGL",
-  "glib", 
-  "libgccjit"
+# Use apt packages for OpenCV dependencies (more reliable than Nix packages)
+aptPkgs = [
+  "libgl1-mesa-glx",
+  "libglib2.0-0"
 ]
 
 [start]

@@ -6,20 +6,18 @@ The iOS app Digitizer feature was showing "Photo uploaded! 0 photo(s) extracted"
 ## Root Cause
 OpenCV (cv2) requires specific system libraries that weren't available in Railway's default Python environment:
 - `libGL` - OpenGL library for image processing
-- `glib` - GLib library for low-level system operations  
-- `libgccjit` - GCC JIT compiler for optimized operations
+- `glib` - GLib library for low-level system operations
 
 Without these dependencies, the `photovault/utils/photo_detection.py` module would fail to import cv2 and set `OPENCV_AVAILABLE = False`, causing photo detection to return empty results.
 
 ## Solution
-Created `nixpacks.toml` configuration file with the required system dependencies:
+Created `nixpacks.toml` configuration file with the required system dependencies using **apt packages** (Ubuntu packages are more reliable than Nix packages for OpenCV):
 
 ```toml
 [phases.setup]
-nixPkgs = [
-  "libGL",
-  "glib", 
-  "libgccjit"
+aptPkgs = [
+  "libgl1-mesa-glx",
+  "libglib2.0-0"
 ]
 ```
 
@@ -27,14 +25,14 @@ nixPkgs = [
 
 ### 1. Push the Configuration to Railway
 ```bash
-git add nixpacks.toml
-git commit -m "Add Railway OpenCV system dependencies for photo extraction"
+git add nixpacks.toml RAILWAY_OPENCV_FIX.md
+git commit -m "Fix Railway OpenCV with apt packages for photo extraction"
 git push origin main
 ```
 
 ### 2. Railway Will Auto-Deploy
 Railway will detect the `nixpacks.toml` file and:
-- Install the system dependencies during build
+- Install the apt system dependencies during build (libgl1-mesa-glx, libglib2.0-0)
 - Install Python packages from requirements.txt (including opencv-python-headless)
 - Start the application with OpenCV fully functional
 
@@ -55,9 +53,11 @@ INFO:photovault.utils.photo_detection:OpenCV available for photo detection
 ## Technical Details
 
 ### What the Fix Does
-- **libGL**: Provides OpenGL rendering capabilities needed by cv2.imread() and image processing
-- **glib**: Provides GLib system libraries used by OpenCV's core functionality
-- **libgccjit**: Enables JIT compilation for NumPy operations used in photo detection algorithms
+- **libgl1-mesa-glx**: Provides OpenGL rendering capabilities needed by cv2.imread() and image processing
+- **libglib2.0-0**: Provides GLib system libraries used by OpenCV's core functionality
+
+### Why apt packages instead of Nix?
+Initial attempt used Nix packages (`libGL`, `glib`, `libgccjit`), but `libgccjit` caused circular symlink errors during Railway build. Using Ubuntu's apt packages is more reliable and compatible with Railway's infrastructure.
 
 ### Photo Detection Flow
 1. User uploads photo via `/api/detect-and-extract` endpoint
@@ -67,7 +67,7 @@ INFO:photovault.utils.photo_detection:OpenCV available for photo detection
 5. Response includes `photos_extracted` count
 
 ### Files Modified
-- `nixpacks.toml` - Added system dependencies
+- `nixpacks.toml` - Added apt system dependencies
 
 ### Files Using OpenCV
 - `photovault/utils/photo_detection.py` - Main detection logic
@@ -84,6 +84,17 @@ After deploying to Railway:
 - [ ] No "0 photo(s) extracted" errors
 - [ ] Railway logs show "OpenCV available for photo detection"
 
+## Troubleshooting
+
+### If OpenCV still doesn't work after deployment:
+1. Check Railway build logs for apt package installation
+2. Check application logs for "OpenCV not available" warnings
+3. Verify opencv-python-headless is installed: `pip list | grep opencv`
+
+### Common Issues:
+- **Build fails with "Package not found"**: Railway might need to update its apt cache. Try redeploying.
+- **OpenCV imports but crashes**: Missing additional dependencies. Check Railway logs for specific error messages.
+
 ## Rollback Plan
 If issues occur, you can temporarily disable photo detection by removing the nixpacks.toml file. The app will still upload photos, just without automatic extraction.
 
@@ -92,3 +103,4 @@ If issues occur, you can temporarily disable photo detection by removing the nix
 - Local Replit development already has OpenCV working
 - The opencv-python-headless package is optimized for server environments (no GUI dependencies)
 - Photo detection uses "fast mode" by default for better performance on Railway's hardware
+- We use apt packages (not Nix) to avoid circular symlink issues
