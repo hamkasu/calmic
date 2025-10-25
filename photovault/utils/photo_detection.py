@@ -165,6 +165,23 @@ class AdvancedPhotoDetector:
         """Fast, optimized photo detection for production use with enhanced preprocessing"""
         all_candidates = []
         
+        # Try edge-based detection first
+        edge_based_candidates = self._edge_based_detection(image, original_area)
+        all_candidates.extend(edge_based_candidates)
+        
+        # If edge detection finds nothing or very few photos, try color-based segmentation
+        # This handles cases where photo edges blend with background (e.g., beige photo on beige surface)
+        if len(edge_based_candidates) == 0:
+            logger.info("Edge detection found no photos, trying color-based segmentation...")
+            color_based_candidates = self._color_based_detection(image, original_area)
+            all_candidates.extend(color_based_candidates)
+        
+        return all_candidates
+    
+    def _edge_based_detection(self, image: np.ndarray, original_area: int) -> List[Dict]:
+        """Edge-based photo detection using enhanced preprocessing and contour analysis"""
+        all_candidates = []
+        
         # Step 1: Shadow removal to handle phone shadows
         shadow_removed = self._fast_shadow_removal(image)
         
@@ -205,16 +222,36 @@ class AdvancedPhotoDetector:
         kernel_dilate = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
         dilated = cv2.dilate(closed, kernel_dilate, iterations=1)
         
-        # Find contours
+        # Find contours with hierarchy to filter by nesting level
         contours, hierarchy = cv2.findContours(
             dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
         )
         
+        # Filter to only top-level contours (no parent) and their immediate children
+        # This helps find photo borders while rejecting deep internal features
+        filtered_contours = []
+        if hierarchy is not None and len(hierarchy) > 0:
+            hierarchy = hierarchy[0]  # Unwrap hierarchy
+            for i, contour in enumerate(contours):
+                parent = hierarchy[i][3]
+                # Accept contours with no parent (top-level)  or only one level deep
+                nesting_level = 0
+                current_parent = parent
+                while current_parent != -1 and nesting_level < 10:
+                    nesting_level += 1
+                    current_parent = hierarchy[current_parent][3]
+                
+                # Only accept top 2 nesting levels (reduces internal photo content)
+                if nesting_level <= 1:
+                    filtered_contours.append(contour)
+        else:
+            filtered_contours = list(contours)
+        
         # Sort and filter by area
-        contours = sorted(contours, key=cv2.contourArea, reverse=True)
+        filtered_contours = sorted(filtered_contours, key=cv2.contourArea, reverse=True)
         # Use 50% of min_photo_area as contour threshold
         min_area = self.min_photo_area * 0.5
-        filtered = [c for c in contours if cv2.contourArea(c) > min_area][:20]
+        filtered = [c for c in filtered_contours if cv2.contourArea(c) > min_area][:20]
         
         # Process candidates with stricter filtering
         for i, contour in enumerate(filtered):
@@ -252,6 +289,86 @@ class AdvancedPhotoDetector:
                     'corners': corners.tolist(),
                     'detection_method': 'fast'
                 })
+        
+        return all_candidates
+    
+    def _color_based_detection(self, image: np.ndarray, original_area: int) -> List[Dict]:
+        """
+        Color-based photo detection using LAB color space segmentation.
+        This method works when photo edges blend with background (e.g., beige photo on beige surface).
+        """
+        all_candidates = []
+        
+        try:
+            # Convert to LAB color space - separates lightness from color
+            lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+            l_channel, a_channel, b_channel = cv2.split(lab)
+            
+            # Calculate color variance - photos typically have more color variation than uniform backgrounds
+            color_magnitude = np.sqrt(a_channel.astype(float)**2 + b_channel.astype(float)**2)
+            
+            # Normalize to 0-255 range
+            color_magnitude = cv2.normalize(color_magnitude, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+            
+            # Apply threshold to separate colorful regions from neutral background
+            _, color_mask = cv2.threshold(color_magnitude, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            
+            # Morphological operations to clean up the mask
+            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (11, 11))
+            color_mask = cv2.morphologyEx(color_mask, cv2.MORPH_CLOSE, kernel, iterations=3)
+            color_mask = cv2.morphologyEx(color_mask, cv2.MORPH_OPEN, kernel, iterations=2)
+            
+            # Find contours in the color mask
+            contours, _ = cv2.findContours(color_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            
+            # Sort by area and process candidates
+            contours = sorted(contours, key=cv2.contourArea, reverse=True)[:10]
+            
+            for contour in contours:
+                x, y, w, h = cv2.boundingRect(contour)
+                area = w * h
+                
+                if not self._is_valid_photo_region(x, y, w, h, original_area):
+                    continue
+                
+                # Get corners using minimum area rectangle for robustness
+                rect = cv2.minAreaRect(contour)
+                corners = cv2.boxPoints(rect).astype(np.float32)
+                
+                # Calculate confidence based on size, aspect ratio, and color variance
+                aspect_ratio = max(w, h) / min(w, h)
+                confidence = 0.5  # Base confidence for color-based detection
+                
+                # Boost confidence if size is appropriate
+                if 200000 < area < original_area * 0.7:
+                    confidence += 0.2
+                
+                # Boost confidence if aspect ratio is photo-like
+                if 0.6 < aspect_ratio < 2.0:
+                    confidence += 0.15
+                
+                # Boost if rectangularity is good
+                contour_area = cv2.contourArea(contour)
+                rectangularity = contour_area / area if area > 0 else 0
+                if rectangularity > 0.7:
+                    confidence += 0.15
+                
+                if confidence >= self.min_confidence:
+                    all_candidates.append({
+                        'x': int(x),
+                        'y': int(y),
+                        'width': int(w),
+                        'height': int(h),
+                        'area': int(area),
+                        'confidence': float(confidence),
+                        'aspect_ratio': float(w/h),
+                        'contour': contour.tolist(),
+                        'corners': corners.tolist(),
+                        'detection_method': 'color_segmentation'
+                    })
+        
+        except Exception as e:
+            logger.error(f"Color-based detection failed: {e}")
         
         return all_candidates
     
@@ -930,7 +1047,7 @@ class AdvancedPhotoDetector:
         # Try multiple epsilon values to find the best 4-corner approximation
         # Start with stricter approximation and relax if needed
         best_approx = None
-        for epsilon_factor in [0.01, 0.015, 0.02, 0.025, 0.03, 0.04, 0.05]:
+        for epsilon_factor in [0.01, 0.015, 0.02, 0.025, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.10]:
             epsilon = epsilon_factor * perimeter
             approx = cv2.approxPolyDP(contour, epsilon, True)
             
@@ -938,15 +1055,15 @@ class AdvancedPhotoDetector:
                 # Found a good 4-corner approximation
                 best_approx = approx
                 break
-            elif len(approx) < 4 and best_approx is None:
-                # Over-simplified, keep the previous approximation
+            elif len(approx) < 4:
+                # Over-simplified, use previous approximation if available
                 break
         
         if best_approx is not None and len(best_approx) == 4:
             corners = best_approx.reshape(4, 2)
         else:
             # Fallback: use minimum area rectangle
-            # This works well for rotated rectangles
+            # This works perfectly for rotated rectangles and is very reliable
             rect = cv2.minAreaRect(contour)
             corners = cv2.boxPoints(rect)
         

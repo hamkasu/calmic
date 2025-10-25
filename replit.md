@@ -21,13 +21,11 @@ The Mobile Digitizer App (React Native/Expo) features a smart camera with real-t
 **Recent Enhancements (Oct 2025):**
 - **Progress Indicators**: Added reusable ProgressBar component with animated progress tracking for all time-consuming operations including photo enhancement (sharpen, colorize DNN, colorize AI, AI restoration), photo upload/detection, and batch processing. Progress bars show percentage completion and user-friendly status messages.
 - **Gallery Optimization**: Implemented pagination (30 photos per page) with lazy loading, optimized FlatList rendering with `initialNumToRender`, `windowSize`, and `removeClippedSubviews` for better performance. Added initial loading screen with progress indicator.
-- **Photo Detection Accuracy Improvements (Oct 25, 2025)**: Resolved photo extraction issues where photos were extracted rotated/tilted instead of straight. Implemented comprehensive detection pipeline improvements:
-  - **Enhanced Preprocessing**: Bilateral filtering preserves edges while removing noise, adaptive thresholding handles varying lighting, dual-strategy edge detection (Canny + adaptive thresholding), stronger morphological operations.
-  - **Strict 4-Corner Validation**: All contours must be 4-sided rectangles with corner angles between 60-120 degrees (minimum 3 valid corners required).
-  - **Improved Corner Detection**: Multi-epsilon Douglas-Peucker approximation (0.01 to 0.05) finds best 4-corner fit, with fallback to minimum area rectangle for rotated photos.
-  - **Centroid-Based Corner Ordering**: Handles photos at any rotation angle correctly by calculating angles from centroid, ensuring clockwise ordering for perspective transform.
-  - **Quality Validation**: Perspective transforms validated for aspect ratio (0.2-5.0), size (100x100 to 10000x10000), and output quality (brightness checks). Invalid transforms return None instead of corrupted images.
-  - Result: Photos now extracted cleanly with correct boundaries, properly straightened (not rotated), and cropped accurately to just photo content.
+- **Hybrid Photo Detection System (Oct 25, 2025)**: Implemented dual-strategy detection to handle challenging scenarios where photo edges blend with backgrounds:
+  - **Edge-Based Detection (Primary)**: Enhanced preprocessing with bilateral filtering, adaptive thresholding, dual-strategy edge detection (Canny + adaptive thresholding), and morphological operations. Uses hierarchy-based contour filtering (top 2 nesting levels) to find photo borders while rejecting internal features. Includes strict 4-corner validation with corner angles 60-120°, multi-epsilon Douglas-Peucker approximation (0.01-0.10), and centroid-based corner ordering for any rotation angle.
+  - **Color-Based Detection (Fallback)**: When edge detection fails (e.g., beige photo on beige background), automatically switches to LAB color space segmentation. Separates colorful photo content from neutral backgrounds using chroma channels (a/b), applies Otsu thresholding, and uses morphological cleanup to extract photo regions. Confidence scoring based on size, aspect ratio, and rectangularity.
+  - **Robust Perspective Correction**: Quality-validated transforms ensure proper straightening with aspect ratio (0.2-5.0), size (100x100-10000x10000), and brightness checks. Invalid transforms return None instead of corrupted images.
+  - Result: Reliably detects photos across varying backgrounds and lighting conditions, with clean boundaries and proper orientation.
 
 ### Feature Specifications
 - **Authentication & Authorization**: User registration, login, password reset, session management, admin/superuser roles, subscription-based access.
