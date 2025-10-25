@@ -751,8 +751,8 @@ class AdvancedPhotoDetector:
             right_continuous = self._check_edge_continuity(right_strip, axis=0)
             
             # Real photo borders have higher edge density (stronger borders)
-            # Increased from 0.10 to 0.15 to reject weak internal edges
-            min_edge_density = 0.15  # At least 15% edge pixels on each side
+            # Balanced threshold to detect album photos while avoiding false positives
+            min_edge_density = 0.12  # At least 12% edge pixels on each side
             
             # Count sides with both strong edges AND continuity
             sides_with_strong_edges = sum([
@@ -762,12 +762,15 @@ class AdvancedPhotoDetector:
                 right_density >= min_edge_density and right_continuous
             ])
             
-            # Require at least 3 strong sides for a valid photo border
-            # This rejects internal content (people, objects) which lack complete borders
-            if sides_with_strong_edges < 3:
+            # Require at least 2 strong sides for a valid photo border
+            # This allows detection of photos with faded/worn edges while still rejecting
+            # internal content (people, objects) which typically only have edges on 1 side
+            if sides_with_strong_edges < 2:
                 return 0.0
+            elif sides_with_strong_edges == 2:
+                return 0.65  # 2 sides - acceptable for photos with faded edges
             elif sides_with_strong_edges == 3:
-                return 0.75  # 3 sides - acceptable for photos with one faded edge
+                return 0.85  # 3 sides - good detection
             else:
                 return 1.0  # 4 sides - perfect rectangular border
                 
@@ -795,9 +798,9 @@ class AdvancedPhotoDetector:
         
         coverage = np.sum(projection > 0) / len(projection)
         
-        # Require at least 60% coverage for continuity
-        # This ensures we're detecting actual borders, not scattered content edges
-        return coverage >= 0.60
+        # Require at least 50% coverage for continuity
+        # Balanced threshold to handle worn/faded borders while rejecting scattered edges
+        return coverage >= 0.50
     
     def _calculate_advanced_confidence(
         self, contour, x: int, y: int, w: int, h: int, 
