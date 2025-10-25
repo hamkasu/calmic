@@ -188,9 +188,13 @@ class AdvancedPhotoDetector:
         # Step 2: Convert to grayscale
         gray = cv2.cvtColor(shadow_removed, cv2.COLOR_BGR2GRAY)
         
+        # Step 2.5: CRITICAL - Pre-blur to eliminate fine internal details
+        # This is key for beige-on-beige photos where internal edges are similar strength to borders
+        pre_blur = cv2.GaussianBlur(gray, (15, 15), 3.0)
+        
         # Step 3: Enhanced illumination normalization with bilateral filtering
         # STRENGTHENED: Larger bilateral filter to smooth internal edges while preserving photo borders
-        bilateral = cv2.bilateralFilter(gray, d=13, sigmaColor=100, sigmaSpace=100)
+        bilateral = cv2.bilateralFilter(pre_blur, d=13, sigmaColor=100, sigmaSpace=100)
         
         # Step 4: CLAHE for better contrast on photo borders
         # Reduced clipLimit to focus on stronger edges only
@@ -251,9 +255,10 @@ class AdvancedPhotoDetector:
         
         # Sort and filter by area - PRIORITIZE LARGER CONTOURS
         filtered_contours = sorted(filtered_contours, key=cv2.contourArea, reverse=True)
-        # INCREASED: Use 70% of min_photo_area to focus on larger contours (photo borders)
-        min_area = self.min_photo_area * 0.7
-        filtered = [c for c in filtered_contours if cv2.contourArea(c) > min_area][:15]
+        # RELAXED: Use 40% of min_photo_area to capture more candidates (was too strict at 70%)
+        min_area = self.min_photo_area * 0.4
+        filtered = [c for c in filtered_contours if cv2.contourArea(c) > min_area][:20]
+        logger.info(f"🔍 Found {len(filtered_contours)} total contours, filtering to {len(filtered)} candidates (area > {min_area:.0f})")
         
         # Process candidates with stricter filtering
         for i, contour in enumerate(filtered):
@@ -269,16 +274,18 @@ class AdvancedPhotoDetector:
             if len(corners) != 4:
                 continue
             
-            # Validate corner angles - must be close to 90 degrees for rectangles
+            # Validate corner angles - RELAXED for imperfect rectangles
             corner_angles = self._calculate_corner_angles(corners)
-            valid_corners = sum([1 for angle in corner_angles if 60 < angle < 120])
+            valid_corners = sum([1 for angle in corner_angles if 50 < angle < 130])
             if valid_corners < 3:  # Require at least 3 valid corners
+                logger.debug(f"❌ Rejected contour - invalid corners: {corner_angles}")
                 continue
             
             # Fast confidence calculation with perimeter edge validation
             confidence = self._calculate_fast_confidence(contour, x, y, w, h, image, dilated)
             
             if confidence > self.min_confidence:
+                logger.info(f"✅ Photo candidate: {w}x{h} at ({x},{y}), confidence={confidence:.2f}, area={area}")
                 all_candidates.append({
                     'x': int(x),
                     'y': int(y),
@@ -291,37 +298,58 @@ class AdvancedPhotoDetector:
                     'corners': corners.tolist(),
                     'detection_method': 'fast'
                 })
+            else:
+                logger.debug(f"❌ Rejected - low confidence: {confidence:.2f} < {self.min_confidence}")
         
         return all_candidates
     
     def _color_based_detection(self, image: np.ndarray, original_area: int) -> List[Dict]:
         """
-        Color-based photo detection using LAB color space segmentation.
+        IMPROVED: Texture+gradient-based photo detection for neutral backgrounds.
         This method works when photo edges blend with background (e.g., beige photo on beige surface).
+        Uses texture variance and gradient analysis instead of just color.
         """
         all_candidates = []
         
         try:
-            # Convert to LAB color space - separates lightness from color
-            lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
-            l_channel, a_channel, b_channel = cv2.split(lab)
+            logger.info("🎨 Trying color/texture-based detection (edge detection failed)...")
             
-            # Calculate color variance - photos typically have more color variation than uniform backgrounds
-            color_magnitude = np.sqrt(a_channel.astype(float)**2 + b_channel.astype(float)**2)
+            # Convert to grayscale for texture analysis
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             
-            # Normalize to 0-255 range
-            color_magnitude = cv2.normalize(color_magnitude, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+            # METHOD 1: Gradient-based detection
+            # Photos have more internal gradient variation than plain backgrounds
+            grad_x = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
+            grad_y = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+            gradient_magnitude = np.sqrt(grad_x**2 + grad_y**2)
+            gradient_magnitude = cv2.normalize(gradient_magnitude, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
             
-            # Apply threshold to separate colorful regions from neutral background
-            _, color_mask = cv2.threshold(color_magnitude, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            # Apply threshold to find regions with high gradient (photo content)
+            _, gradient_mask = cv2.threshold(gradient_magnitude, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            
+            # METHOD 2: Texture variance 
+            # Calculate local variance using a window - photos have higher texture variance
+            kernel_size = 21
+            mean_filter = cv2.blur(gray.astype(float), (kernel_size, kernel_size))
+            sqr_mean = cv2.blur((gray.astype(float)**2), (kernel_size, kernel_size))
+            variance = sqr_mean - mean_filter**2
+            variance = np.clip(variance, 0, None)
+            variance_norm = cv2.normalize(variance, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+            
+            # Threshold variance map
+            _, variance_mask = cv2.threshold(variance_norm, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            
+            # Combine gradient and variance masks
+            combined_mask = cv2.bitwise_or(gradient_mask, variance_mask)
             
             # Morphological operations to clean up the mask
-            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (11, 11))
-            color_mask = cv2.morphologyEx(color_mask, cv2.MORPH_CLOSE, kernel, iterations=3)
-            color_mask = cv2.morphologyEx(color_mask, cv2.MORPH_OPEN, kernel, iterations=2)
+            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 15))
+            combined_mask = cv2.morphologyEx(combined_mask, cv2.MORPH_CLOSE, kernel, iterations=4)
+            combined_mask = cv2.morphologyEx(combined_mask, cv2.MORPH_OPEN, kernel, iterations=2)
             
-            # Find contours in the color mask
-            contours, _ = cv2.findContours(color_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            # Find contours in the combined mask
+            contours, _ = cv2.findContours(combined_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            logger.info(f"📊 Texture analysis found {len(contours)} contours")
             
             # Sort by area and process candidates
             contours = sorted(contours, key=cv2.contourArea, reverse=True)[:10]
@@ -356,6 +384,7 @@ class AdvancedPhotoDetector:
                     confidence += 0.15
                 
                 if confidence >= self.min_confidence:
+                    logger.info(f"✅ Texture-based candidate: {w}x{h}, confidence={confidence:.2f}")
                     all_candidates.append({
                         'x': int(x),
                         'y': int(y),
@@ -366,8 +395,10 @@ class AdvancedPhotoDetector:
                         'aspect_ratio': float(w/h),
                         'contour': contour.tolist(),
                         'corners': corners.tolist(),
-                        'detection_method': 'color_segmentation'
+                        'detection_method': 'texture_gradient'
                     })
+                else:
+                    logger.debug(f"❌ Texture candidate rejected - low confidence: {confidence:.2f}")
         
         except Exception as e:
             logger.error(f"Color-based detection failed: {e}")
