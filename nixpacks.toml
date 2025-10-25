@@ -2,9 +2,9 @@
 providers = ["python"]
 
 [phases.setup]
-# Use apt packages for OpenCV dependencies (more reliable than Nix packages)
+# Use apt packages for OpenCV dependencies (Ubuntu 24.04 compatible)
 aptPkgs = [
-  "libgl1-mesa-glx",
+  "libgl1",
   "libglib2.0-0"
 ]
 

@@ -16,23 +16,25 @@ Created `nixpacks.toml` configuration file with the required system dependencies
 ```toml
 [phases.setup]
 aptPkgs = [
-  "libgl1-mesa-glx",
+  "libgl1",
   "libglib2.0-0"
 ]
 ```
+
+**Note:** Railway uses Ubuntu 24.04 (Noble), where the old package `libgl1-mesa-glx` was replaced with `libgl1`.
 
 ## Deployment Steps
 
 ### 1. Push the Configuration to Railway
 ```bash
 git add nixpacks.toml RAILWAY_OPENCV_FIX.md
-git commit -m "Fix Railway OpenCV with apt packages for photo extraction"
+git commit -m "Fix Railway OpenCV with correct Ubuntu 24.04 packages"
 git push origin main
 ```
 
 ### 2. Railway Will Auto-Deploy
 Railway will detect the `nixpacks.toml` file and:
-- Install the apt system dependencies during build (libgl1-mesa-glx, libglib2.0-0)
+- Install the apt system dependencies during build (libgl1, libglib2.0-0)
 - Install Python packages from requirements.txt (including opencv-python-headless)
 - Start the application with OpenCV fully functional
 
@@ -53,11 +55,17 @@ INFO:photovault.utils.photo_detection:OpenCV available for photo detection
 ## Technical Details
 
 ### What the Fix Does
-- **libgl1-mesa-glx**: Provides OpenGL rendering capabilities needed by cv2.imread() and image processing
+- **libgl1**: Provides OpenGL rendering capabilities needed by cv2.imread() and image processing (replaces libgl1-mesa-glx in Ubuntu 24.04)
 - **libglib2.0-0**: Provides GLib system libraries used by OpenCV's core functionality
 
 ### Why apt packages instead of Nix?
 Initial attempt used Nix packages (`libGL`, `glib`, `libgccjit`), but `libgccjit` caused circular symlink errors during Railway build. Using Ubuntu's apt packages is more reliable and compatible with Railway's infrastructure.
+
+### Ubuntu Package Name Changes
+- Ubuntu 22.04 and earlier: `libgl1-mesa-glx`
+- Ubuntu 24.04 (Noble) and later: `libgl1`
+
+Railway uses Ubuntu 24.04, so we use the new package names.
 
 ### Photo Detection Flow
 1. User uploads photo via `/api/detect-and-extract` endpoint
@@ -92,6 +100,7 @@ After deploying to Railway:
 3. Verify opencv-python-headless is installed: `pip list | grep opencv`
 
 ### Common Issues:
+- **"Package has no installation candidate"**: Package name changed in Ubuntu 24.04. Use `libgl1` instead of `libgl1-mesa-glx`.
 - **Build fails with "Package not found"**: Railway might need to update its apt cache. Try redeploying.
 - **OpenCV imports but crashes**: Missing additional dependencies. Check Railway logs for specific error messages.
 
@@ -104,3 +113,4 @@ If issues occur, you can temporarily disable photo detection by removing the nix
 - The opencv-python-headless package is optimized for server environments (no GUI dependencies)
 - Photo detection uses "fast mode" by default for better performance on Railway's hardware
 - We use apt packages (not Nix) to avoid circular symlink issues
+- Railway uses Ubuntu 24.04 (Noble) which requires `libgl1` instead of the older `libgl1-mesa-glx`

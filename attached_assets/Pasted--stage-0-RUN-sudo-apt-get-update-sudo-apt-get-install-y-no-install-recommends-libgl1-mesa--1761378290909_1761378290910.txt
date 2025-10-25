@@ -1,0 +1,42 @@
+
+
+stage-0
+RUN sudo apt-get update && sudo apt-get install -y --no-install-recommends libgl1-mesa-glx libglib2.0-0
+7s
+Get:1 http://archive.ubuntu.com/ubuntu noble InRelease [256 kB]
+Get:2 http://security.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+Get:3 http://archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+Get:4 http://security.ubuntu.com/ubuntu noble-security/multiverse amd64 Packages [33.1 kB]
+Get:5 http://archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+Get:6 http://security.ubuntu.com/ubuntu noble-security/main amd64 Packages [1587 kB]
+Get:7 http://archive.ubuntu.com/ubuntu noble/restricted amd64 Packages [117 kB]
+Get:8 http://archive.ubuntu.com/ubuntu noble/universe amd64 Packages [19.3 MB]
+Get:9 http://security.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [2624 kB]
+Get:10 http://security.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1167 kB]
+Get:11 http://archive.ubuntu.com/ubuntu noble/multiverse amd64 Packages [331 kB]
+Get:12 http://archive.ubuntu.com/ubuntu noble/main amd64 Packages [1808 kB]
+Get:13 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1952 kB]
+Get:14 http://archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [2754 kB]
+Get:15 http://archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1937 kB]
+Get:16 http://archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages [35.9 kB]
+Get:17 http://archive.ubuntu.com/ubuntu noble-backports/main amd64 Packages [49.4 kB]
+Get:18 http://archive.ubuntu.com/ubuntu noble-backports/universe amd64 Packages [33.9 kB]
+Fetched 34.4 MB in 6s (6157 kB/s)
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+Package libgl1-mesa-glx is not available, but is referred to by another package.
+This may mean that the package is missing, has been obsoleted, or
+is only available from another source
+E: Package 'libgl1-mesa-glx' has no installation candidate
+Dockerfile:9
+-------------------
+7 |     COPY .nixpacks/nixpkgs-bc8f8d1be58e8c8383e683a06e1e1e57893fff87.nix .nixpacks/nixpkgs-bc8f8d1be58e8c8383e683a06e1e1e57893fff87.nix
+8 |     RUN nix-env -if .nixpacks/nixpkgs-bc8f8d1be58e8c8383e683a06e1e1e57893fff87.nix && nix-collect-garbage -d
+9 | >>> RUN sudo apt-get update && sudo apt-get install -y --no-install-recommends libgl1-mesa-glx libglib2.0-0
+10 |
+11 |     ARG BUILDKIT_DOCKERFILE_CHECK DATABASE_URL FLASK_CONFIG FLASK_ENV GEMINI_API_KEY MAX_CONTENT_LENGTH NIXPACKS_METADATA NIXPACKS_PYTHON_VERSION OPENAI_API_KEY PHOTOVAULT_SUPERUSER_EMAIL PHOTOVAULT_SUPERUSER_PASSWORD PHOTOVAULT_SUPERUSER_USERNAME PIP_DEFAULT_TIMEOUT PIP_DISABLE_PIP_VERSION_CHECK PIP_NO_CACHE_DIR PYTHONDONTWRITEBYTECODE PYTHONFAULTHANDLER PYTHONHASHSEED PYTHONUNBUFFERED RAILWAY_ENVIRONMENT RAILWAY_ENVIRONMENT_ID RAILWAY_ENVIRONMENT_NAME RAILWAY_GIT_AUTHOR RAILWAY_GIT_BRANCH RAILWAY_GIT_COMMIT_MESSAGE RAILWAY_GIT_COMMIT_SHA RAILWAY_GIT_REPO_NAME RAILWAY_GIT_REPO_OWNER RAILWAY_PRIVATE_DOMAIN RAILWAY_PROJECT_ID RAILWAY_PROJECT_NAME RAILWAY_PUBLIC_DOMAIN RAILWAY_SERVICE_EXTRAORDINARY_CONTENTMENT_URL RAILWAY_SERVICE_ID RAILWAY_SERVICE_NAME RAILWAY_STATIC_URL RAILWAY_VOLUME_ID RAILWAY_VOLUME_MOUNT_PATH RAILWAY_VOLUME_NAME REPLICATE_API_TOKEN SECRET_KEY SENDGRID_API_KEY SENDGRID_FROM_EMAIL STRIPE_SECRET_KEY UPLOAD_FOLDER
+-------------------
+ERROR: failed to build: failed to solve: process "/bin/bash -ol pipefail -c sudo apt-get update && sudo apt-get install -y --no-install-recommends libgl1-mesa-glx libglib2.0-0" did not complete successfully: exit code: 100
+Error: Docker build failed
