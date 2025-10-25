@@ -189,11 +189,12 @@ class AdvancedPhotoDetector:
         gray = cv2.cvtColor(shadow_removed, cv2.COLOR_BGR2GRAY)
         
         # Step 3: Enhanced illumination normalization with bilateral filtering
-        # Bilateral filter preserves edges while smoothing noise
-        bilateral = cv2.bilateralFilter(gray, d=9, sigmaColor=75, sigmaSpace=75)
+        # STRENGTHENED: Larger bilateral filter to smooth internal edges while preserving photo borders
+        bilateral = cv2.bilateralFilter(gray, d=13, sigmaColor=100, sigmaSpace=100)
         
         # Step 4: CLAHE for better contrast on photo borders
-        clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+        # Reduced clipLimit to focus on stronger edges only
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         enhanced = clahe.apply(bilateral)
         
         # Step 5: Adaptive thresholding to handle varying lighting conditions
@@ -215,12 +216,13 @@ class AdvancedPhotoDetector:
         combined_edges = cv2.bitwise_or(canny_edges, cv2.bitwise_not(adaptive_thresh))
         
         # Step 7: Morphological operations to connect broken edges
-        kernel_close = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
-        closed = cv2.morphologyEx(combined_edges, cv2.MORPH_CLOSE, kernel_close, iterations=2)
+        # STRENGTHENED: Larger kernels to better connect photo border gaps
+        kernel_close = cv2.getStructuringElement(cv2.MORPH_RECT, (7, 7))
+        closed = cv2.morphologyEx(combined_edges, cv2.MORPH_CLOSE, kernel_close, iterations=3)
         
         # Dilate to strengthen edges
-        kernel_dilate = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-        dilated = cv2.dilate(closed, kernel_dilate, iterations=1)
+        kernel_dilate = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
+        dilated = cv2.dilate(closed, kernel_dilate, iterations=2)
         
         # Find contours with hierarchy to filter by nesting level
         contours, hierarchy = cv2.findContours(
@@ -247,11 +249,11 @@ class AdvancedPhotoDetector:
         else:
             filtered_contours = list(contours)
         
-        # Sort and filter by area
+        # Sort and filter by area - PRIORITIZE LARGER CONTOURS
         filtered_contours = sorted(filtered_contours, key=cv2.contourArea, reverse=True)
-        # Use 50% of min_photo_area as contour threshold
-        min_area = self.min_photo_area * 0.5
-        filtered = [c for c in filtered_contours if cv2.contourArea(c) > min_area][:20]
+        # INCREASED: Use 70% of min_photo_area to focus on larger contours (photo borders)
+        min_area = self.min_photo_area * 0.7
+        filtered = [c for c in filtered_contours if cv2.contourArea(c) > min_area][:15]
         
         # Process candidates with stricter filtering
         for i, contour in enumerate(filtered):
