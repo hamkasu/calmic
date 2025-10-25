@@ -1041,31 +1041,35 @@ class AdvancedPhotoDetector:
         """
         Get refined corner points using optimized Douglas-Peucker approximation.
         This method finds the 4 corners of a rectangular photo with sub-pixel accuracy.
+        FIXED: Now selects the LARGEST 4-corner approximation to capture full photo borders.
         """
         perimeter = cv2.arcLength(contour, True)
         
-        # Try multiple epsilon values to find the best 4-corner approximation
-        # Start with stricter approximation and relax if needed
-        best_approx = None
-        for epsilon_factor in [0.01, 0.015, 0.02, 0.025, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.10]:
+        # Try multiple epsilon values and collect ALL 4-corner approximations
+        # We'll select the one with the largest area (outermost boundary)
+        candidates = []
+        for epsilon_factor in [0.01, 0.015, 0.02, 0.025, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.10, 0.12, 0.15]:
             epsilon = epsilon_factor * perimeter
             approx = cv2.approxPolyDP(contour, epsilon, True)
             
             if len(approx) == 4:
-                # Found a good 4-corner approximation
-                best_approx = approx
-                break
-            elif len(approx) < 4:
-                # Over-simplified, use previous approximation if available
-                break
+                # Calculate area of this 4-corner approximation
+                area = cv2.contourArea(approx)
+                candidates.append((area, approx, epsilon_factor))
         
-        if best_approx is not None and len(best_approx) == 4:
+        # Select the approximation with the LARGEST area (outermost boundary)
+        if candidates:
+            # Sort by area descending
+            candidates.sort(key=lambda x: x[0], reverse=True)
+            best_area, best_approx, best_epsilon = candidates[0]
+            logger.debug(f"Selected largest 4-corner approximation: area={best_area:.0f}, epsilon={best_epsilon}")
             corners = best_approx.reshape(4, 2)
         else:
             # Fallback: use minimum area rectangle
             # This works perfectly for rotated rectangles and is very reliable
             rect = cv2.minAreaRect(contour)
             corners = cv2.boxPoints(rect)
+            logger.debug("Using minimum area rectangle fallback")
         
         # Scale back if needed
         if scale != 1.0:
