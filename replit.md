@@ -21,11 +21,21 @@ The Mobile Digitizer App (React Native/Expo) features a smart camera with real-t
 **Recent Enhancements (Oct 2025):**
 - **Progress Indicators**: Added reusable ProgressBar component with animated progress tracking for all time-consuming operations including photo enhancement (sharpen, colorize DNN, colorize AI, AI restoration), photo upload/detection, and batch processing. Progress bars show percentage completion and user-friendly status messages.
 - **Gallery Optimization**: Implemented pagination (30 photos per page) with lazy loading, optimized FlatList rendering with `initialNumToRender`, `windowSize`, and `removeClippedSubviews` for better performance. Added initial loading screen with progress indicator.
-- **Hybrid Photo Detection System (Oct 25, 2025)**: Implemented dual-strategy detection to handle challenging scenarios where photo edges blend with backgrounds:
-  - **Edge-Based Detection (Primary)**: Enhanced preprocessing with bilateral filtering, adaptive thresholding, dual-strategy edge detection (Canny + adaptive thresholding), and morphological operations. Uses hierarchy-based contour filtering (top 2 nesting levels) to find photo borders while rejecting internal features. Includes strict 4-corner validation with corner angles 60-120°, multi-epsilon Douglas-Peucker approximation (0.01-0.10), and centroid-based corner ordering for any rotation angle.
-  - **Color-Based Detection (Fallback)**: When edge detection fails (e.g., beige photo on beige background), automatically switches to LAB color space segmentation. Separates colorful photo content from neutral backgrounds using chroma channels (a/b), applies Otsu thresholding, and uses morphological cleanup to extract photo regions. Confidence scoring based on size, aspect ratio, and rectangularity.
-  - **Robust Perspective Correction**: Quality-validated transforms ensure proper straightening with aspect ratio (0.2-5.0), size (100x100-10000x10000), and brightness checks. Invalid transforms return None instead of corrupted images.
-  - Result: Reliably detects photos across varying backgrounds and lighting conditions, with clean boundaries and proper orientation.
+- **Hybrid Photo Detection System V2 (Oct 25, 2025)**: Comprehensive dual-strategy detection to handle challenging scenarios including beige-on-beige photos where edges blend with backgrounds:
+  - **Edge-Based Detection (Primary)**: 
+    - **Pre-blur Suppression**: 15x15 Gaussian blur (sigma=3.0) applied BEFORE bilateral filtering to eliminate fine internal details (people, clothing) while preserving major photo boundaries
+    - **Enhanced Preprocessing**: Bilateral filtering (d=13, sigma=100), adaptive thresholding, dual-strategy edge detection (Canny + adaptive thresholding), morphological operations (7x7 closing, 5x5 dilation)
+    - **Relaxed Contour Filtering**: 40% threshold (down from 70%) of min_photo_area, top 20 candidates (up from 15) to prevent filtering out actual photo borders
+    - **Flexible Corner Validation**: 50-130° acceptable angles (relaxed from 60-120°) for slightly imperfect rectangles, requires 3/4 valid corners
+    - **Largest Rectangle Selection**: Multi-epsilon Douglas-Peucker approximation (0.01-0.10) with centroid-based corner ordering, selects largest 4-corner approximation
+  - **Gradient+Texture Detection (Fallback)**: When edge detection fails on neutral backgrounds (beige-on-beige, white-on-white):
+    - **Sobel Gradient Analysis**: Detects regions with high internal variation using gradient magnitude
+    - **Local Variance Calculation**: 21x21 window identifies areas with higher texture variance (photos vs plain backgrounds)
+    - **Combined Masking**: OR operation merges both approaches with aggressive morphological cleanup (15x15 kernel, 4 closing iterations)
+    - **Replaces**: Previous LAB color-only detection that failed on neutral backgrounds
+  - **Comprehensive Debug Logging**: Info logs for contour counts, photo detections with dimensions/confidence; debug logs for rejection reasons; texture analysis progress messages
+  - **Robust Perspective Correction**: Quality-validated transforms with aspect ratio (0.2-5.0), size (100x100-10000x10000), brightness checks. Invalid transforms return None.
+  - **Result**: Reliably detects complete photo borders (not internal rectangles) even with beige-on-beige backgrounds, eliminates partial crops and slanted extractions, works across varying lighting conditions.
 
 ### Feature Specifications
 - **Authentication & Authorization**: User registration, login, password reset, session management, admin/superuser roles, subscription-based access.
