@@ -162,7 +162,7 @@ class AdvancedPhotoDetector:
         return all_candidates
     
     def _fast_detection(self, image: np.ndarray, original_area: int) -> List[Dict]:
-        """Fast, optimized photo detection for production use with shadow removal"""
+        """Fast, optimized photo detection for production use with enhanced preprocessing"""
         all_candidates = []
         
         # Step 1: Shadow removal to handle phone shadows
@@ -171,24 +171,39 @@ class AdvancedPhotoDetector:
         # Step 2: Convert to grayscale
         gray = cv2.cvtColor(shadow_removed, cv2.COLOR_BGR2GRAY)
         
-        # Step 3: Quick illumination normalization
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-        enhanced = clahe.apply(gray)
+        # Step 3: Enhanced illumination normalization with bilateral filtering
+        # Bilateral filter preserves edges while smoothing noise
+        bilateral = cv2.bilateralFilter(gray, d=9, sigmaColor=75, sigmaSpace=75)
         
-        # Step 4: Simple denoising
-        denoised = cv2.GaussianBlur(enhanced, (5, 5), 0)
+        # Step 4: CLAHE for better contrast on photo borders
+        clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+        enhanced = clahe.apply(bilateral)
         
-        # Fast edge detection - single strategy
-        median_val = float(np.median(denoised))
+        # Step 5: Adaptive thresholding to handle varying lighting conditions
+        # This helps detect photo edges even in uneven lighting
+        adaptive_thresh = cv2.adaptiveThreshold(
+            enhanced, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+            cv2.THRESH_BINARY, blockSize=11, C=2
+        )
+        
+        # Step 6: Dual-strategy edge detection for robustness
+        # Strategy 1: Canny with adaptive thresholds
+        median_val = float(np.median(enhanced))
         sigma = 0.33
         lower = int(max(0, (1.0 - sigma) * median_val))
         upper = int(min(255, (1.0 + sigma) * median_val))
-        edges = cv2.Canny(denoised, lower, upper, apertureSize=3)
+        canny_edges = cv2.Canny(enhanced, lower, upper, apertureSize=3)
         
-        # Minimal morphological operations
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-        closed = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
-        dilated = cv2.dilate(closed, kernel, iterations=1)
+        # Strategy 2: Combine with adaptive threshold edges
+        combined_edges = cv2.bitwise_or(canny_edges, cv2.bitwise_not(adaptive_thresh))
+        
+        # Step 7: Morphological operations to connect broken edges
+        kernel_close = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
+        closed = cv2.morphologyEx(combined_edges, cv2.MORPH_CLOSE, kernel_close, iterations=2)
+        
+        # Dilate to strengthen edges
+        kernel_dilate = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        dilated = cv2.dilate(closed, kernel_dilate, iterations=1)
         
         # Find contours
         contours, hierarchy = cv2.findContours(
@@ -197,11 +212,11 @@ class AdvancedPhotoDetector:
         
         # Sort and filter by area
         contours = sorted(contours, key=cv2.contourArea, reverse=True)
-        # Use 50% of min_photo_area as contour threshold (liberal filtering, strict validation later)
+        # Use 50% of min_photo_area as contour threshold
         min_area = self.min_photo_area * 0.5
         filtered = [c for c in contours if cv2.contourArea(c) > min_area][:20]
         
-        # Process candidates
+        # Process candidates with stricter filtering
         for i, contour in enumerate(filtered):
             x, y, w, h = cv2.boundingRect(contour)
             area = w * h
@@ -209,11 +224,22 @@ class AdvancedPhotoDetector:
             if not self._is_valid_photo_region(x, y, w, h, original_area):
                 continue
             
+            # CRITICAL: Check if contour is actually a 4-sided polygon (rectangle)
+            # This filters out irregular shapes that aren't photos
+            corners = self._get_photo_corners_refined(contour, 1.0)
+            if len(corners) != 4:
+                continue
+            
+            # Validate corner angles - must be close to 90 degrees for rectangles
+            corner_angles = self._calculate_corner_angles(corners)
+            valid_corners = sum([1 for angle in corner_angles if 60 < angle < 120])
+            if valid_corners < 3:  # Require at least 3 valid corners
+                continue
+            
             # Fast confidence calculation with perimeter edge validation
-            confidence = self._calculate_fast_confidence(contour, x, y, w, h, image, edges)
+            confidence = self._calculate_fast_confidence(contour, x, y, w, h, image, dilated)
             
             if confidence > self.min_confidence:
-                corners = self._get_photo_corners_refined(contour, 1.0)
                 all_candidates.append({
                     'x': int(x),
                     'y': int(y),
@@ -895,62 +921,174 @@ class AdvancedPhotoDetector:
             return 0.2
     
     def _get_photo_corners_refined(self, contour, scale: float) -> np.ndarray:
-        """Get refined corner points with sub-pixel accuracy"""
-        # Approximate to polygon
-        epsilon = 0.015 * cv2.arcLength(contour, True)
-        approx = cv2.approxPolyDP(contour, epsilon, True)
+        """
+        Get refined corner points using optimized Douglas-Peucker approximation.
+        This method finds the 4 corners of a rectangular photo with sub-pixel accuracy.
+        """
+        perimeter = cv2.arcLength(contour, True)
         
-        if len(approx) == 4:
-            corners = approx.reshape(4, 2)
+        # Try multiple epsilon values to find the best 4-corner approximation
+        # Start with stricter approximation and relax if needed
+        best_approx = None
+        for epsilon_factor in [0.01, 0.015, 0.02, 0.025, 0.03, 0.04, 0.05]:
+            epsilon = epsilon_factor * perimeter
+            approx = cv2.approxPolyDP(contour, epsilon, True)
+            
+            if len(approx) == 4:
+                # Found a good 4-corner approximation
+                best_approx = approx
+                break
+            elif len(approx) < 4 and best_approx is None:
+                # Over-simplified, keep the previous approximation
+                break
+        
+        if best_approx is not None and len(best_approx) == 4:
+            corners = best_approx.reshape(4, 2)
         else:
-            # Use minimum area rectangle
+            # Fallback: use minimum area rectangle
+            # This works well for rotated rectangles
             rect = cv2.minAreaRect(contour)
-            corners = cv2.boxPoints(rect).astype(int)
+            corners = cv2.boxPoints(rect)
         
         # Scale back if needed
         if scale != 1.0:
             corners = corners / scale
         
-        return corners.astype(int)
+        # Ensure corners are in the correct data type
+        corners = corners.astype(np.float32)
+        
+        return corners
     
     def _order_points(self, pts: np.ndarray) -> np.ndarray:
-        """Order points: top-left, top-right, bottom-right, bottom-left"""
-        sorted_pts = pts[np.argsort(pts[:, 1]), :]
+        """
+        Order points in clockwise order: top-left, top-right, bottom-right, bottom-left.
+        This method handles rotated rectangles correctly by using centroid-based ordering.
+        """
+        # Ensure we have exactly 4 points
+        if len(pts) != 4:
+            # If not 4 points, try to use minimum area rectangle
+            logger.warning(f"Expected 4 corners, got {len(pts)}. Using centroid-based ordering.")
         
-        top_pts = sorted_pts[:2]
-        top_pts = top_pts[np.argsort(top_pts[:, 0]), :]
-        tl, tr = top_pts
+        # Convert to float32 for calculations
+        pts = pts.astype(np.float32)
         
-        bottom_pts = sorted_pts[2:]
-        bottom_pts = bottom_pts[np.argsort(bottom_pts[:, 0]), :]
-        bl, br = bottom_pts
+        # Calculate centroid
+        centroid = np.mean(pts, axis=0)
         
-        return np.array([tl, tr, br, bl], dtype=np.float32)
+        # Calculate angles from centroid to each point
+        # This works for any rotation angle
+        angles = []
+        for pt in pts:
+            angle = np.arctan2(pt[1] - centroid[1], pt[0] - centroid[0])
+            angles.append(angle)
+        
+        # Sort points by angle (counter-clockwise from right)
+        sorted_indices = np.argsort(angles)
+        sorted_pts = pts[sorted_indices]
+        
+        # Find which point is top-left (closest to origin)
+        # Top-left has smallest sum of coordinates
+        sums = sorted_pts[:, 0] + sorted_pts[:, 1]
+        tl_idx = np.argmin(sums)
+        
+        # Rotate array so top-left is first
+        ordered = np.roll(sorted_pts, -tl_idx, axis=0)
+        
+        # Verify ordering by checking if points are in clockwise order
+        # If not, reverse (except first point)
+        if ordered.shape[0] == 4:
+            # Calculate cross product to determine if clockwise
+            v1 = ordered[1] - ordered[0]
+            v2 = ordered[2] - ordered[0]
+            cross = v1[0] * v2[1] - v1[1] * v2[0]
+            
+            if cross < 0:  # Counter-clockwise, need to reverse
+                ordered = np.array([ordered[0], ordered[3], ordered[2], ordered[1]], dtype=np.float32)
+        
+        return ordered.astype(np.float32)
     
     def _apply_perspective_transform(self, image: np.ndarray, corners: np.ndarray) -> np.ndarray:
-        """Apply perspective transformation"""
-        ordered_corners = self._order_points(corners)
-        tl, tr, br, bl = ordered_corners
-        
-        width_top = float(np.linalg.norm(tr - tl))
-        width_bottom = float(np.linalg.norm(br - bl))
-        max_width = int(max(width_top, width_bottom))
-        
-        height_left = float(np.linalg.norm(bl - tl))
-        height_right = float(np.linalg.norm(br - tr))
-        max_height = int(max(height_left, height_right))
-        
-        dst_pts = np.array([
-            [0, 0],
-            [max_width - 1, 0],
-            [max_width - 1, max_height - 1],
-            [0, max_height - 1]
-        ], dtype=np.float32)
-        
-        matrix = cv2.getPerspectiveTransform(ordered_corners, dst_pts)
-        warped = cv2.warpPerspective(image, matrix, (max_width, max_height))
-        
-        return warped
+        """
+        Apply perspective transformation with quality validation.
+        This corrects tilted/rotated photos to be perfectly rectangular.
+        """
+        try:
+            # Order corners correctly
+            ordered_corners = self._order_points(corners)
+            
+            # Ensure we have valid corners
+            if ordered_corners.shape[0] != 4:
+                logger.warning("Invalid number of corners for perspective transform")
+                return None
+            
+            tl, tr, br, bl = ordered_corners
+            
+            # Calculate target dimensions
+            # Use the maximum width and height to preserve all photo content
+            width_top = float(np.linalg.norm(tr - tl))
+            width_bottom = float(np.linalg.norm(br - bl))
+            width_left = float(np.linalg.norm(tl - bl))
+            width_right = float(np.linalg.norm(tr - br))
+            
+            # Average the measurements for more stable results
+            max_width = int(max(width_top, width_bottom))
+            max_height = int(max(width_left, width_right))
+            
+            # Validate aspect ratio of output
+            if max_width == 0 or max_height == 0:
+                logger.warning("Invalid dimensions for perspective transform")
+                return None
+            
+            aspect_ratio = max_width / max_height
+            if aspect_ratio < 0.2 or aspect_ratio > 5.0:
+                logger.warning(f"Unrealistic aspect ratio {aspect_ratio:.2f} for photo")
+                return None
+            
+            # Validate output size is reasonable
+            if max_width < 100 or max_height < 100:
+                logger.warning(f"Output too small: {max_width}x{max_height}")
+                return None
+            
+            if max_width > 10000 or max_height > 10000:
+                logger.warning(f"Output too large: {max_width}x{max_height}")
+                return None
+            
+            # Define destination rectangle (perfect rectangle)
+            dst_pts = np.array([
+                [0, 0],
+                [max_width - 1, 0],
+                [max_width - 1, max_height - 1],
+                [0, max_height - 1]
+            ], dtype=np.float32)
+            
+            # Calculate perspective transformation matrix
+            matrix = cv2.getPerspectiveTransform(ordered_corners, dst_pts)
+            
+            # Apply warp with high-quality interpolation
+            warped = cv2.warpPerspective(
+                image, matrix, (max_width, max_height),
+                flags=cv2.INTER_LINEAR,
+                borderMode=cv2.BORDER_CONSTANT,
+                borderValue=(255, 255, 255)  # White border for photos
+            )
+            
+            # Validate output is not blank or corrupted
+            if warped is None or warped.size == 0:
+                logger.warning("Warped image is empty")
+                return None
+            
+            # Check if the warped image has reasonable content
+            if len(warped.shape) == 3:
+                mean_intensity = np.mean(warped)
+                if mean_intensity < 5 or mean_intensity > 250:
+                    logger.warning(f"Warped image has suspicious intensity: {mean_intensity:.1f}")
+                    return None
+            
+            return warped
+            
+        except Exception as e:
+            logger.warning(f"Perspective transform failed: {e}")
+            return None
     
     def _refine_edges(self, image: np.ndarray) -> np.ndarray:
         """Refine edges of extracted photo"""
