@@ -821,7 +821,7 @@ def detect_and_extract_photos(current_user):
         
         for i, extracted_file in enumerate(extracted_files):
             try:
-                extracted_path = extracted_file['file_path']
+                extracted_path = extracted_file['path']
                 
                 # Create thumbnail
                 thumbnail_filename = f"thumb_{os.path.basename(extracted_path)}"
