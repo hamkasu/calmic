@@ -161,17 +161,20 @@ class AdvancedPhotoDetector:
         return all_candidates
     
     def _fast_detection(self, image: np.ndarray, original_area: int) -> List[Dict]:
-        """Fast, optimized photo detection for production use"""
+        """Fast, optimized photo detection for production use with shadow removal"""
         all_candidates = []
         
-        # Simplified preprocessing for speed
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        # Step 1: Shadow removal to handle phone shadows
+        shadow_removed = self._fast_shadow_removal(image)
         
-        # Quick illumination normalization
+        # Step 2: Convert to grayscale
+        gray = cv2.cvtColor(shadow_removed, cv2.COLOR_BGR2GRAY)
+        
+        # Step 3: Quick illumination normalization
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         enhanced = clahe.apply(gray)
         
-        # Simple denoising
+        # Step 4: Simple denoising
         denoised = cv2.GaussianBlur(enhanced, (5, 5), 0)
         
         # Fast edge detection - single strategy
@@ -308,6 +311,50 @@ class AdvancedPhotoDetector:
         result_gray = cv2.cvtColor(result, cv2.COLOR_BGR2GRAY)
         
         return result_gray
+    
+    def _fast_shadow_removal(self, image: np.ndarray) -> np.ndarray:
+        """
+        Fast shadow detection and removal optimized for phone shadows.
+        Uses adaptive illumination correction to brighten shadowed areas.
+        """
+        # Convert to LAB color space (better for illumination)
+        lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+        
+        # Detect shadow regions using adaptive threshold
+        # Darker areas are likely shadows from phone blocking light
+        mean_l = np.mean(l)
+        shadow_threshold = int(mean_l * 0.6)  # 60% of mean brightness
+        _, shadow_mask = cv2.threshold(l, shadow_threshold, 255, cv2.THRESH_BINARY_INV)
+        
+        # Clean up shadow mask (remove noise)
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
+        shadow_mask = cv2.morphologyEx(shadow_mask, cv2.MORPH_CLOSE, kernel)
+        shadow_mask = cv2.morphologyEx(shadow_mask, cv2.MORPH_OPEN, kernel)
+        
+        # Create illumination correction map
+        # Blur the L channel to get base illumination
+        blur_l = cv2.GaussianBlur(l, (0, 0), sigmaX=25, sigmaY=25)
+        
+        # Calculate correction factor for shadowed areas
+        # This will brighten dark regions while preserving bright areas
+        correction_factor = cv2.divide(l, blur_l, scale=255)
+        correction_factor = cv2.normalize(correction_factor, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+        
+        # Apply stronger correction to shadowed regions
+        alpha = shadow_mask.astype(float) / 255.0  # Shadow weight (0-1)
+        corrected_l = l.astype(float) * (1 - alpha * 0.5) + correction_factor.astype(float) * alpha * 0.5
+        corrected_l = np.clip(corrected_l, 0, 255).astype(np.uint8)
+        
+        # Additional brightness boost for very dark shadows
+        clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+        corrected_l = clahe.apply(corrected_l)
+        
+        # Merge back to BGR
+        lab_corrected = cv2.merge([corrected_l, a, b])
+        result = cv2.cvtColor(lab_corrected, cv2.COLOR_LAB2BGR)
+        
+        return result
     
     def _reduce_glare(self, gray: np.ndarray) -> np.ndarray:
         """Detect and reduce glare/bright spots"""
