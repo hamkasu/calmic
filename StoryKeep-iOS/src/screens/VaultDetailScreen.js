@@ -274,8 +274,8 @@ export default function VaultDetailScreen({ route, navigation }) {
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        quality: 0.8,
+        allowsEditing: false,
+        quality: 1.0,
       });
 
       if (!result.canceled && result.assets[0]) {
