@@ -115,6 +115,7 @@ def mobile_register():
         username = data.get('username', '').strip()
         email = data.get('email', '').strip()
         password = data.get('password', '')
+        terms_accepted = data.get('terms_accepted', False)
         
         # Validation
         if not username or not email or not password:
@@ -131,6 +132,10 @@ def mobile_register():
         is_valid, message = validate_password_strength(password)
         if not is_valid:
             return jsonify({'error': message}), 400
+        
+        # Validate terms acceptance - must be explicitly True (boolean)
+        if terms_accepted is not True:
+            return jsonify({'error': 'You must accept the Terms and Conditions to register'}), 400
         
         # Check if user already exists
         existing_user = User.query.filter(
