@@ -299,11 +299,27 @@ export default function VaultDetailScreen({ route, navigation }) {
         // Upload photo using detectAndExtract (same as working Digitizer)
         const data = await photoAPI.detectAndExtract(formData);
 
-        if (data.success && data.photo_id) {
-          // Add the uploaded photo to vault
-          await vaultAPI.addPhotoToVault(vaultId, data.photo_id, '');
-          Alert.alert('Success', 'Photo uploaded and added to vault');
-          loadVaultDetails();
+        if (data.success) {
+          // Handle response - detectAndExtract returns either extracted_photos array or single photo object
+          let photoId = null;
+          
+          if (data.extracted_photos && data.extracted_photos.length > 0) {
+            // Multiple photos detected - use first extracted photo
+            photoId = data.extracted_photos[0].id;
+          } else if (data.photo && data.photo.id) {
+            // Single photo, no extraction needed
+            photoId = data.photo.id;
+          }
+          
+          if (photoId) {
+            // Add the uploaded photo to vault
+            await vaultAPI.addPhotoToVault(vaultId, photoId, '');
+            const photoCount = data.photos_extracted || 1;
+            Alert.alert('Success', `Photo uploaded and added to vault${photoCount > 1 ? ` (${photoCount} detected)` : ''}`);
+            loadVaultDetails();
+          } else {
+            Alert.alert('Error', 'No photo ID returned from upload');
+          }
         } else {
           Alert.alert('Error', data.error || 'Failed to upload photo');
         }
