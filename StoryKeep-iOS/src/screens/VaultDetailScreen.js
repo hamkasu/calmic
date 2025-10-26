@@ -296,6 +296,7 @@ export default function VaultDetailScreen({ route, navigation }) {
           filename = filename.replace(/\.(heic|heif)$/i, '.jpg');
         }
         
+        // Use the same FormData structure as the working gallery upload
         const formData = new FormData();
         const match = /\.(\w+)$/.exec(filename);
         const type = match ? `image/${match[1]}` : 'image/jpeg';
@@ -306,21 +307,8 @@ export default function VaultDetailScreen({ route, navigation }) {
           type,
         });
 
-        const response = await fetch(`${BASE_URL}/api/upload`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${authToken}`,
-          },
-          body: formData,
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Upload failed:', response.status, errorText);
-          throw new Error(`Upload failed: ${response.status}`);
-        }
-
-        const data = await response.json();
+        // Use photoAPI.uploadPhoto instead of direct fetch - this handles auth correctly
+        const data = await photoAPI.uploadPhoto(formData);
 
         if (data.photo && data.photo.id) {
           // Add the uploaded photo to vault
