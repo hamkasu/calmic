@@ -286,7 +286,7 @@ export default function VaultDetailScreen({ route, navigation }) {
         const match = /\.(\w+)$/.exec(filename);
         const type = match ? `image/${match[1]}` : 'image/jpeg';
         
-        formData.append('file', {
+        formData.append('photo', {
           uri,
           name: filename,
           type,
@@ -299,6 +299,12 @@ export default function VaultDetailScreen({ route, navigation }) {
           },
           body: formData,
         });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Upload failed:', response.status, errorText);
+          throw new Error(`Upload failed: ${response.status}`);
+        }
 
         const data = await response.json();
 
