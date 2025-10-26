@@ -219,15 +219,14 @@ def process_uploaded_file(file, upload_source='file'):
         raise
 
 @photo_bp.route('/api/web/upload', methods=['POST'])
-@csrf.exempt
 @login_required
 def upload_photo():
     """
     Handle photo upload from web browser (file selection or camera capture)
-    Supports both single and multiple file uploads
+    Supports both single and multiple file uploads with CSRF protection
     Note: Mobile uploads use /api/upload with JWT authentication
     """
-    # Note: CSRF is exempt for this upload endpoint since user is authenticated
+    # CSRF protection is enabled for this route to prevent CSRF attacks
     
     try:
         logger.info(f"Upload request from user: {current_user.id if current_user.is_authenticated else 'anonymous'}")

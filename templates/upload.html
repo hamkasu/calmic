@@ -225,7 +225,7 @@ CALMIC SDN BHD - "Committed to Excellence"
                     try {
                         statusDiv.textContent = `Uploading ${file.name}... (${i + 1}/${totalFiles})`;
                         
-                        const response = await fetch('/api/upload', {
+                        const response = await fetch('/api/web/upload', {
                             method: 'POST',
                             headers: {
                                 'X-CSRFToken': csrfToken

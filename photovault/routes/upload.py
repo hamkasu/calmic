@@ -7,7 +7,9 @@ import mimetypes
 from datetime import datetime
 from flask import Blueprint, request, jsonify, current_app, render_template
 from flask_login import login_required, current_user
+from photovault.extensions import csrf
 from werkzeug.exceptions import RequestEntityTooLarge
+from photovault.utils.jwt_auth import hybrid_auth
 from photovault.utils.file_handler import (
     validate_image_file, generate_unique_filename
 )
