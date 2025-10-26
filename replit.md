@@ -21,6 +21,7 @@ The Mobile Digitizer App (React Native/Expo) features a smart camera with real-t
 **Recent Enhancements (Oct 2025):**
 - **Progress Indicators**: Added reusable ProgressBar component with animated progress tracking for all time-consuming operations including photo enhancement (sharpen, colorize DNN, colorize AI, AI restoration), photo upload/detection, and batch processing. Progress bars show percentage completion and user-friendly status messages.
 - **Gallery Optimization**: Implemented pagination (30 photos per page) with lazy loading, optimized FlatList rendering with `initialNumToRender`, `windowSize`, and `removeClippedSubviews` for better performance. Added initial loading screen with progress indicator.
+- **Photo Extraction Naming Format (Oct 26, 2025)**: Extracted/detected photos now use semantic naming format `<username>.detected.<date>.<random>.jpg` (e.g., `johndoe.detected.20251026.54321.jpg`) instead of generic sequential names. Includes collision detection with 100-retry loop and UUID fallback for guaranteed uniqueness. Prevents silent file overwrites and enables better photo organization and tracking.
 - **Hybrid Photo Detection System V2 (Oct 25, 2025)**: Comprehensive dual-strategy detection to handle challenging scenarios including beige-on-beige photos where edges blend with backgrounds:
   - **Edge-Based Detection (Primary)**: 
     - **Pre-blur Suppression**: 15x15 Gaussian blur (sigma=3.0) applied BEFORE bilateral filtering to eliminate fine internal details (people, clothing) while preserving major photo boundaries

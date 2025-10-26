@@ -330,16 +330,26 @@ class PhotoDetector:
         self,
         image_path: str,
         output_dir: str,
-        detected_photos: List[Dict]
+        detected_photos: List[Dict],
+        username: Optional[str] = None
     ) -> List[Dict]:
         """
         Extract detected photos and save them as separate files
         Uses simple cropping - NO perspective transform to avoid warping
+        
+        Args:
+            image_path: Path to source image
+            output_dir: Output directory for extracted photos
+            detected_photos: List of detected photo dictionaries
+            username: Username for filename (format: <username>.detected.<date>.<random>.jpg)
         """
         if not OPENCV_AVAILABLE:
             return []
         
         try:
+            import random
+            from datetime import datetime
+            
             # Load image
             image = cv2.imread(image_path, cv2.IMREAD_COLOR)
             if image is None:
@@ -349,7 +359,7 @@ class PhotoDetector:
             os.makedirs(output_dir, exist_ok=True)
             
             extracted_photos = []
-            base_filename = os.path.splitext(os.path.basename(image_path))[0]
+            date_str = datetime.now().strftime('%Y%m%d')
             
             for i, photo in enumerate(detected_photos):
                 try:
@@ -371,10 +381,37 @@ class PhotoDetector:
                         logger.warning(f"Photo {i+1}: Extraction resulted in empty image")
                         continue
                     
-                    # Generate output filename
+                    # Generate output filename: <username>.detected.<date>.<random>.jpg
+                    # Ensure uniqueness by checking for collisions
                     confidence_pct = int(photo['confidence'] * 100)
-                    output_filename = f"{base_filename}_photo_{i+1:02d}_conf{confidence_pct}.jpg"
-                    output_path = os.path.join(output_dir, output_filename)
+                    max_retries = 100
+                    output_path = None
+                    
+                    for retry in range(max_retries):
+                        random_num = random.randint(10000, 99999)
+                        if username:
+                            output_filename = f"{username}.detected.{date_str}.{random_num}.jpg"
+                        else:
+                            # Fallback to old format if no username provided
+                            base_filename = os.path.splitext(os.path.basename(image_path))[0]
+                            output_filename = f"{base_filename}.detected.{date_str}.{random_num}.jpg"
+                        output_path = os.path.join(output_dir, output_filename)
+                        
+                        # Check if file already exists
+                        if not os.path.exists(output_path):
+                            break
+                        logger.debug(f"Filename collision detected, retrying ({retry+1}/{max_retries})")
+                    else:
+                        # If all retries exhausted, use UUID for guaranteed uniqueness
+                        import uuid
+                        unique_id = str(uuid.uuid4())[:8]
+                        if username:
+                            output_filename = f"{username}.detected.{date_str}.{unique_id}.jpg"
+                        else:
+                            base_filename = os.path.splitext(os.path.basename(image_path))[0]
+                            output_filename = f"{base_filename}.detected.{date_str}.{unique_id}.jpg"
+                        output_path = os.path.join(output_dir, output_filename)
+                        logger.warning(f"Used UUID for filename uniqueness: {output_filename}")
                     
                     # Save extracted photo
                     cv2.imwrite(output_path, extracted, [cv2.IMWRITE_JPEG_QUALITY, 95])

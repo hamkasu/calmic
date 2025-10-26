@@ -814,8 +814,8 @@ def detect_and_extract_photos(current_user):
         
         logger.info(f"✅ Detected {len(detected)} photos in image")
         
-        # Extract detected photos
-        extracted_files = detector.extract_photos(source_path, user_folder, detected)
+        # Extract detected photos with username for new naming format
+        extracted_files = detector.extract_photos(source_path, user_folder, detected, username=current_user.username)
         
         extracted_photos = []
         
@@ -841,7 +841,8 @@ def detect_and_extract_photos(current_user):
                 extracted_photo = Photo()
                 extracted_photo.user_id = current_user.id
                 extracted_photo.filename = os.path.basename(extracted_path)
-                extracted_photo.original_name = f"extracted_{i+1}_from_{file.filename}"
+                # Use detected photo filename as original_name (format: <username>.detected.<date>.<random>.jpg)
+                extracted_photo.original_name = os.path.basename(extracted_path)
                 extracted_photo.file_path = extracted_path
                 extracted_photo.thumbnail_path = thumbnail_path
                 extracted_photo.file_size = extracted_size
