@@ -21,6 +21,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { vaultAPI } from '../services/api';
 
 const { width } = Dimensions.get('window');
@@ -280,9 +281,22 @@ export default function VaultDetailScreen({ route, navigation }) {
       if (!result.canceled && result.assets[0]) {
         setUploadingFromLibrary(true);
         
+        let uri = result.assets[0].uri;
+        let filename = uri.split('/').pop();
+        
+        // Convert HEIC to JPEG if needed
+        if (filename.toLowerCase().endsWith('.heic') || filename.toLowerCase().endsWith('.heif')) {
+          console.log('Converting HEIC to JPEG...');
+          const manipulatedImage = await ImageManipulator.manipulateAsync(
+            uri,
+            [],
+            { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+          );
+          uri = manipulatedImage.uri;
+          filename = filename.replace(/\.(heic|heif)$/i, '.jpg');
+        }
+        
         const formData = new FormData();
-        const uri = result.assets[0].uri;
-        const filename = uri.split('/').pop();
         const match = /\.(\w+)$/.exec(filename);
         const type = match ? `image/${match[1]}` : 'image/jpeg';
         
