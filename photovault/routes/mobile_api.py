@@ -184,6 +184,7 @@ def mobile_register():
         return jsonify({'error': 'An error occurred during registration'}), 500
 
 @mobile_api_bp.route('/dashboard', methods=['GET'])
+@csrf.exempt
 @token_required
 def get_dashboard(current_user):
     """Get dashboard statistics for mobile app"""
@@ -324,6 +325,7 @@ def get_dashboard(current_user):
         return jsonify({'error': str(e)}), 500
 
 @mobile_api_bp.route('/auth/profile', methods=['GET'])
+@csrf.exempt
 @token_required
 def get_profile(current_user):
     """Get user profile for mobile app"""
@@ -499,6 +501,7 @@ def update_avatar(current_user):
         return jsonify({'error': 'Upload failed'}), 500
 
 @mobile_api_bp.route('/photos', methods=['GET'])
+@csrf.exempt
 @token_required
 def get_photos(current_user):
     """
@@ -573,6 +576,7 @@ def get_photos(current_user):
         }), 500
 
 @mobile_api_bp.route('/photos/<int:photo_id>', methods=['GET'])
+@csrf.exempt
 @token_required
 def get_photo_detail(current_user, photo_id):
     """Get single photo details for mobile app"""
@@ -1075,6 +1079,7 @@ def family_vaults(current_user):
             return jsonify({'error': 'Failed to create vault'}), 500
 
 @mobile_api_bp.route('/family/vault/<int:vault_id>', methods=['GET'])
+@csrf.exempt
 @token_required
 def get_vault_detail(current_user, vault_id):
     """Get vault details for mobile app - REWRITTEN for better error handling"""
