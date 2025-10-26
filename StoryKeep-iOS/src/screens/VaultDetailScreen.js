@@ -281,33 +281,22 @@ export default function VaultDetailScreen({ route, navigation }) {
       if (!result.canceled && result.assets[0]) {
         setUploadingFromLibrary(true);
         
-        let uri = result.assets[0].uri;
-        let filename = uri.split('/').pop();
+        // Always convert to JPEG using ImageManipulator (same as working gallery/camera pattern)
+        const enhancedPhoto = await ImageManipulator.manipulateAsync(
+          result.assets[0].uri,
+          [{ resize: { width: 1920 } }],
+          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+        );
         
-        // Convert HEIC to JPEG if needed
-        if (filename.toLowerCase().endsWith('.heic') || filename.toLowerCase().endsWith('.heif')) {
-          console.log('Converting HEIC to JPEG...');
-          const manipulatedImage = await ImageManipulator.manipulateAsync(
-            uri,
-            [],
-            { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
-          );
-          uri = manipulatedImage.uri;
-          filename = filename.replace(/\.(heic|heif)$/i, '.jpg');
-        }
-        
-        // Use the same FormData structure as the working gallery upload
+        // Build FormData using 'image' field name (same as working uploads)
         const formData = new FormData();
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : 'image/jpeg';
-        
-        formData.append('photo', {
-          uri,
-          name: filename,
-          type,
+        formData.append('image', {
+          uri: enhancedPhoto.uri,
+          type: 'image/jpeg',
+          name: `vault_upload_${Date.now()}.jpg`,
         });
 
-        // Use photoAPI.uploadPhoto instead of direct fetch - this handles auth correctly
+        // Upload photo using the working photoAPI method
         const data = await photoAPI.uploadPhoto(formData);
 
         if (data.photo && data.photo.id) {
@@ -321,7 +310,7 @@ export default function VaultDetailScreen({ route, navigation }) {
       }
     } catch (error) {
       console.error('Camera library upload error:', error);
-      Alert.alert('Error', 'Failed to upload photo from library');
+      Alert.alert('Error', error.response?.data?.error || 'Failed to upload photo from library');
     } finally {
       setUploadingFromLibrary(false);
     }
