@@ -362,6 +362,7 @@ def get_profile(current_user):
             logger.warning(f"⚠️ No profile picture in database for user {current_user.username}")
         
         return jsonify({
+            'id': current_user.id,
             'username': current_user.username,
             'email': current_user.email,
             'subscription_plan': user_subscription.plan.name if user_subscription and user_subscription.plan else 'Free',
@@ -1513,6 +1514,98 @@ def remove_photo_from_vault(current_user, vault_id, photo_id):
         
     except Exception as e:
         logger.error(f"💥 ERROR removing photo from vault: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@mobile_api_bp.route('/family/vault/<int:vault_id>/photos/delete-bulk', methods=['POST'])
+@csrf.exempt
+@token_required
+def remove_photos_bulk_from_vault(current_user, vault_id):
+    """Remove multiple photos from vault - owner can delete their own, admin can delete any"""
+    try:
+        data = request.get_json()
+        if not data or 'photo_ids' not in data:
+            return jsonify({'success': False, 'error': 'photo_ids required'}), 400
+        
+        photo_ids = data.get('photo_ids', [])
+        if not photo_ids or not isinstance(photo_ids, list):
+            return jsonify({'success': False, 'error': 'photo_ids must be a non-empty array'}), 400
+        
+        logger.info(f"🗑️ BULK DELETE FROM VAULT: vault_id={vault_id}, user_id={current_user.id}, count={len(photo_ids)}")
+        
+        # Verify vault exists
+        vault = FamilyVault.query.get(vault_id)
+        if not vault:
+            return jsonify({'success': False, 'error': 'Vault not found'}), 404
+        
+        # Check if user is a member
+        member = FamilyMember.query.filter_by(
+            vault_id=vault_id,
+            user_id=current_user.id,
+            status='active'
+        ).first()
+        
+        if not member:
+            return jsonify({'success': False, 'error': 'You are not a member of this vault'}), 403
+        
+        # Check if user has admin privileges
+        is_creator = vault.created_by == current_user.id
+        is_admin = member.role == 'admin'
+        can_delete_any = is_creator or is_admin
+        
+        success_count = 0
+        failed_count = 0
+        errors = []
+        
+        for photo_id in photo_ids:
+            try:
+                # Find the vault photo
+                vault_photo = VaultPhoto.query.filter_by(
+                    vault_id=vault_id,
+                    photo_id=photo_id
+                ).first()
+                
+                if not vault_photo:
+                    errors.append(f"Photo {photo_id} not found in vault")
+                    failed_count += 1
+                    continue
+                
+                # Check permission: admin/creator can delete any, regular members can only delete their own
+                is_owner = vault_photo.shared_by == current_user.id
+                
+                if not (can_delete_any or is_owner):
+                    errors.append(f"Photo {photo_id}: No permission (not your photo)")
+                    failed_count += 1
+                    continue
+                
+                # Delete the vault photo association
+                db.session.delete(vault_photo)
+                success_count += 1
+                logger.info(f"✅ Removed photo {photo_id} from vault")
+                
+            except Exception as e:
+                logger.error(f"❌ Error removing photo {photo_id}: {str(e)}")
+                errors.append(f"Photo {photo_id}: {str(e)}")
+                failed_count += 1
+                continue
+        
+        # Commit all deletions
+        db.session.commit()
+        
+        logger.info(f"✅ BULK DELETE COMPLETE: success={success_count}, failed={failed_count}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Removed {success_count} photo(s) from vault',
+            'success_count': success_count,
+            'failed_count': failed_count,
+            'errors': errors if errors else None
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"💥 BULK DELETE ERROR: {str(e)}")
         import traceback
         traceback.print_exc()
         db.session.rollback()

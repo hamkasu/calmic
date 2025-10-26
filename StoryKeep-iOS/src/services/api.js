@@ -217,6 +217,13 @@ export const vaultAPI = {
     return response.data;
   },
   
+  removePhotosFromVaultBulk: async (vaultId, photoIds) => {
+    const response = await api.post(`/api/family/vault/${vaultId}/photos/delete-bulk`, {
+      photo_ids: photoIds,
+    });
+    return response.data;
+  },
+  
   editVault: async (vaultId, name, description) => {
     const response = await api.patch(`/api/family/vault/${vaultId}`, {
       name,

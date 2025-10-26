@@ -22,7 +22,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { vaultAPI, photoAPI } from '../services/api';
+import { vaultAPI, photoAPI, authAPI } from '../services/api';
 
 const { width } = Dimensions.get('window');
 const COLUMN_COUNT = 3;
@@ -37,6 +37,7 @@ export default function VaultDetailScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [authToken, setAuthToken] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState(null);
   const [activeTab, setActiveTab] = useState('photos'); // 'photos' or 'members'
   
   // Photo picker states
@@ -80,6 +81,25 @@ export default function VaultDetailScreen({ route, navigation }) {
     try {
       const token = await AsyncStorage.getItem('authToken');
       setAuthToken(token);
+      
+      // Fetch user profile to get user ID
+      if (token) {
+        try {
+          const profileResponse = await authAPI.getProfile();
+          if (profileResponse && profileResponse.id) {
+            setCurrentUserId(profileResponse.id);
+            // Also store it for future use
+            await AsyncStorage.setItem('userId', profileResponse.id.toString());
+          }
+        } catch (profileError) {
+          console.error('Failed to load user profile:', profileError);
+          // Try to fall back to stored userId if profile fetch fails
+          const storedUserId = await AsyncStorage.getItem('userId');
+          if (storedUserId) {
+            setCurrentUserId(parseInt(storedUserId));
+          }
+        }
+      }
     } catch (error) {
       console.error('Failed to load auth token:', error);
     }
@@ -246,18 +266,25 @@ export default function VaultDetailScreen({ route, navigation }) {
           onPress: async () => {
             setDeleting(true);
             try {
-              // Delete each selected photo from vault
-              for (const photoId of selectedPhotos) {
-                await vaultAPI.removePhotoFromVault(vaultId, photoId);
-              }
+              // Use bulk delete API for better performance
+              const result = await vaultAPI.removePhotosFromVaultBulk(vaultId, selectedPhotos);
               
-              Alert.alert('Success', `Deleted ${selectedPhotos.length} photo(s) from vault`);
-              setSelectionMode(false);
-              setSelectedPhotos([]);
-              loadVaultDetails();
+              if (result.success) {
+                const message = result.failed_count > 0 
+                  ? `Removed ${result.success_count} photo(s). ${result.failed_count} failed.`
+                  : `Removed ${result.success_count} photo(s) from vault`;
+                
+                Alert.alert('Success', message);
+                setSelectionMode(false);
+                setSelectedPhotos([]);
+                loadVaultDetails();
+              } else {
+                Alert.alert('Error', result.error || 'Failed to delete photos');
+              }
             } catch (error) {
               console.error('Delete photos error:', error);
-              Alert.alert('Error', error.response?.data?.error || 'Failed to delete photos');
+              const errorMsg = error.response?.data?.error || 'Failed to delete photos';
+              Alert.alert('Error', errorMsg);
             } finally {
               setDeleting(false);
             }
@@ -436,6 +463,8 @@ export default function VaultDetailScreen({ route, navigation }) {
 
   const renderPhoto = ({ item }) => {
     const isSelected = selectedPhotos.includes(item.id);
+    const isOwned = currentUserId && item.shared_by_user_id === currentUserId;
+    const isAdmin = vault?.is_creator || vault?.member_role === 'admin';
     
     return (
       <TouchableOpacity
@@ -476,6 +505,13 @@ export default function VaultDetailScreen({ route, navigation }) {
             </Text>
           )}
         </View>
+
+        {/* Owner badge - shows if photo belongs to current user */}
+        {isOwned && !selectionMode && (
+          <View style={styles.ownerBadge}>
+            <Ionicons name="person" size={10} color="#fff" />
+          </View>
+        )}
 
         {/* Colorized badge */}
         {item.edited_url && (
@@ -1080,6 +1116,14 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     opacity: 0.8,
     marginTop: 2,
+  },
+  ownerBadge: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    backgroundColor: '#4CAF50',
+    borderRadius: 8,
+    padding: 2,
   },
   enhancedBadge: {
     position: 'absolute',
