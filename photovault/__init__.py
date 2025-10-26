@@ -260,6 +260,8 @@ def create_app(config_class=None):
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(admin_export_bp, url_prefix='/admin')
     app.register_blueprint(superuser_bp, url_prefix='/superuser')
+    # Exempt entire mobile API blueprint from CSRF protection (uses JWT auth instead)
+    csrf.exempt(mobile_api_bp)
     # Register mobile_api_bp BEFORE photo_bp to ensure JWT-authenticated routes match first
     app.register_blueprint(mobile_api_bp)
     app.register_blueprint(photo_bp)
