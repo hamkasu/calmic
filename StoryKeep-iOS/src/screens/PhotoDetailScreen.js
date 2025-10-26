@@ -85,6 +85,14 @@ export default function PhotoDetailScreen({ route, navigation }) {
 
   const loadExistingVoiceMemos = async () => {
     try {
+      // If photo already has voice_memos array (from family vault), use it directly
+      if (photo.voice_memos && Array.isArray(photo.voice_memos)) {
+        setExistingVoiceMemos(photo.voice_memos);
+        console.log('📝 Loaded voice memos from photo object:', photo.voice_memos.length);
+        return;
+      }
+
+      // Otherwise, fetch from API (for regular photos)
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(`${BASE_URL}/api/photos/${photo.id}/voice-memos`, {
         headers: {
@@ -95,7 +103,7 @@ export default function PhotoDetailScreen({ route, navigation }) {
       if (response.ok) {
         const data = await response.json();
         setExistingVoiceMemos(data.voice_memos || []);
-        console.log('📝 Loaded voice memos:', data.voice_memos?.length || 0);
+        console.log('📝 Loaded voice memos from API:', data.voice_memos?.length || 0);
       }
     } catch (error) {
       console.error('❌ Error loading voice memos:', error);
@@ -182,9 +190,18 @@ export default function PhotoDetailScreen({ route, navigation }) {
   const loadComments = async () => {
     try {
       setLoadingComments(true);
+      
+      // If photo already has comments array (from family vault), use it directly
+      if (photo.comments && Array.isArray(photo.comments)) {
+        setComments(photo.comments);
+        console.log('💬 Loaded comments from photo object:', photo.comments.length);
+        return;
+      }
+
+      // Otherwise, fetch from API (for regular photos)
       const response = await commentAPI.getComments(photo.id);
       setComments(response.comments || []);
-      console.log('💬 Loaded comments:', response.comments?.length || 0);
+      console.log('💬 Loaded comments from API:', response.comments?.length || 0);
     } catch (error) {
       console.error('❌ Error loading comments:', error);
     } finally {

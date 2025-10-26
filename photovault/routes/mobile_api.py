@@ -1124,6 +1124,42 @@ def get_vault_detail(current_user, vault_id):
                         photo_url = f"/uploads/{photo.user_id}/{photo.filename}" if photo.filename else None
                         thumbnail_url = f"/uploads/{photo.user_id}/{photo.filename}" if photo.filename else None
                         
+                        # Get voice memos for this photo
+                        voice_memos_list = []
+                        try:
+                            from photovault.models import VoiceMemo
+                            voice_memos = VoiceMemo.query.filter_by(photo_id=photo.id).order_by(VoiceMemo.created_at.desc()).all()
+                            for vm in voice_memos:
+                                voice_memos_list.append({
+                                    'id': vm.id,
+                                    'filename': vm.filename,
+                                    'url': f"/uploads/{vm.user_id}/voice_memos/{vm.filename}",
+                                    'duration': vm.duration,
+                                    'title': vm.title,
+                                    'transcript': vm.transcript,
+                                    'created_at': vm.created_at.isoformat() if vm.created_at else None,
+                                    'user_id': vm.user_id
+                                })
+                        except Exception as vm_error:
+                            logger.warning(f"⚠️ Error loading voice memos for photo {photo.id}: {str(vm_error)}")
+                        
+                        # Get comments/annotations for this photo
+                        comments_list = []
+                        try:
+                            from photovault.models import PhotoComment
+                            comments = PhotoComment.query.filter_by(photo_id=photo.id).order_by(PhotoComment.created_at.asc()).all()
+                            for comment in comments:
+                                user = User.query.get(comment.user_id)
+                                comments_list.append({
+                                    'id': comment.id,
+                                    'comment_text': comment.comment_text,
+                                    'created_at': comment.created_at.isoformat() if comment.created_at else None,
+                                    'user_id': comment.user_id,
+                                    'username': user.username if user else 'Unknown'
+                                })
+                        except Exception as comment_error:
+                            logger.warning(f"⚠️ Error loading comments for photo {photo.id}: {str(comment_error)}")
+                        
                         photos_list.append({
                             'id': photo.id,
                             'filename': photo.filename,
@@ -1132,7 +1168,9 @@ def get_vault_detail(current_user, vault_id):
                             'thumbnail_url': thumbnail_url,
                             'caption': vp.caption if hasattr(vp, 'caption') else None,
                             'shared_at': vp.shared_at.isoformat() if vp.shared_at else None,
-                            'user_id': photo.user_id
+                            'user_id': photo.user_id,
+                            'voice_memos': voice_memos_list,
+                            'comments': comments_list
                         })
                 except Exception as photo_error:
                     logger.warning(f"⚠️ Error processing vault photo {vp.id}: {str(photo_error)}")

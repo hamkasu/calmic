@@ -462,6 +462,22 @@ export default function VaultDetailScreen({ route, navigation }) {
           </View>
         )}
 
+        {/* Voice memo badge */}
+        {item.voice_memos && item.voice_memos.length > 0 && (
+          <View style={styles.voiceMemoBadge}>
+            <Ionicons name="mic" size={12} color="#fff" />
+            <Text style={styles.badgeCount}>{item.voice_memos.length}</Text>
+          </View>
+        )}
+
+        {/* Comment badge */}
+        {item.comments && item.comments.length > 0 && (
+          <View style={styles.commentBadge}>
+            <Ionicons name="chatbox" size={12} color="#fff" />
+            <Text style={styles.badgeCount}>{item.comments.length}</Text>
+          </View>
+        )}
+
         {/* Selection checkbox */}
         {selectionMode && (
           <View style={styles.selectionCheckbox}>
@@ -1043,6 +1059,34 @@ const styles = StyleSheet.create({
     backgroundColor: '#E85D75',
     borderRadius: 10,
     padding: 3,
+  },
+  voiceMemoBadge: {
+    position: 'absolute',
+    top: 30,
+    right: 6,
+    backgroundColor: '#4CAF50',
+    borderRadius: 10,
+    padding: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 5,
+  },
+  commentBadge: {
+    position: 'absolute',
+    top: 54,
+    right: 6,
+    backgroundColor: '#2196F3',
+    borderRadius: 10,
+    padding: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 5,
+  },
+  badgeCount: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginLeft: 2,
   },
   cancelText: {
     color: '#fff',
