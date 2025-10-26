@@ -313,6 +313,11 @@ class FamilyVault(db.Model):
         """Count of active members in this vault"""
         return self.members.filter_by(status='active').count()
     
+    @property
+    def photo_count(self):
+        """Count of photos in this vault"""
+        return self.shared_photos.count()
+    
     def get_member_role(self, user_id):
         """Get the role of a user in this vault"""
         member = self.members.filter_by(user_id=user_id, status='active').first()
