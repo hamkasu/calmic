@@ -44,6 +44,7 @@ export default function VaultDetailScreen({ route, navigation }) {
   const [showPhotoPicker, setShowPhotoPicker] = useState(false);
   const [userPhotos, setUserPhotos] = useState([]);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [selectedGalleryPhotos, setSelectedGalleryPhotos] = useState([]);
   const [photoCaption, setPhotoCaption] = useState('');
   const [adding, setAdding] = useState(false);
   
@@ -60,6 +61,7 @@ export default function VaultDetailScreen({ route, navigation }) {
   
   // Camera library upload states
   const [uploadingFromLibrary, setUploadingFromLibrary] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
   
   // Edit vault states
   const [showEditModal, setShowEditModal] = useState(false);
@@ -155,30 +157,64 @@ export default function VaultDetailScreen({ route, navigation }) {
   const openPhotoPicker = () => {
     loadUserPhotos();
     setSelectedPhoto(null);
+    setSelectedGalleryPhotos([]);
     setPhotoCaption('');
     setShowPhotoPicker(true);
   };
 
+  const toggleGalleryPhotoSelection = (photo) => {
+    const isSelected = selectedGalleryPhotos.some(p => p.id === photo.id);
+    if (isSelected) {
+      setSelectedGalleryPhotos(selectedGalleryPhotos.filter(p => p.id !== photo.id));
+    } else {
+      setSelectedGalleryPhotos([...selectedGalleryPhotos, photo]);
+    }
+  };
+
   const addPhotoToVault = async () => {
-    if (!selectedPhoto) {
-      Alert.alert('Select Photo', 'Please select a photo to add');
+    const photosToAdd = selectedGalleryPhotos.length > 0 ? selectedGalleryPhotos : (selectedPhoto ? [selectedPhoto] : []);
+    
+    if (photosToAdd.length === 0) {
+      Alert.alert('Select Photo', 'Please select at least one photo to add');
       return;
     }
 
     setAdding(true);
+    setUploadProgress({ current: 0, total: photosToAdd.length });
+    
     try {
-      const response = await vaultAPI.addPhotoToVault(vaultId, selectedPhoto.id, photoCaption);
+      let successCount = 0;
+      let failCount = 0;
+
+      for (let i = 0; i < photosToAdd.length; i++) {
+        try {
+          setUploadProgress({ current: i + 1, total: photosToAdd.length });
+          await vaultAPI.addPhotoToVault(vaultId, photosToAdd[i].id, photoCaption);
+          successCount++;
+        } catch (photoError) {
+          console.error(`Error adding photo ${i + 1}:`, photoError);
+          failCount++;
+        }
+      }
+
+      loadVaultDetails(); // Refresh vault
       
-      Alert.alert('Success', 'Photo added to vault successfully');
+      if (failCount === 0) {
+        Alert.alert('Success', `Successfully added ${successCount} photo(s) to vault`);
+      } else {
+        Alert.alert('Partial Success', `Added ${successCount} photo(s). ${failCount} failed.`);
+      }
+      
       setShowPhotoPicker(false);
       setSelectedPhoto(null);
+      setSelectedGalleryPhotos([]);
       setPhotoCaption('');
-      loadVaultDetails(); // Refresh vault
     } catch (error) {
       console.error('Add photo error:', error);
-      Alert.alert('Error', error.response?.data?.error || 'Failed to add photo to vault');
+      Alert.alert('Error', error.response?.data?.error || 'Failed to add photos to vault');
     } finally {
       setAdding(false);
+      setUploadProgress({ current: 0, total: 0 });
     }
   };
 
@@ -306,60 +342,83 @@ export default function VaultDetailScreen({ route, navigation }) {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: false,
+        allowsMultipleSelection: true,
         quality: 1.0,
       });
 
-      if (!result.canceled && result.assets[0]) {
+      if (!result.canceled && result.assets && result.assets.length > 0) {
         setUploadingFromLibrary(true);
+        const totalPhotos = result.assets.length;
+        setUploadProgress({ current: 0, total: totalPhotos });
         
-        // Always convert to JPEG using ImageManipulator (same as working gallery/camera pattern)
-        const enhancedPhoto = await ImageManipulator.manipulateAsync(
-          result.assets[0].uri,
-          [{ resize: { width: 1920 } }],
-          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
-        );
-        
-        // Build FormData using 'image' field name (same as working uploads)
-        const formData = new FormData();
-        formData.append('image', {
-          uri: enhancedPhoto.uri,
-          type: 'image/jpeg',
-          name: `vault_upload_${Date.now()}.jpg`,
-        });
+        let successCount = 0;
+        let failCount = 0;
 
-        // Upload photo using detectAndExtract (same as working Digitizer)
-        const data = await photoAPI.detectAndExtract(formData);
+        // Process each selected photo
+        for (let i = 0; i < result.assets.length; i++) {
+          try {
+            setUploadProgress({ current: i + 1, total: totalPhotos });
 
-        if (data.success) {
-          // Handle response - detectAndExtract returns either extracted_photos array or single photo object
-          let photoId = null;
-          
-          if (data.extracted_photos && data.extracted_photos.length > 0) {
-            // Multiple photos detected - use first extracted photo
-            photoId = data.extracted_photos[0].id;
-          } else if (data.photo && data.photo.id) {
-            // Single photo, no extraction needed
-            photoId = data.photo.id;
+            // Always convert to JPEG using ImageManipulator (same as working gallery/camera pattern)
+            const enhancedPhoto = await ImageManipulator.manipulateAsync(
+              result.assets[i].uri,
+              [{ resize: { width: 1920 } }],
+              { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+            );
+            
+            // Build FormData using 'image' field name (same as working uploads)
+            const formData = new FormData();
+            formData.append('image', {
+              uri: enhancedPhoto.uri,
+              type: 'image/jpeg',
+              name: `vault_upload_${Date.now()}_${i}.jpg`,
+            });
+
+            // Upload photo using detectAndExtract (same as working Digitizer)
+            const data = await photoAPI.detectAndExtract(formData);
+
+            if (data.success) {
+              // Handle response - detectAndExtract returns either extracted_photos array or single photo object
+              let photoId = null;
+              
+              if (data.extracted_photos && data.extracted_photos.length > 0) {
+                // Multiple photos detected - use first extracted photo
+                photoId = data.extracted_photos[0].id;
+              } else if (data.photo && data.photo.id) {
+                // Single photo, no extraction needed
+                photoId = data.photo.id;
+              }
+              
+              if (photoId) {
+                // Add the uploaded photo to vault
+                await vaultAPI.addPhotoToVault(vaultId, photoId, '');
+                successCount++;
+              } else {
+                failCount++;
+              }
+            } else {
+              failCount++;
+            }
+          } catch (photoError) {
+            console.error(`Error processing photo ${i + 1}:`, photoError);
+            failCount++;
           }
-          
-          if (photoId) {
-            // Add the uploaded photo to vault
-            await vaultAPI.addPhotoToVault(vaultId, photoId, '');
-            const photoCount = data.photos_extracted || 1;
-            Alert.alert('Success', `Photo uploaded and added to vault${photoCount > 1 ? ` (${photoCount} detected)` : ''}`);
-            loadVaultDetails();
-          } else {
-            Alert.alert('Error', 'No photo ID returned from upload');
-          }
+        }
+
+        // Show summary
+        loadVaultDetails();
+        if (failCount === 0) {
+          Alert.alert('Success', `Successfully added ${successCount} photo(s) to vault`);
         } else {
-          Alert.alert('Error', data.error || 'Failed to upload photo');
+          Alert.alert('Partial Success', `Added ${successCount} photo(s). ${failCount} failed.`);
         }
       }
     } catch (error) {
       console.error('Camera library upload error:', error);
-      Alert.alert('Error', error.response?.data?.error || 'Failed to upload photo from library');
+      Alert.alert('Error', error.response?.data?.error || 'Failed to upload photos from library');
     } finally {
       setUploadingFromLibrary(false);
+      setUploadProgress({ current: 0, total: 0 });
     }
   };
 
@@ -751,6 +810,26 @@ export default function VaultDetailScreen({ route, navigation }) {
             />
           )}
           
+          {/* Upload Progress Indicator */}
+          {uploadingFromLibrary && uploadProgress.total > 0 && (
+            <View style={styles.uploadProgressOverlay}>
+              <View style={styles.uploadProgressCard}>
+                <ActivityIndicator size="large" color="#E85D75" />
+                <Text style={styles.uploadProgressText}>
+                  Uploading {uploadProgress.current} of {uploadProgress.total} photos...
+                </Text>
+                <View style={styles.uploadProgressBarContainer}>
+                  <View 
+                    style={[
+                      styles.uploadProgressBarFill, 
+                      { width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }
+                    ]} 
+                  />
+                </View>
+              </View>
+            </View>
+          )}
+          
           {/* Floating Add Buttons with Labels */}
           <View style={styles.floatingButtonsContainer}>
             <View style={styles.floatingButtonWrapper}>
@@ -796,37 +875,51 @@ export default function VaultDetailScreen({ route, navigation }) {
             <View style={styles.modalContainer}>
               <View style={styles.modalContent}>
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Select Photo</Text>
+                  <Text style={styles.modalTitle}>Select Photos</Text>
                   <TouchableOpacity onPress={() => setShowPhotoPicker(false)}>
                     <Ionicons name="close" size={28} color="#333" />
                   </TouchableOpacity>
                 </View>
+                
+                {selectedGalleryPhotos.length > 0 && (
+                  <View style={styles.selectionInfo}>
+                    <Text style={styles.selectionInfoText}>
+                      {selectedGalleryPhotos.length} photo(s) selected
+                    </Text>
+                    <TouchableOpacity onPress={() => setSelectedGalleryPhotos([])}>
+                      <Text style={styles.clearSelectionText}>Clear</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
 
                 <ScrollView style={styles.photoPickerScroll}>
                   <View style={styles.photoPickerGrid}>
-                    {userPhotos.map((photo) => (
-                      <TouchableOpacity
-                        key={photo.id}
-                        style={[
-                          styles.photoPickerItem,
-                          selectedPhoto?.id === photo.id && styles.photoPickerItemSelected
-                        ]}
-                        onPress={() => setSelectedPhoto(photo)}
-                      >
-                        <Image
-                          source={{ 
-                            uri: `${BASE_URL}${photo.original_url}`,
-                            headers: { 'Authorization': `Bearer ${authToken}` }
-                          }}
-                          style={styles.photoPickerImage}
-                        />
-                        {selectedPhoto?.id === photo.id && (
-                          <View style={styles.photoPickerCheck}>
-                            <Ionicons name="checkmark-circle" size={32} color="#E85D75" />
-                          </View>
-                        )}
-                      </TouchableOpacity>
-                    ))}
+                    {userPhotos.map((photo) => {
+                      const isSelected = selectedGalleryPhotos.some(p => p.id === photo.id);
+                      return (
+                        <TouchableOpacity
+                          key={photo.id}
+                          style={[
+                            styles.photoPickerItem,
+                            isSelected && styles.photoPickerItemSelected
+                          ]}
+                          onPress={() => toggleGalleryPhotoSelection(photo)}
+                        >
+                          <Image
+                            source={{ 
+                              uri: `${BASE_URL}${photo.original_url}`,
+                              headers: { 'Authorization': `Bearer ${authToken}` }
+                            }}
+                            style={styles.photoPickerImage}
+                          />
+                          {isSelected && (
+                            <View style={styles.photoPickerCheck}>
+                              <Ionicons name="checkmark-circle" size={32} color="#E85D75" />
+                            </View>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
                 </ScrollView>
 
@@ -841,15 +934,33 @@ export default function VaultDetailScreen({ route, navigation }) {
                     blurOnSubmit={true}
                   />
                   
+                  {uploadProgress.total > 0 && (
+                    <View style={styles.progressContainer}>
+                      <Text style={styles.progressText}>
+                        Adding {uploadProgress.current} of {uploadProgress.total} photos...
+                      </Text>
+                      <View style={styles.progressBar}>
+                        <View 
+                          style={[
+                            styles.progressFill, 
+                            { width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }
+                          ]} 
+                        />
+                      </View>
+                    </View>
+                  )}
+                  
                   <TouchableOpacity
-                    style={[styles.addButton, adding && styles.addButtonDisabled]}
+                    style={[styles.addButton, (adding || selectedGalleryPhotos.length === 0) && styles.addButtonDisabled]}
                     onPress={addPhotoToVault}
-                    disabled={adding || !selectedPhoto}
+                    disabled={adding || selectedGalleryPhotos.length === 0}
                   >
                     {adding ? (
                       <ActivityIndicator color="#fff" />
                     ) : (
-                      <Text style={styles.addButtonText}>Add to Vault</Text>
+                      <Text style={styles.addButtonText}>
+                        Add {selectedGalleryPhotos.length > 0 ? `${selectedGalleryPhotos.length} ` : ''}to Vault
+                      </Text>
                     )}
                   </TouchableOpacity>
                 </View>
@@ -1457,5 +1568,86 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  // Upload Progress Styles
+  uploadProgressOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  uploadProgressCard: {
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 30,
+    alignItems: 'center',
+    minWidth: 250,
+  },
+  uploadProgressText: {
+    fontSize: 16,
+    color: '#333',
+    marginTop: 15,
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  uploadProgressBarContainer: {
+    width: '100%',
+    height: 8,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  uploadProgressBarFill: {
+    height: '100%',
+    backgroundColor: '#E85D75',
+    borderRadius: 4,
+  },
+  // Selection Info Styles
+  selectionInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: '#FFF0F3',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  selectionInfoText: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '600',
+  },
+  clearSelectionText: {
+    fontSize: 14,
+    color: '#E85D75',
+    fontWeight: '600',
+  },
+  // Progress Container (in modal)
+  progressContainer: {
+    marginBottom: 15,
+  },
+  progressText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  progressBar: {
+    width: '100%',
+    height: 6,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#E85D75',
+    borderRadius: 3,
   },
 });
