@@ -296,12 +296,12 @@ export default function VaultDetailScreen({ route, navigation }) {
           name: `vault_upload_${Date.now()}.jpg`,
         });
 
-        // Upload photo using the working photoAPI method
-        const data = await photoAPI.uploadPhoto(formData);
+        // Upload photo using detectAndExtract (same as working Digitizer)
+        const data = await photoAPI.detectAndExtract(formData);
 
-        if (data.photo && data.photo.id) {
+        if (data.success && data.photo_id) {
           // Add the uploaded photo to vault
-          await vaultAPI.addPhotoToVault(vaultId, data.photo.id, '');
+          await vaultAPI.addPhotoToVault(vaultId, data.photo_id, '');
           Alert.alert('Success', 'Photo uploaded and added to vault');
           loadVaultDetails();
         } else {
