@@ -199,7 +199,11 @@ export default function VaultDetailScreen({ route, navigation }) {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return 'No date';
+    
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid date';
+    
     const now = new Date();
     const diffTime = Math.abs(now - date);
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
@@ -466,6 +470,11 @@ export default function VaultDetailScreen({ route, navigation }) {
           <Text style={styles.photoDate} numberOfLines={1}>
             {item.caption || formatDate(item.created_at)}
           </Text>
+          {item.shared_by_username && (
+            <Text style={styles.photoSharedBy} numberOfLines={1}>
+              Shared by {item.shared_by_username}
+            </Text>
+          )}
         </View>
 
         {/* Colorized badge */}
@@ -1064,6 +1073,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 11,
     fontWeight: '500',
+  },
+  photoSharedBy: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '400',
+    opacity: 0.8,
+    marginTop: 2,
   },
   enhancedBadge: {
     position: 'absolute',

@@ -1171,6 +1171,10 @@ def get_vault_detail(current_user, vault_id):
                         except Exception as comment_error:
                             logger.warning(f"⚠️ Error loading comments for photo {photo.id}: {str(comment_error)}")
                         
+                        # Get the user who shared this photo
+                        shared_by_user = User.query.get(vp.shared_by) if hasattr(vp, 'shared_by') and vp.shared_by else None
+                        shared_by_username = shared_by_user.username if shared_by_user else 'Unknown'
+                        
                         photos_list.append({
                             'id': photo.id,
                             'filename': photo.filename,
@@ -1178,7 +1182,10 @@ def get_vault_detail(current_user, vault_id):
                             'original_url': photo_url,
                             'thumbnail_url': thumbnail_url,
                             'caption': vp.caption if hasattr(vp, 'caption') else None,
+                            'created_at': photo.created_at.isoformat() if photo.created_at else None,
                             'shared_at': vp.shared_at.isoformat() if vp.shared_at else None,
+                            'shared_by_user_id': vp.shared_by if hasattr(vp, 'shared_by') else None,
+                            'shared_by_username': shared_by_username,
                             'user_id': photo.user_id,
                             'voice_memos': voice_memos_list,
                             'comments': comments_list
