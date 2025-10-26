@@ -259,7 +259,7 @@ export default function DashboardScreen({ navigation }) {
         </View>
 
         <View style={[styles.statCard, styles.highlightedStat]}>
-          <Ionicons name="people" size={42} color="#E85D75" />
+          <Ionicons name="lock-closed" size={42} color="#E85D75" />
           <Text style={styles.statNumber}>{stats?.vaults || 0}</Text>
           <Text style={styles.statLabel}>Vaults</Text>
         </View>
