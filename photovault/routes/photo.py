@@ -218,13 +218,14 @@ def process_uploaded_file(file, upload_source='file'):
             pass
         raise
 
-@photo_bp.route('/api/upload', methods=['POST'])
+@photo_bp.route('/api/web/upload', methods=['POST'])
 @csrf.exempt
 @login_required
 def upload_photo():
     """
-    Handle photo upload from file selection or camera capture
+    Handle photo upload from web browser (file selection or camera capture)
     Supports both single and multiple file uploads
+    Note: Mobile uploads use /api/upload with JWT authentication
     """
     # Note: CSRF is exempt for this upload endpoint since user is authenticated
     
