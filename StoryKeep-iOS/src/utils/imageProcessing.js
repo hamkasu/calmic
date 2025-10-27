@@ -12,54 +12,22 @@ import * as FileSystem from 'expo-file-system/legacy';
  */
 export async function sharpenImage(imageUri, intensity = 1.5, radius = 2.5) {
   try {
-    console.log('🔧 Starting local sharpen:', { intensity, radius });
+    console.log('🔧 Sharpen parameters:', { intensity, radius });
+    console.log('ℹ️ Sharpening will be done server-side for best quality');
     
-    // For React Native, we use multi-pass contrast/brightness to simulate sharpening
-    // Higher radius = more passes with lower intensity each
-    // Lower radius = fewer passes with higher intensity each
+    // NOTE: expo-image-manipulator doesn't support contrast/brightness adjustments
+    // These actions are not available: { contrast: value }, { brightness: value }
+    // Only supported actions are: resize, rotate, flip, crop
+    // 
+    // Therefore, we skip local preview sharpening and let the server handle it.
+    // The server uses PIL's UnsharpMask filter which provides professional-quality sharpening.
     
-    // Calculate number of passes based on radius
-    const numPasses = Math.max(1, Math.round(radius / 1.5)); // 1 pass at radius 1.0, 3 passes at radius 4.0
-    const intensityPerPass = intensity / numPasses;
-    
-    let currentUri = imageUri;
-    let tempFiles = [];
-    
-    for (let pass = 0; pass < numPasses; pass++) {
-      const contrastAdjustment = Math.min(intensityPerPass * 0.35, 0.8);
-      const brightnessAdjustment = Math.min(intensityPerPass * 0.04, 0.12);
-      
-      const result = await manipulateAsync(
-        currentUri,
-        [
-          { contrast: contrastAdjustment },
-          { brightness: brightnessAdjustment },
-        ],
-        {
-          compress: 0.95,
-          format: SaveFormat.JPEG,
-        }
-      );
-      
-      // Clean up intermediate files (except the original input and final output)
-      if (currentUri !== imageUri && pass < numPasses - 1) {
-        tempFiles.push(currentUri);
-      }
-      
-      currentUri = result.uri;
-    }
-    
-    // Clean up all intermediate temp files
-    for (const tempFile of tempFiles) {
-      await FileSystem.deleteAsync(tempFile, { idempotent: true }).catch(() => {});
-    }
-    
-    console.log('✅ Sharpen complete:', currentUri, `(${numPasses} passes)`);
-    return { uri: currentUri };
+    // Return original image unchanged - server will do the actual sharpening
+    return { uri: imageUri };
     
   } catch (error) {
     console.error('❌ Sharpen error:', error);
-    throw new Error('Failed to sharpen image: ' + error.message);
+    throw new Error('Failed to prepare image for sharpening: ' + error.message);
   }
 }
 
@@ -73,43 +41,21 @@ export async function sharpenImage(imageUri, intensity = 1.5, radius = 2.5) {
  */
 export async function sharpenImageAdvanced(imageUri, intensity = 1.5, radius = 2.5) {
   try {
-    console.log('🔧 Starting advanced sharpen:', { intensity, radius });
+    console.log('🔧 Advanced sharpen parameters:', { intensity, radius });
+    console.log('ℹ️ Advanced sharpening will be done server-side for best quality');
     
-    // For strong sharpening, apply multiple passes
-    let currentUri = imageUri;
-    const passes = intensity > 2.0 ? 2 : 1;
+    // NOTE: expo-image-manipulator doesn't support contrast/brightness adjustments
+    // Only supported actions are: resize, rotate, flip, crop
+    // 
+    // Server-side sharpening uses PIL's UnsharpMask which is far superior
+    // to any client-side approximation we could do with basic image ops.
     
-    for (let i = 0; i < passes; i++) {
-      const passIntensity = intensity / passes;
-      const contrastAdjustment = Math.min(passIntensity * 0.3, 1.0);
-      const brightnessAdjustment = Math.min(passIntensity * 0.05, 0.15);
-      
-      const result = await manipulateAsync(
-        currentUri,
-        [
-          { contrast: contrastAdjustment },
-          { brightness: brightnessAdjustment },
-        ],
-        {
-          compress: 0.95,
-          format: SaveFormat.JPEG,
-        }
-      );
-      
-      // Clean up intermediate file if it's not the original
-      if (currentUri !== imageUri && i < passes - 1) {
-        await FileSystem.deleteAsync(currentUri, { idempotent: true }).catch(() => {});
-      }
-      
-      currentUri = result.uri;
-    }
-    
-    console.log('✅ Advanced sharpen complete');
-    return { uri: currentUri };
+    // Return original image unchanged - server will do the actual sharpening
+    return { uri: imageUri };
     
   } catch (error) {
     console.error('❌ Advanced sharpen error:', error);
-    throw new Error('Failed to sharpen image: ' + error.message);
+    throw new Error('Failed to prepare image for advanced sharpening: ' + error.message);
   }
 }
 
