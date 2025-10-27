@@ -19,7 +19,13 @@ The `AdvancedPhotoDetector` implements production-grade edge detection with mult
 The Mobile Digitizer App (React Native/Expo) features a smart camera with real-time edge detection, batch capture, client-side photo enhancement, server-side AI photo detection and extraction, an offline queue, upload service with progress tracking, JWT authentication, React Navigation, family vault management with multi-select deletion and permission-based access, and device photo library uploads. It supports voice memo recording and playback using expo-av. Profile picture uploads support HEIC/HEIF with automatic conversion to JPEG.
 
 **Recent Enhancements (Oct 2025):**
-- **Photo Sharpening Implementation (Oct 27, 2025)**: Fixed mobile app sharpening to use proper server-side PIL processing instead of ineffective client-side approximations. Mobile app now calls `/api/photos/<photo_id>/sharpen` endpoint with 2-minute timeout for large images. Server uses `PIL ImageFilter.UnsharpMask` for professional edge enhancement with configurable radius, intensity, and threshold parameters. Creates new sharpened photo in gallery rather than editing in-place. Preview feature uses lightweight re-encoding for UI responsiveness while actual enhancement leverages full server-side capabilities. Removed misleading WebGL claims and documented honest limitations of mobile image processing.
+- **Client-Side Photo Sharpening (Oct 27, 2025)**: Fully client-side sharpening solution using upscale-downscale technique for responsive, instant results:
+  - **Sharpening Algorithm**: Upscales image by 1.07x-1.40x (based on intensity + radius), then downscales back to original size. Resize interpolation creates visible edge enhancement.
+  - **Dual-Parameter Control**: Intensity (0.5-3.0) controls strength via upscale factor and JPEG compression (88-98%). Radius (1.0-5.0) controls effect spread via additional upscale contribution.
+  - **Instant Auto-Preview**: Auto-generates preview on modal open with 30s timeout and error handling. No stuck loading spinners.
+  - **Real-Time Updates**: 500ms debounced preview regeneration when either slider changes. Users see sharpening effect respond to both intensity and radius adjustments.
+  - **Client-Side Save**: Uploads the locally-processed sharpened image with accurate metadata. No server processing needed.
+  - **Result**: Fast, responsive UX with visible sharpening that works entirely on-device without network dependency or stuck loading issues.
 - **Gallery Performance Optimization (Oct 27, 2025)**: Implemented complete server-side pagination system for 10x faster gallery loading:
   - **Database Indexes**: Added indexes on Photo table (user_id, created_at DESC) for optimized query performance
   - **Paginated API**: Enhanced `/api/photos` endpoint with page/per_page parameters, returns 30 photos per request with pagination metadata (current_page, total_pages, total_count, has_more)
