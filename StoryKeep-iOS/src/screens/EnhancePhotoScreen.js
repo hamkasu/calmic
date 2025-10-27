@@ -327,101 +327,35 @@ export default function EnhancePhotoScreen({ route, navigation }) {
     setShowSharpenControls(false);
     setProcessing(true);
     setProcessingProgress(0);
-    setProcessingMessage('Downloading full-resolution image...');
-    
-    let fullResUri = null;
-    let sharpenedFullResUri = null;
+    setProcessingMessage('Initializing sharpening...');
     
     try {
-      console.log('💾 Applying sharpen to full-resolution image');
+      console.log('🔧 Applying server-side sharpen with intensity', sharpenIntensity, 'radius', sharpenRadius);
       
-      // Step 1: Get the full-resolution image URL with proper null checks
-      const imageUrl = showOriginal ? photo.original_url : (photo.edited_url || photo.original_url);
+      setProcessingProgress(20);
+      setProcessingMessage('Processing with sharpening algorithm...');
       
-      if (!imageUrl) {
-        throw new Error('Image URL not available. Please try again.');
-      }
-      
-      setProcessingProgress(10);
-      console.log('📥 Downloading full-resolution image:', imageUrl);
-      
-      // Download full-res (not thumbnail!)
-      fullResUri = await downloadImageWithRetry(imageUrl, 3, false); // useThumbnail = false!
-      
-      setProcessingProgress(30);
-      setProcessingMessage('Sharpening full-resolution image...');
-      
-      // Step 2: Apply sharpening to full-res image
-      console.log('⚡ Sharpening full-res image with intensity', sharpenIntensity, 'radius', sharpenRadius);
-      const sharpenResult = await sharpenImage(fullResUri, sharpenIntensity, sharpenRadius);
-      sharpenedFullResUri = sharpenResult.uri;
-      
-      // Verify sharpened image exists
-      const fileInfo = await FileSystem.getInfoAsync(sharpenedFullResUri);
-      if (!fileInfo.exists) {
-        throw new Error('Sharpened image not found');
-      }
-      
-      setProcessingProgress(40);
-      setProcessingMessage('Uploading to gallery...');
-      
-      // Upload using 'image' field (same as vault uploads)
-      const formData = new FormData();
-      formData.append('image', {
-        uri: sharpenedFullResUri,
-        type: 'image/jpeg',
-        name: `sharpened_${Date.now()}.jpg`,
+      // Call server-side sharpen endpoint
+      const response = await photoAPI.sharpenPhoto(photo.id, {
+        intensity: sharpenIntensity,
+        radius: sharpenRadius,
+        threshold: 3,
+        method: 'unsharp'
       });
-      
-      // Add metadata
-      formData.append('title', `${photo.title || 'Photo'} (Sharpened)`);
-      formData.append('description', `Client-side sharpened: intensity ${sharpenIntensity}, radius ${sharpenRadius}`);
-      formData.append('enhancement_type', 'sharpen');
-      formData.append('original_photo_id', photo.id.toString());
-      
-      console.log('📤 Uploading sharpened photo');
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
-      
-      const response = await fetch(`${BASE_URL}/api/upload`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-        },
-        body: formData,
-        signal: controller.signal,
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Upload failed');
-      }
       
       setProcessingProgress(75);
-      setProcessingMessage('Saving to gallery...');
+      setProcessingMessage('Fetching sharpened photo...');
       
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Upload failed');
-      }
-      
-      console.log('✅ Sharpened photo saved:', result);
-      
-      setProcessingProgress(90);
-      setProcessingMessage('Fetching photo details...');
-      
-      // Fetch the newly created photo
-      const newPhoto = await photoAPI.getPhotoDetail(result.photo_id);
+      // Fetch the newly created photo details
+      const newPhoto = await photoAPI.getPhotoDetail(response.photo_id);
 
       setProcessingProgress(100);
       setProcessingMessage('Complete!');
       
       // Success - cleanup preview files
       await cleanupSharpenModal();
+
+      console.log('✅ Sharpened photo saved as new photo:', newPhoto.id);
 
       Alert.alert(
         'Photo Sharpened!', 
@@ -440,15 +374,9 @@ export default function EnhancePhotoScreen({ route, navigation }) {
         ]
       );
     } catch (error) {
-      Alert.alert('Error', 'Failed to save sharpened photo: ' + error.message);
+      Alert.alert('Error', 'Failed to sharpen photo: ' + error.message);
       console.error('Sharpen save error:', error);
     } finally {
-      // Cleanup temp sharpened file
-      if (sharpenedFullResUri) {
-        await FileSystem.deleteAsync(sharpenedFullResUri, { idempotent: true }).catch(() => {});
-      }
-      // Note: fullResUri is cached by downloadImageWithRetry - will be reused next time
-      
       setProcessing(false);
       setProcessingProgress(0);
       setProcessingMessage('');
