@@ -506,39 +506,43 @@ def update_avatar(current_user):
 @token_required
 def get_photos(current_user):
     """
-    ULTRA-SIMPLE Gallery Endpoint - Get photos for iOS app
-    Mirrors dashboard endpoint for reliability
+    Gallery Endpoint with Server-Side Pagination for iOS/Android app
+    Returns paginated photos with metadata for efficient loading
     """
     try:
-        logger.info(f"📸 Gallery request from user {current_user.id} ({current_user.username})")
-        
-        # Step 1: Get ALL photos for this user (same as dashboard)
-        all_photos = Photo.query.filter_by(user_id=current_user.id).all()
-        logger.info(f"📊 Found {len(all_photos)} total photos in database")
-        
-        # Step 2: Get filter parameter
+        # Get pagination parameters
+        page = max(1, int(request.args.get('page', 1)))
+        per_page = min(100, max(1, int(request.args.get('per_page', 30))))  # Default 30, max 100
         filter_type = request.args.get('filter', 'all').lower()
-        logger.info(f"🔍 Filter requested: {filter_type}")
         
-        # Step 3: Apply simple filtering
-        if filter_type == 'all' or not filter_type:
-            filtered_photos = all_photos
-        elif filter_type == 'enhanced':
-            filtered_photos = [p for p in all_photos if p.edited_filename]
+        logger.info(f"📸 Gallery request from user {current_user.id} - page {page}, per_page {per_page}, filter: {filter_type}")
+        
+        # Build base query with proper ordering for index usage
+        base_query = Photo.query.filter_by(user_id=current_user.id).order_by(Photo.created_at.desc())
+        
+        # Apply filtering if requested
+        if filter_type == 'enhanced':
+            base_query = base_query.filter(Photo.edited_filename.isnot(None))
         elif filter_type == 'originals':
-            filtered_photos = [p for p in all_photos if not p.edited_filename]
-        else:
-            # For any other filter, return all photos
-            filtered_photos = all_photos
+            base_query = base_query.filter(Photo.edited_filename.is_(None))
+        # 'all' or any other value returns all photos
         
-        logger.info(f"✅ After filter: {len(filtered_photos)} photos")
+        # Get total count for pagination metadata
+        total_count = base_query.count()
         
-        # Step 4: Sort by date (newest first)
-        filtered_photos.sort(key=lambda x: x.created_at if x.created_at else datetime.min, reverse=True)
+        # Calculate pagination metadata
+        total_pages = (total_count + per_page - 1) // per_page  # Ceiling division
+        has_more = page < total_pages
         
-        # Step 5: Build simple photo list (EXACT SAME URL PATTERN AS DASHBOARD)
+        # Execute paginated query using LIMIT and OFFSET
+        offset = (page - 1) * per_page
+        photos = base_query.limit(per_page).offset(offset).all()
+        
+        logger.info(f"📊 Found {len(photos)} photos for page {page} (total: {total_count})")
+        
+        # Build photo list with all required metadata
         photos_list = []
-        for photo in filtered_photos:
+        for photo in photos:
             photo_dict = {
                 'id': photo.id,
                 'filename': photo.filename,
@@ -546,34 +550,49 @@ def get_photos(current_user):
                 'thumbnail_url': f'/uploads/{current_user.id}/{photo.filename}' if photo.filename else None,
                 'created_at': photo.created_at.isoformat() if photo.created_at else None,
                 'file_size': photo.file_size or 0,
-                'has_edited': bool(photo.edited_filename)
+                'has_edited': bool(photo.edited_filename),
+                'enhancement_metadata': photo.enhancement_metadata,
+                'voice_memo_count': getattr(photo, 'voice_memo_count', 0),
+                'comment_count': getattr(photo, 'comment_count', 0)
             }
             
-            # Add edited URL if it exists (SAME AS DASHBOARD)
+            # Add edited URL if it exists
             if photo.edited_filename:
                 photo_dict['edited_url'] = f'/uploads/{current_user.id}/{photo.edited_filename}'
             
             photos_list.append(photo_dict)
         
-        # Step 6: Return simple response
+        # Return paginated response with metadata
         response = {
             'success': True,
             'photos': photos_list,
-            'total': len(photos_list),
+            'pagination': {
+                'current_page': page,
+                'per_page': per_page,
+                'total_count': total_count,
+                'total_pages': total_pages,
+                'has_more': has_more
+            },
             'filter': filter_type
         }
         
-        logger.info(f"✅ Returning {len(photos_list)} photos to iOS app")
+        logger.info(f"✅ Returning page {page}/{total_pages} ({len(photos_list)} photos) to mobile app")
         return jsonify(response), 200
         
+    except ValueError as ve:
+        logger.error(f"❌ Invalid pagination parameters: {str(ve)}")
+        return jsonify({
+            'success': False,
+            'error': 'Invalid page or per_page parameter',
+            'photos': []
+        }), 400
     except Exception as e:
         logger.error(f"❌ Gallery error: {str(e)}")
         logger.error(f"❌ Error details: {traceback.format_exc()}")
         return jsonify({
             'success': False,
             'error': str(e),
-            'photos': [],
-            'total': 0
+            'photos': []
         }), 500
 
 @mobile_api_bp.route('/photos/<int:photo_id>', methods=['GET'])
