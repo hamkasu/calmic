@@ -30,8 +30,6 @@ const PAGE_SIZE = 30;
 
 export default function GalleryScreen({ navigation }) {
   const [allPhotos, setAllPhotos] = useState([]);
-  const [displayPhotos, setDisplayPhotos] = useState([]);
-  const [paginatedPhotos, setPaginatedPhotos] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('all');
@@ -42,6 +40,7 @@ export default function GalleryScreen({ navigation }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [totalPhotos, setTotalPhotos] = useState(0);
   const { startLoading, stopLoading } = useLoading();
   
   // Vault sharing states
@@ -55,41 +54,63 @@ export default function GalleryScreen({ navigation }) {
   }, []);
 
   useEffect(() => {
-    applyFilter();
-  }, [filter, allPhotos]);
+    // When filter changes, reload from server
+    if (!initialLoading) {
+      setCurrentPage(1);
+      loadPhotos(1, false);
+    }
+  }, [filter]);
 
-  useEffect(() => {
-    paginatePhotos();
-  }, [displayPhotos, currentPage]);
 
-  const loadPhotos = async () => {
-    const loadingId = !refreshing ? startLoading('Loading gallery...') : null;
+  const loadPhotos = async (pageNum = 1, append = false) => {
+    const loadingId = !refreshing && !append ? startLoading('Loading gallery...') : null;
     try {
-      setInitialLoading(true);
-      setLoadingProgress(0);
+      if (!append) {
+        setInitialLoading(true);
+        setLoadingProgress(0);
+      }
       
       const token = await AsyncStorage.getItem('authToken');
       setAuthToken(token);
       
-      setLoadingProgress(30);
+      if (!append) setLoadingProgress(30);
       
-      // Get ALL photos from dashboard endpoint
-      const dashboardResponse = await fetch(`${BASE_URL}/api/dashboard`, {
+      // Use paginated photos endpoint for efficient loading
+      const response = await fetch(`${BASE_URL}/api/photos?page=${pageNum}&per_page=30&filter=${filter}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-      const dashboardData = await dashboardResponse.json();
       
-      setLoadingProgress(70);
+      if (!append) setLoadingProgress(70);
       
-      if (dashboardData.all_photos && dashboardData.all_photos.length > 0) {
-        setAllPhotos(dashboardData.all_photos);
+      const data = await response.json();
+      
+      if (data.success && data.photos) {
+        if (append) {
+          // Append new page to existing photos
+          setAllPhotos(prev => [...prev, ...data.photos]);
+        } else {
+          // Replace all photos (fresh load or refresh)
+          setAllPhotos(data.photos);
+        }
+        
+        // Store pagination metadata
+        if (data.pagination) {
+          setCurrentPage(data.pagination.current_page);
+          setTotalPhotos(data.pagination.total_count);
+          // Store if there are more pages to load
+          if (!data.pagination.has_more) {
+            setLoadingMore(false);
+          }
+        }
       } else {
-        setAllPhotos([]);
+        if (!append) {
+          setAllPhotos([]);
+        }
       }
       
-      setLoadingProgress(100);
+      if (!append) setLoadingProgress(100);
     } catch (error) {
       console.error('Gallery error:', error);
       Alert.alert('Error', 'Failed to load photos');
@@ -99,58 +120,22 @@ export default function GalleryScreen({ navigation }) {
       }
       setRefreshing(false);
       setInitialLoading(false);
-      setCurrentPage(1);
+      setLoadingMore(false);
     }
   };
-
-  const paginatePhotos = useCallback(() => {
-    const endIndex = currentPage * PAGE_SIZE;
-    setPaginatedPhotos(displayPhotos.slice(0, endIndex));
-  }, [displayPhotos, currentPage]);
 
   const loadMorePhotos = () => {
-    if (!loadingMore && paginatedPhotos.length < displayPhotos.length) {
+    if (!loadingMore && !initialLoading) {
       setLoadingMore(true);
-      setTimeout(() => {
-        setCurrentPage(prev => prev + 1);
-        setLoadingMore(false);
-      }, 300);
+      // Load next page from server
+      loadPhotos(currentPage + 1, true);
     }
-  };
-
-  const applyFilter = () => {
-    let filtered = [...allPhotos];
-    
-    if (filter === 'colorized') {
-      filtered = allPhotos.filter(photo => photo.edited_url);
-    } else if (filter === 'originals') {
-      filtered = allPhotos.filter(photo => !photo.edited_url);
-    } else if (filter === 'dnn') {
-      // Photos colorized with DNN method
-      filtered = allPhotos.filter(photo => 
-        photo.enhancement_metadata && 
-        photo.enhancement_metadata.colorization &&
-        photo.enhancement_metadata.colorization.method === 'dnn'
-      );
-    } else if (filter === 'ai') {
-      // Photos colorized with AI method
-      filtered = allPhotos.filter(photo => 
-        photo.enhancement_metadata && 
-        photo.enhancement_metadata.colorization &&
-        photo.enhancement_metadata.colorization.method === 'ai_guided_dnn'
-      );
-    } else if (filter === 'uncolorized') {
-      // Photos without colorization
-      filtered = allPhotos.filter(photo => !photo.enhancement_metadata);
-    }
-    
-    setDisplayPhotos(filtered);
   };
 
   const onRefresh = () => {
     setRefreshing(true);
     setCurrentPage(1);
-    loadPhotos();
+    loadPhotos(1, false);
   };
 
   const toggleSelectionMode = () => {
@@ -167,7 +152,7 @@ export default function GalleryScreen({ navigation }) {
   };
 
   const selectAll = () => {
-    const allPhotoIds = displayPhotos.map(photo => photo.id);
+    const allPhotoIds = allPhotos.map(photo => photo.id);
     setSelectedPhotos(allPhotoIds);
   };
 
@@ -520,7 +505,7 @@ export default function GalleryScreen({ navigation }) {
               ? `Downloading ${downloadProgress.current} of ${downloadProgress.total}...`
               : selectionMode 
                 ? `${selectedPhotos.length} selected` 
-                : `${displayPhotos.length} photos`}
+                : totalPhotos > 0 ? `${totalPhotos} photos` : `${allPhotos.length} photos`}
           </Text>
         </View>
         <View style={styles.headerRight}>
@@ -550,11 +535,11 @@ export default function GalleryScreen({ navigation }) {
               )}
               {!downloadProgress.isDownloading && (
                 <TouchableOpacity 
-                  style={[styles.selectAllButton, selectedPhotos.length === displayPhotos.length && styles.selectAllButtonActive]}
-                  onPress={selectedPhotos.length === displayPhotos.length ? deselectAll : selectAll}
+                  style={[styles.selectAllButton, selectedPhotos.length === allPhotos.length && styles.selectAllButtonActive]}
+                  onPress={selectedPhotos.length === allPhotos.length ? deselectAll : selectAll}
                 >
                   <Text style={styles.selectAllButtonText}>
-                    {selectedPhotos.length === displayPhotos.length ? 'None' : 'All'}
+                    {selectedPhotos.length === allPhotos.length ? 'None' : 'All'}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -584,15 +569,22 @@ export default function GalleryScreen({ navigation }) {
 
       {initialLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#E85D75" style={{ marginBottom: 20 }} />
+          <View style={styles.loadingSpinnerContainer}>
+            <ActivityIndicator size="large" color="#E85D75" />
+            <View style={styles.loadingRing} />
+          </View>
+          <Text style={styles.loadingTitle}>Loading Your Photos</Text>
+          <Text style={styles.loadingSubtitle}>
+            {totalPhotos > 0 ? `${totalPhotos} photos total` : 'Fetching gallery...'}
+          </Text>
           <ProgressBar 
             progress={loadingProgress} 
-            message="Loading gallery..."
+            message={loadingProgress < 50 ? "Connecting to server..." : "Loading photos..."}
             color="#E85D75"
             showPercentage={true}
           />
         </View>
-      ) : displayPhotos.length === 0 ? (
+      ) : allPhotos.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="images-outline" size={80} color="#ccc" />
           <Text style={styles.emptyText}>No photos yet</Text>
@@ -605,7 +597,7 @@ export default function GalleryScreen({ navigation }) {
         </View>
       ) : (
         <FlatList
-          data={paginatedPhotos}
+          data={allPhotos}
           renderItem={renderPhoto}
           keyExtractor={(item) => item.id.toString()}
           numColumns={COLUMN_COUNT}
@@ -922,6 +914,41 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginLeft: 3,
     fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+    backgroundColor: '#000',
+  },
+  loadingSpinnerContainer: {
+    width: 80,
+    height: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 30,
+    position: 'relative',
+  },
+  loadingRing: {
+    position: 'absolute',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 3,
+    borderColor: 'rgba(232, 93, 117, 0.2)',
+    borderTopColor: '#E85D75',
+  },
+  loadingTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 10,
+  },
+  loadingSubtitle: {
+    fontSize: 16,
+    color: '#888',
+    marginBottom: 30,
   },
   emptyContainer: {
     flex: 1,
