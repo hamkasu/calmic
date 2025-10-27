@@ -1066,8 +1066,8 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   modalBody: {
-    flex: 1,
     padding: 20,
+    maxHeight: 400,
   },
   controlGroup: {
     marginBottom: 30,
