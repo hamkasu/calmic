@@ -122,7 +122,7 @@ def dashboard():
             storage_limit_mb = 100
             logger.info("No subscription - using default 100 MB limit")
         
-        # Calculate percentage
+        # Calculate percentage (2 decimal places for better precision)
         storage_usage_percent = round((total_size_mb / storage_limit_mb * 100), 2) if storage_limit_mb > 0 else 0.0
         
         # Update stats dictionary

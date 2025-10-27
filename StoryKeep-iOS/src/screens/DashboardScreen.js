@@ -258,7 +258,7 @@ export default function DashboardScreen({ navigation }) {
           <Text style={styles.statLabel}>Colorized</Text>
         </View>
 
-        <View style={[styles.statCard, styles.highlightedStat]}>
+        <View style={styles.statCard}>
           <Ionicons name="lock-closed" size={42} color="#E85D75" />
           <Text style={styles.statNumber}>{stats?.vaults || 0}</Text>
           <Text style={styles.statLabel}>Vaults</Text>
@@ -320,7 +320,7 @@ export default function DashboardScreen({ navigation }) {
                     '#4CAF50'
                   }
                 ]}>
-                  {stats.storage_usage_percent.toFixed(1)}% used
+                  {stats.storage_usage_percent.toFixed(2)}% used
                 </Text>
               </>
             )}

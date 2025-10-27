@@ -230,11 +230,11 @@ def get_dashboard(current_user):
                 storage_usage_percent = 0  # No percentage for unlimited
             else:
                 storage_limit_mb = storage_limit_gb * 1024
-                storage_usage_percent = round((total_size_mb / storage_limit_mb * 100), 1) if storage_limit_mb > 0 else 0
+                storage_usage_percent = round((total_size_mb / storage_limit_mb * 100), 2) if storage_limit_mb > 0 else 0
         else:
             # Free plan defaults - 100MB
             storage_limit_mb = 100
-            storage_usage_percent = round((total_size_mb / storage_limit_mb * 100), 1) if storage_limit_mb > 0 else 0
+            storage_usage_percent = round((total_size_mb / storage_limit_mb * 100), 2) if storage_limit_mb > 0 else 0
         
         # Get voice memo counts for all photos efficiently (single query)
         voice_memo_dict = {}
