@@ -115,11 +115,36 @@ export default function EnhancePhotoScreen({ route, navigation }) {
 
   // Helper: Download image with retry logic and caching
   const downloadImageWithRetry = async (imageUrl, maxRetries = 3, useThumbnail = true) => {
-    // Use thumbnail for faster download if available and requested
-    const finalImageUrl = useThumbnail && photo.thumbnail_url ? photo.thumbnail_url : imageUrl;
+    // Try thumbnail first if requested, then fall back to full-res if it fails
+    const urlsToTry = useThumbnail && photo.thumbnail_url 
+      ? [photo.thumbnail_url, imageUrl] // Try thumbnail, then full-res
+      : [imageUrl]; // Only full-res
     
+    let lastError = null;
+    
+    for (const urlToDownload of urlsToTry) {
+      try {
+        return await downloadSingleImage(urlToDownload, maxRetries);
+      } catch (error) {
+        console.warn(`❌ Failed to download ${urlToDownload}:`, error.message);
+        lastError = error;
+        // If this was thumbnail and we have full-res to try, continue
+        if (urlsToTry.length > 1 && urlToDownload === photo.thumbnail_url) {
+          console.log('⚠️ Thumbnail failed, falling back to full-resolution...');
+          setDownloadMessage('Thumbnail failed, trying full-resolution...');
+          continue;
+        }
+      }
+    }
+    
+    // All URLs failed
+    throw lastError || new Error('Download failed');
+  };
+
+  // Helper: Download a single image URL with retry logic
+  const downloadSingleImage = async (imageUrl, maxRetries = 3) => {
     const cacheDir = FileSystem.cacheDirectory + 'sharpen_cache/';
-    const cacheKey = finalImageUrl.split('/').pop().replace(/[^a-zA-Z0-9]/g, '_');
+    const cacheKey = imageUrl.split('/').pop().replace(/[^a-zA-Z0-9]/g, '_');
     const cachedPath = cacheDir + cacheKey + '.jpg';
     
     // Create cache directory if it doesn't exist
@@ -140,8 +165,8 @@ export default function EnhancePhotoScreen({ route, navigation }) {
     // Download with retry logic
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        const fullUrl = `${BASE_URL}${finalImageUrl}`;
-        const imageType = useThumbnail && photo.thumbnail_url ? 'thumbnail' : 'full-res';
+        const fullUrl = `${BASE_URL}${imageUrl}`;
+        const imageType = imageUrl === photo.thumbnail_url ? 'thumbnail' : 'full-res';
         console.log(`📥 Download attempt ${attempt}/${maxRetries} (${imageType}):`, fullUrl);
         setDownloadMessage(`Downloading ${imageType} image... (attempt ${attempt}/${maxRetries})`);
         setDownloadProgress(0);
@@ -302,27 +327,40 @@ export default function EnhancePhotoScreen({ route, navigation }) {
     setShowSharpenControls(false);
     setProcessing(true);
     setProcessingProgress(0);
-    setProcessingMessage('Saving sharpened photo...');
+    setProcessingMessage('Downloading full-resolution image...');
+    
+    let fullResUri = null;
+    let sharpenedFullResUri = null;
     
     try {
-      console.log('💾 Saving client-side sharpened photo to gallery');
+      console.log('💾 Applying sharpen to full-resolution image');
       
-      setProcessingProgress(20);
-      setProcessingMessage('Preparing upload...');
+      // Step 1: Download FULL-RESOLUTION image (not thumbnail!)
+      setProcessingProgress(10);
+      const imageUrl = showOriginal ? photo.original_url : (photo.edited_url || photo.original_url);
+      fullResUri = await downloadImageWithRetry(imageUrl, 3, false); // useThumbnail = false!
       
-      // Verify sharpened preview exists
-      const fileInfo = await FileSystem.getInfoAsync(sharpenPreview);
+      setProcessingProgress(30);
+      setProcessingMessage('Sharpening full-resolution image...');
+      
+      // Step 2: Apply sharpening to full-res image
+      console.log('⚡ Sharpening full-res image with intensity', sharpenIntensity, 'radius', sharpenRadius);
+      const sharpenResult = await sharpenImage(fullResUri, sharpenIntensity, sharpenRadius);
+      sharpenedFullResUri = sharpenResult.uri;
+      
+      // Verify sharpened full-res exists
+      const fileInfo = await FileSystem.getInfoAsync(sharpenedFullResUri);
       if (!fileInfo.exists) {
-        throw new Error('Sharpened preview not found');
+        throw new Error('Sharpened full-res image not found');
       }
       
-      setProcessingProgress(40);
+      setProcessingProgress(60);
       setProcessingMessage('Uploading to gallery...');
       
-      // Upload the client-side sharpened image
+      // Step 3: Upload the FULL-RES sharpened image
       const formData = new FormData();
       formData.append('photo', {
-        uri: sharpenPreview,
+        uri: sharpenedFullResUri,
         type: 'image/jpeg',
         name: `sharpened_${Date.now()}.jpg`,
       });
@@ -397,6 +435,12 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       Alert.alert('Error', 'Failed to save sharpened photo: ' + error.message);
       console.error('Sharpen save error:', error);
     } finally {
+      // Cleanup temp full-res files
+      if (sharpenedFullResUri) {
+        await FileSystem.deleteAsync(sharpenedFullResUri, { idempotent: true }).catch(() => {});
+      }
+      // Note: Don't delete fullResUri as it's cached - keep for next use
+      
       setProcessing(false);
       setProcessingProgress(0);
       setProcessingMessage('');
