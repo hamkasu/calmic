@@ -16,6 +16,8 @@ import Slider from '@react-native-community/slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { photoAPI } from '../services/api';
 import ProgressBar from '../components/ProgressBar';
+import { sharpenImage, SharpenPresets } from '../utils/imageProcessing';
+import * as FileSystem from 'expo-file-system/legacy';
 
 const { width } = Dimensions.get('window');
 const BASE_URL = 'https://storykeep.calmic.com.my';
@@ -33,8 +35,11 @@ export default function EnhancePhotoScreen({ route, navigation }) {
   // Sharpen controls modal state
   const [showSharpenControls, setShowSharpenControls] = useState(false);
   const [sharpenIntensity, setSharpenIntensity] = useState(1.5);
-  const [sharpenRadius, setSharpenRadius] = useState(2.0);
-  const [sharpenThreshold, setSharpenThreshold] = useState(3);
+  const [sharpenRadius, setSharpenRadius] = useState(2.5);
+  const [sharpenPreview, setSharpenPreview] = useState(null);
+  const [sharpenOriginal, setSharpenOriginal] = useState(null);
+  const [sharpenProcessing, setSharpenProcessing] = useState(false);
+  const [showBeforeAfter, setShowBeforeAfter] = useState(false);
   
   // AI Restoration controls modal state
   const [showAIRestorationControls, setShowAIRestorationControls] = useState(false);
@@ -85,27 +90,127 @@ export default function EnhancePhotoScreen({ route, navigation }) {
     setShowSharpenControls(true);
   };
 
+  const generateSharpenPreview = async () => {
+    let tempUri = null;
+    let previewUri = null;
+    try {
+      setSharpenProcessing(true);
+      
+      // Get the image URI
+      const imageUrl = showOriginal ? photo.original_url : (photo.edited_url || photo.original_url);
+      const fullUrl = `${BASE_URL}${imageUrl}`;
+      
+      // Download image to temp location with auth
+      tempUri = FileSystem.documentDirectory + 'temp_sharpen_preview.jpg';
+      await FileSystem.downloadAsync(fullUrl, tempUri, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+      
+      // Store original for before/after comparison
+      setSharpenOriginal(tempUri);
+      
+      // Apply sharpening locally
+      const result = await sharpenImage(tempUri, sharpenIntensity, sharpenRadius);
+      previewUri = result.uri;
+      setSharpenPreview(previewUri);
+      setShowBeforeAfter(false); // Default to showing after (sharpened)
+      
+    } catch (error) {
+      console.error('Preview generation error:', error);
+      // Cleanup on error - delete both temp and preview
+      if (tempUri) {
+        await FileSystem.deleteAsync(tempUri, { idempotent: true }).catch(() => {});
+      }
+      if (previewUri) {
+        await FileSystem.deleteAsync(previewUri, { idempotent: true }).catch(() => {});
+      }
+      setSharpenOriginal(null);
+      setSharpenPreview(null);
+    } finally {
+      setSharpenProcessing(false);
+    }
+  };
+  
+  const cleanupSharpenModal = async () => {
+    // Cleanup all temp files when modal closes
+    if (sharpenPreview) {
+      await FileSystem.deleteAsync(sharpenPreview, { idempotent: true }).catch(() => {});
+    }
+    if (sharpenOriginal) {
+      await FileSystem.deleteAsync(sharpenOriginal, { idempotent: true }).catch(() => {});
+    }
+    setSharpenPreview(null);
+    setSharpenOriginal(null);
+    setShowBeforeAfter(false);
+  };
+
   const applySharpen = async () => {
     setShowSharpenControls(false);
     setProcessing(true);
     setProcessingProgress(0);
-    setProcessingMessage('Preparing to sharpen...');
+    setProcessingMessage('Sharpening photo locally...');
+    
+    let tempUri = null;
+    let resultUri = null;
     
     try {
-      const options = {
-        intensity: sharpenIntensity,
-        radius: sharpenRadius,
-        threshold: sharpenThreshold,
-        method: 'unsharp'
-      };
+      // Reuse existing sharpenPreview if available, otherwise generate fresh
+      if (sharpenPreview) {
+        resultUri = sharpenPreview;
+        console.log('♻️ Reusing existing sharpen preview');
+      } else {
+        // Get the image URI
+        const imageUrl = showOriginal ? photo.original_url : (photo.edited_url || photo.original_url);
+        const fullUrl = `${BASE_URL}${imageUrl}`;
+        
+        setProcessingProgress(20);
+        setProcessingMessage('Downloading photo...');
+        
+        // Download image with auth
+        tempUri = FileSystem.documentDirectory + 'temp_sharpen.jpg';
+        await FileSystem.downloadAsync(fullUrl, tempUri, {
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+        
+        setProcessingProgress(40);
+        setProcessingMessage('Applying sharpening filter...');
+        
+        // Apply sharpening locally
+        const result = await sharpenImage(tempUri, sharpenIntensity, sharpenRadius);
+        resultUri = result.uri;
+      }
       
-      console.log('Applying sharpen with options:', options);
-      setProcessingProgress(30);
-      setProcessingMessage('Applying sharpen filter...');
+      setProcessingProgress(60);
+      setProcessingMessage('Uploading sharpened photo...');
       
-      const response = await photoAPI.sharpenPhoto(photo.id, options);
+      // Upload the sharpened image to server
+      const formData = new FormData();
+      formData.append('photo', {
+        uri: resultUri,
+        type: 'image/jpeg',
+        name: 'sharpened.jpg',
+      });
+      formData.append('intensity', sharpenIntensity.toString());
+      formData.append('radius', sharpenRadius.toString());
+      formData.append('method', 'unsharp');
       
-      setProcessingProgress(70);
+      const response = await fetch(`${BASE_URL}/api/photos/${photo.id}/sharpen`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      
+      setProcessingProgress(90);
       setProcessingMessage('Fetching updated photo...');
       
       // Fetch the updated photo data
@@ -113,24 +218,46 @@ export default function EnhancePhotoScreen({ route, navigation }) {
 
       setProcessingProgress(100);
       setProcessingMessage('Complete!');
+      
+      // Success - cleanup all temp files including preview
+      await cleanupSharpenModal();
+      if (tempUri) {
+        await FileSystem.deleteAsync(tempUri, { idempotent: true }).catch(() => {});
+      }
 
       Alert.alert('Success', 'Photo sharpened successfully!', [
         {
           text: 'View',
           onPress: () => {
-            // Navigate back and replace the photo data
             navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
           },
         },
       ]);
     } catch (error) {
-      Alert.alert('Error', 'Failed to sharpen photo');
+      Alert.alert('Error', 'Failed to sharpen photo: ' + error.message);
       console.error(error);
+      
+      // On error, cleanup temp files but keep preview for retry
+      if (tempUri) {
+        await FileSystem.deleteAsync(tempUri, { idempotent: true }).catch(() => {});
+      }
+      // Don't delete resultUri if it's the preview - user might want to retry
+      if (resultUri && resultUri !== sharpenPreview) {
+        await FileSystem.deleteAsync(resultUri, { idempotent: true }).catch(() => {});
+      }
     } finally {
       setProcessing(false);
       setProcessingProgress(0);
       setProcessingMessage('');
     }
+  };
+  
+  const applyPreset = async (presetKey) => {
+    const preset = SharpenPresets[presetKey];
+    setSharpenIntensity(preset.intensity);
+    setSharpenRadius(preset.radius);
+    // Automatically generate preview with preset
+    setTimeout(() => generateSharpenPreview(), 100);
   };
 
   const handleColorize = async (useAI = false) => {
@@ -381,22 +508,108 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       <Modal
         visible={showSharpenControls}
         animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowSharpenControls(false)}
+        transparent={false}
+        onRequestClose={async () => {
+          await cleanupSharpenModal();
+          setShowSharpenControls(false);
+        }}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Sharpen Controls</Text>
-              <TouchableOpacity onPress={() => setShowSharpenControls(false)}>
-                <Ionicons name="close" size={28} color="#333" />
-              </TouchableOpacity>
+        <View style={styles.fullScreenModal}>
+          <View style={styles.fullScreenHeader}>
+            <TouchableOpacity 
+              onPress={async () => {
+                await cleanupSharpenModal();
+                setShowSharpenControls(false);
+              }} 
+              style={styles.closeButton}
+            >
+              <Ionicons name="close" size={28} color="#333" />
+            </TouchableOpacity>
+            <Text style={styles.fullScreenTitle}>Sharpen Photo</Text>
+            <TouchableOpacity onPress={applySharpen} style={styles.doneButton}>
+              <Text style={styles.doneButtonText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.fullScreenBody}>
+            {/* Preview Section */}
+            <View style={styles.previewSection}>
+              <Text style={styles.sectionLabel}>Preview</Text>
+              <View style={styles.previewContainer}>
+                {sharpenProcessing ? (
+                  <View style={styles.previewLoading}>
+                    <ActivityIndicator size="large" color="#FF9800" />
+                    <Text style={styles.previewLoadingText}>Generating preview...</Text>
+                  </View>
+                ) : sharpenPreview ? (
+                  <View style={styles.beforeAfterContainer}>
+                    <Image 
+                      source={{ uri: showBeforeAfter ? sharpenOriginal : sharpenPreview }} 
+                      style={styles.previewImage}
+                      resizeMode="contain"
+                    />
+                    <TouchableOpacity 
+                      style={styles.compareButton}
+                      onPress={() => setShowBeforeAfter(!showBeforeAfter)}
+                    >
+                      <Ionicons name={showBeforeAfter ? "eye-off" : "eye"} size={20} color="#fff" />
+                      <Text style={styles.compareButtonText}>
+                        {showBeforeAfter ? "Before" : "After"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.noPreview}>
+                    <Image 
+                      source={{ 
+                        uri: `${BASE_URL}${showOriginal ? photo.original_url : (photo.edited_url || photo.original_url)}`,
+                        headers: { Authorization: `Bearer ${authToken}` }
+                      }} 
+                      style={styles.previewImage}
+                      resizeMode="contain"
+                    />
+                    <TouchableOpacity 
+                      style={styles.generatePreviewButton}
+                      onPress={generateSharpenPreview}
+                    >
+                      <Ionicons name="eye" size={20} color="#fff" />
+                      <Text style={styles.generatePreviewButtonText}>Generate Preview</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
             </View>
 
-            <ScrollView style={styles.modalBody}>
+            {/* Quick Presets */}
+            <View style={styles.presetsSection}>
+              <Text style={styles.sectionLabel}>Quick Presets</Text>
+              <View style={styles.presetsGrid}>
+                {Object.entries(SharpenPresets).map(([key, preset]) => (
+                  <TouchableOpacity
+                    key={key}
+                    style={[
+                      styles.presetCard,
+                      sharpenIntensity === preset.intensity && sharpenRadius === preset.radius && styles.presetCardActive
+                    ]}
+                    onPress={() => applyPreset(key)}
+                  >
+                    <Ionicons name={preset.icon} size={32} color="#FF9800" />
+                    <Text style={styles.presetCardTitle}>{preset.name}</Text>
+                    <Text style={styles.presetCardDescription}>{preset.description}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Manual Controls */}
+            <View style={styles.manualSection}>
+              <Text style={styles.sectionLabel}>Fine-Tune</Text>
+              
               <View style={styles.controlGroup}>
                 <View style={styles.controlHeader}>
-                  <Text style={styles.controlLabel}>Intensity</Text>
+                  <Text style={styles.controlLabel}>
+                    <Ionicons name="contrast" size={16} /> Intensity
+                  </Text>
                   <Text style={styles.controlValue}>{sharpenIntensity.toFixed(1)}</Text>
                 </View>
                 <Slider
@@ -411,13 +624,15 @@ export default function EnhancePhotoScreen({ route, navigation }) {
                   thumbTintColor="#FF9800"
                 />
                 <Text style={styles.controlDescription}>
-                  Higher values create sharper images but may introduce artifacts
+                  Controls sharpening strength
                 </Text>
               </View>
 
               <View style={styles.controlGroup}>
                 <View style={styles.controlHeader}>
-                  <Text style={styles.controlLabel}>Radius</Text>
+                  <Text style={styles.controlLabel}>
+                    <Ionicons name="resize" size={16} /> Radius
+                  </Text>
                   <Text style={styles.controlValue}>{sharpenRadius.toFixed(1)}</Text>
                 </View>
                 <Slider
@@ -432,83 +647,19 @@ export default function EnhancePhotoScreen({ route, navigation }) {
                   thumbTintColor="#FF9800"
                 />
                 <Text style={styles.controlDescription}>
-                  Controls the sharpening area size (smaller = finer detail)
+                  Affects sharpening detail level
                 </Text>
               </View>
-
-              <View style={styles.controlGroup}>
-                <View style={styles.controlHeader}>
-                  <Text style={styles.controlLabel}>Threshold</Text>
-                  <Text style={styles.controlValue}>{sharpenThreshold}</Text>
-                </View>
-                <Slider
-                  style={styles.slider}
-                  minimumValue={0}
-                  maximumValue={10}
-                  step={1}
-                  value={sharpenThreshold}
-                  onValueChange={setSharpenThreshold}
-                  minimumTrackTintColor="#FF9800"
-                  maximumTrackTintColor="#ddd"
-                  thumbTintColor="#FF9800"
-                />
-                <Text style={styles.controlDescription}>
-                  Prevents sharpening low-contrast areas (reduces noise)
-                </Text>
-              </View>
-
-              <View style={styles.presetContainer}>
-                <Text style={styles.presetTitle}>Quick Presets</Text>
-                <View style={styles.presetButtons}>
-                  <TouchableOpacity
-                    style={styles.presetButton}
-                    onPress={() => {
-                      setSharpenIntensity(1.0);
-                      setSharpenRadius(1.5);
-                      setSharpenThreshold(3);
-                    }}
-                  >
-                    <Text style={styles.presetButtonText}>Light</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.presetButton}
-                    onPress={() => {
-                      setSharpenIntensity(1.5);
-                      setSharpenRadius(2.0);
-                      setSharpenThreshold(3);
-                    }}
-                  >
-                    <Text style={styles.presetButtonText}>Medium</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.presetButton}
-                    onPress={() => {
-                      setSharpenIntensity(2.5);
-                      setSharpenRadius(2.5);
-                      setSharpenThreshold(2);
-                    }}
-                  >
-                    <Text style={styles.presetButtonText}>Strong</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </ScrollView>
-
-            <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setShowSharpenControls(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.applyButton]}
-                onPress={applySharpen}
-              >
-                <Text style={styles.applyButtonText}>Apply Sharpen</Text>
-              </TouchableOpacity>
             </View>
-          </View>
+
+            <View style={styles.infoBox}>
+              <Ionicons name="information-circle" size={20} color="#FF9800" />
+              <Text style={styles.infoText}>
+                Sharpening is processed instantly on your device for better speed and privacy. 
+                The result will be saved to your photo library after applying.
+              </Text>
+            </View>
+          </ScrollView>
         </View>
       </Modal>
 
@@ -936,5 +1087,172 @@ const styles = StyleSheet.create({
     color: '#666',
     marginLeft: 10,
     lineHeight: 20,
+  },
+  // Full-screen sharpen modal styles
+  fullScreenModal: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  fullScreenHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    backgroundColor: '#fff',
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  fullScreenTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  doneButton: {
+    width: 60,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+  },
+  doneButtonText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#FF9800',
+  },
+  fullScreenBody: {
+    flex: 1,
+    backgroundColor: '#f8f8f8',
+  },
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+  previewSection: {
+    backgroundColor: '#fff',
+    padding: 20,
+    marginBottom: 15,
+  },
+  previewContainer: {
+    width: '100%',
+    height: 300,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  previewImage: {
+    width: '100%',
+    height: '100%',
+  },
+  previewLoading: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewLoadingText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#666',
+  },
+  beforeAfterContainer: {
+    position: 'relative',
+    width: '100%',
+    height: '100%',
+  },
+  compareButton: {
+    position: 'absolute',
+    bottom: 15,
+    right: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    gap: 5,
+  },
+  compareButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  noPreview: {
+    position: 'relative',
+    width: '100%',
+    height: '100%',
+  },
+  generatePreviewButton: {
+    position: 'absolute',
+    bottom: 15,
+    left: '50%',
+    transform: [{ translateX: -75 }],
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF9800',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  generatePreviewButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  presetsSection: {
+    backgroundColor: '#fff',
+    padding: 20,
+    marginBottom: 15,
+  },
+  presetsGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  presetCard: {
+    flex: 1,
+    backgroundColor: '#f8f8f8',
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    borderRadius: 15,
+    padding: 15,
+    alignItems: 'center',
+    minHeight: 120,
+  },
+  presetCardActive: {
+    backgroundColor: '#FFF5F7',
+    borderColor: '#FF9800',
+  },
+  presetCardTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  presetCardDescription: {
+    fontSize: 11,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 14,
+  },
+  manualSection: {
+    backgroundColor: '#fff',
+    padding: 20,
+    marginBottom: 15,
   },
 });
