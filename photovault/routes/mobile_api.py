@@ -2469,12 +2469,34 @@ def sharpen_photo_mobile(current_user, photo_id):
                 'error': 'Original photo file not found'
             }), 404
         
-        # Parameters - iOS sends 'intensity', web sends 'amount'
-        data = request.get_json() or {}
-        amount = data.get('amount', data.get('intensity', 1.5))
-        radius = data.get('radius', 2.0)
-        threshold = data.get('threshold', 3)
-        method = data.get('method', 'unsharp')
+        # Parameters - accept both JSON and form data
+        # iOS sends form data, web sends JSON
+        if request.is_json:
+            data = request.get_json() or {}
+            amount = data.get('amount', data.get('intensity', 1.5))
+            radius = data.get('radius', 2.0)
+            threshold = data.get('threshold', 3)
+            method = data.get('method', 'unsharp')
+        else:
+            # Form data from iOS - safe parsing with defaults
+            def safe_float(value, default):
+                try:
+                    return float(value) if value else default
+                except (ValueError, TypeError):
+                    return default
+            
+            def safe_int(value, default):
+                try:
+                    return int(value) if value else default
+                except (ValueError, TypeError):
+                    return default
+            
+            # iOS sends 'intensity', web sends 'amount'
+            amount_str = request.form.get('amount') or request.form.get('intensity')
+            amount = safe_float(amount_str, 1.5)
+            radius = safe_float(request.form.get('radius'), 2.0)
+            threshold = safe_int(request.form.get('threshold'), 3)
+            method = request.form.get('method', 'unsharp')
         
         # Generate sharpened filename: <username>.sharpened.<date>.<random>.jpg
         date = datetime.now().strftime('%Y%m%d')
