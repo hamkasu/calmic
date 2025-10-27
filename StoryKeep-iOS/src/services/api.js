@@ -142,6 +142,10 @@ export const photoAPI = {
       radius, 
       threshold, 
       method 
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
     return response.data;
   },
