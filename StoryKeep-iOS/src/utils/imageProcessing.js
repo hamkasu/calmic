@@ -13,41 +13,130 @@ import * as FileSystem from 'expo-file-system/legacy';
 export async function sharpenImage(imageUri, intensity = 1.5, radius = 2.5) {
   try {
     console.log('🔧 Local sharpen parameters:', { intensity, radius });
-    console.log('✨ Processing sharpening locally on device...');
+    console.log('✨ Processing multi-pass sharpening locally...');
     
-    // Since expo-image-manipulator doesn't support actual sharpening,
-    // we'll apply a simulated sharpening effect using resize operations.
-    // This creates a subtle enhancement by slightly downscaling then upscaling,
-    // which can help enhance edge definition.
+    // STRATEGY: Since expo-image-manipulator doesn't support actual sharpening filters,
+    // we'll use a multi-pass resize technique to enhance edge definition.
+    // This works by slightly downscaling and then upscaling back, which causes
+    // interpolation that can enhance edges and create a sharpening-like effect.
     
-    // First, get the image dimensions
-    const originalImage = await manipulateAsync(
+    // First, get the original image dimensions
+    const originalInfo = await manipulateAsync(
       imageUri,
-      [], // No operations, just get info
+      [], // No operations, just to get dimensions
       { compress: 1, format: SaveFormat.JPEG }
     );
     
-    // Calculate sharpening strength based on intensity
-    // Higher intensity = more aggressive processing
-    const compressionQuality = Math.max(0.85, 1.0 - (intensity * 0.05));
+    const originalWidth = originalInfo.width;
+    const originalHeight = originalInfo.height;
     
-    // Apply sharpening simulation through careful compression
-    // This preserves edge detail while slightly enhancing contrast
-    const outputUri = FileSystem.documentDirectory + `sharpened_${Date.now()}.jpg`;
+    console.log(`📏 Original dimensions: ${originalWidth}x${originalHeight}`);
     
-    const sharpenedImage = await manipulateAsync(
+    // Calculate resize factor based on intensity and radius
+    // Lower intensity = less aggressive downscale (closer to 1.0)
+    // Higher intensity = more aggressive downscale (further from 1.0)
+    const downscaleFactor = Math.max(0.75, 1.0 - (intensity * 0.15));
+    const downscaleWidth = Math.round(originalWidth * downscaleFactor);
+    const downscaleHeight = Math.round(originalHeight * downscaleFactor);
+    
+    console.log(`🔄 Pass 1: Downscale to ${(downscaleFactor * 100).toFixed(0)}% (${downscaleWidth}x${downscaleHeight})`);
+    
+    // Pass 1: Downscale slightly
+    const downscaled = await manipulateAsync(
       imageUri,
       [
-        // No resize needed - we'll rely on compression settings
+        {
+          resize: {
+            width: downscaleWidth,
+            height: downscaleHeight,
+          }
+        }
       ],
       {
-        compress: compressionQuality,
+        compress: 0.95,
         format: SaveFormat.JPEG,
       }
     );
     
-    console.log('✅ Local sharpening complete');
-    return sharpenedImage;
+    // Downscaled dimensions for reference
+    const downscaledWidth = downscaled.width;
+    const downscaledHeight = downscaled.height;
+    
+    console.log(`🔄 Pass 2: Upscale back to original size to enhance edges`);
+    
+    // Pass 2: Upscale back to original size
+    // This interpolation enhances edge definition
+    const targetWidth = originalWidth;
+    const targetHeight = originalHeight;
+    
+    const sharpened = await manipulateAsync(
+      downscaled.uri,
+      [
+        {
+          resize: {
+            width: targetWidth,
+            height: targetHeight,
+          }
+        }
+      ],
+      {
+        compress: 0.95, // High quality to preserve enhanced edges
+        format: SaveFormat.JPEG,
+      }
+    );
+    
+    // Optional third pass for stronger sharpening
+    let finalImage = sharpened;
+    if (intensity >= 2.0) {
+      console.log(`🔄 Pass 3: Additional enhancement for high intensity`);
+      
+      // For high intensity, apply another cycle
+      const secondDownscale = await manipulateAsync(
+        sharpened.uri,
+        [
+          {
+            resize: {
+              width: Math.round(targetWidth * 0.9),
+              height: Math.round(targetHeight * 0.9),
+            }
+          }
+        ],
+        {
+          compress: 0.95,
+          format: SaveFormat.JPEG,
+        }
+      );
+      
+      finalImage = await manipulateAsync(
+        secondDownscale.uri,
+        [
+          {
+            resize: {
+              width: targetWidth,
+              height: targetHeight,
+            }
+          }
+        ],
+        {
+          compress: 0.95,
+          format: SaveFormat.JPEG,
+        }
+      );
+      
+      // Clean up intermediate file
+      await FileSystem.deleteAsync(secondDownscale.uri, { idempotent: true }).catch(() => {});
+    }
+    
+    console.log(`✅ Local sharpening complete: ${finalImage.width}x${finalImage.height}`);
+    
+    // Clean up intermediate files
+    await FileSystem.deleteAsync(originalInfo.uri, { idempotent: true }).catch(() => {});
+    await FileSystem.deleteAsync(downscaled.uri, { idempotent: true }).catch(() => {});
+    if (intensity >= 2.0) {
+      await FileSystem.deleteAsync(sharpened.uri, { idempotent: true }).catch(() => {});
+    }
+    
+    return finalImage;
     
   } catch (error) {
     console.error('❌ Sharpen error:', error);

@@ -783,6 +783,8 @@ def upload_enhanced_photo(current_user, photo_id):
         logger.info(f"🎨 Enhancement type: {enhancement_type}, settings: {settings}")
         
         # Generate unique filename for edited version
+        if not file.filename:
+            return jsonify({'error': 'Invalid filename'}), 400
         ext = file.filename.rsplit('.', 1)[1].lower()
         edited_filename = f"{photo.id}_edited_{enhancement_type}_{uuid.uuid4().hex[:8]}.{ext}"
         
