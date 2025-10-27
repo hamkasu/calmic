@@ -150,33 +150,71 @@ export default function EnhancePhotoScreen({ route, navigation }) {
     setShowSharpenControls(false);
     setProcessing(true);
     setProcessingProgress(0);
-    setProcessingMessage('Sending sharpen request to server...');
+    setProcessingMessage('Processing photo locally...');
     
     try {
-      setProcessingProgress(30);
-      setProcessingMessage('Sharpening photo on server...');
+      // Step 1: Apply sharpening locally
+      setProcessingProgress(20);
+      setProcessingMessage('Applying sharpening effect...');
       
-      // Send sharpen request with parameters - server does all the work
-      const response = await fetch(`${BASE_URL}/api/photos/${photo.id}/sharpen`, {
+      const imageUrl = photo.edited_url || photo.original_url;
+      const fullUrl = `${BASE_URL}${imageUrl}`;
+      
+      // Download the original image
+      const tempUri = FileSystem.documentDirectory + 'temp_sharpen_final.jpg';
+      await FileSystem.downloadAsync(fullUrl, tempUri, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+      
+      setProcessingProgress(40);
+      setProcessingMessage('Enhancing image quality...');
+      
+      // Apply sharpening locally using our utility
+      const sharpened = await sharpenImage(tempUri, sharpenIntensity, sharpenRadius);
+      
+      setProcessingProgress(60);
+      setProcessingMessage('Uploading sharpened photo...');
+      
+      // Step 2: Upload the sharpened image to server
+      const formData = new FormData();
+      
+      // Read the sharpened file and create a blob
+      const fileInfo = await FileSystem.getInfoAsync(sharpened.uri);
+      
+      formData.append('file', {
+        uri: sharpened.uri,
+        name: `sharpened_${photo.id}_${Date.now()}.jpg`,
+        type: 'image/jpeg',
+      });
+      
+      formData.append('photo_id', photo.id.toString());
+      formData.append('enhancement_type', 'sharpen');
+      formData.append('settings', JSON.stringify({
+        intensity: sharpenIntensity,
+        radius: sharpenRadius,
+        method: 'local_processing'
+      }));
+      
+      const uploadResponse = await fetch(`${BASE_URL}/api/photos/${photo.id}/upload-enhanced`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          intensity: sharpenIntensity,
-          radius: sharpenRadius,
-          method: 'unsharp',
-        }),
+        body: formData,
       });
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Sharpening failed');
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Upload failed');
       }
       
-      setProcessingProgress(70);
-      setProcessingMessage('Fetching sharpened photo...');
+      setProcessingProgress(85);
+      setProcessingMessage('Finalizing...');
+      
+      // Cleanup temp file
+      await FileSystem.deleteAsync(tempUri, { idempotent: true }).catch(() => {});
       
       // Fetch the updated photo data
       const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);

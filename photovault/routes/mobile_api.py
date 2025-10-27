@@ -749,6 +749,83 @@ def upload_photo(current_user):
         db.session.rollback()
         return jsonify({'error': 'Upload failed'}), 500
 
+@mobile_api_bp.route('/photos/<int:photo_id>/upload-enhanced', methods=['POST'])
+@csrf.exempt
+@token_required
+def upload_enhanced_photo(current_user, photo_id):
+    """Upload pre-processed enhanced photo from mobile app"""
+    try:
+        logger.info(f"📤 Enhanced photo upload for photo {photo_id} from user: {current_user.id}")
+        
+        # Verify photo ownership
+        photo = Photo.query.get_or_404(photo_id)
+        if photo.user_id != current_user.id:
+            return jsonify({'error': 'Access denied'}), 403
+        
+        # Check if file was provided
+        if 'file' not in request.files:
+            logger.error("❌ No file in request")
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        if not file or file.filename == '':
+            logger.error("❌ Empty file")
+            return jsonify({'error': 'No file selected'}), 400
+        
+        # Validate file type
+        if not allowed_file(file.filename):
+            return jsonify({'error': 'Invalid file type'}), 400
+        
+        # Get enhancement metadata from form data
+        enhancement_type = request.form.get('enhancement_type', 'sharpen')
+        settings = request.form.get('settings', '{}')
+        
+        logger.info(f"🎨 Enhancement type: {enhancement_type}, settings: {settings}")
+        
+        # Generate unique filename for edited version
+        ext = file.filename.rsplit('.', 1)[1].lower()
+        edited_filename = f"{photo.id}_edited_{enhancement_type}_{uuid.uuid4().hex[:8]}.{ext}"
+        
+        # Save enhanced file
+        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
+        user_folder = os.path.join(upload_folder, str(current_user.id))
+        os.makedirs(user_folder, exist_ok=True)
+        
+        edited_filepath = os.path.join(user_folder, edited_filename)
+        file.save(edited_filepath)
+        
+        logger.info(f"💾 Saved enhanced photo to: {edited_filepath}")
+        
+        # Update photo record with edited version
+        photo.edited_filename = edited_filename
+        photo.updated_at = datetime.utcnow()
+        
+        # Update enhancement metadata if provided
+        if settings != '{}':
+            photo.enhancement_metadata = settings
+        
+        db.session.commit()
+        
+        logger.info(f"✅ Photo {photo_id} updated with enhanced version")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Enhanced photo uploaded successfully',
+            'photo': {
+                'id': photo.id,
+                'filename': photo.filename,
+                'edited_filename': edited_filename,
+                'edited_url': f'/uploads/{current_user.id}/{edited_filename}',
+                'enhancement_type': enhancement_type
+            }
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"❌ Enhanced upload error: {str(e)}")
+        logger.error(traceback.format_exc())
+        db.session.rollback()
+        return jsonify({'error': 'Upload failed', 'details': str(e)}), 500
+
 @mobile_api_bp.route('/detect-and-extract', methods=['POST'])
 @csrf.exempt
 @token_required
