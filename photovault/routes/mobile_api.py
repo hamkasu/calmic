@@ -3641,3 +3641,152 @@ def repair_damage_mobile(current_user, photo_id):
         logger.error(f"Damage repair failed for photo {photo_id}: {str(e)}")
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@mobile_api_bp.route('/photos/<int:photo_id>/sharpen', methods=['POST'])
+@csrf.exempt
+@token_required
+def sharpen_photo_mobile(current_user, photo_id):
+    """
+    Apply sharpening to a photo (mobile endpoint - creates new photo)
+    
+    Request JSON:
+        {
+            "intensity": float,  # Sharpening amount (1.0-3.0, default: 1.5)
+            "radius": float,     # Sharpening radius (1.0-5.0, default: 2.0)
+            "threshold": int,    # Sharpening threshold (0-10, default: 3)
+            "method": str        # 'unsharp' or 'basic' (default: 'unsharp')
+        }
+    
+    Returns:
+        {
+            "success": bool,
+            "photo_id": int,      # ID of the NEW sharpened photo
+            "photo": {...}        # Full photo details with URLs
+        }
+    """
+    try:
+        from photovault.utils.image_enhancement import enhancer
+        from werkzeug.utils import secure_filename as sanitize_name
+        import random
+        
+        data = request.get_json() or {}
+        
+        # Get sharpening parameters
+        intensity = float(data.get('intensity', 1.5))
+        radius = float(data.get('radius', 2.0))
+        threshold = int(data.get('threshold', 3))
+        method = data.get('method', 'unsharp')
+        
+        # Validate parameters
+        intensity = max(1.0, min(3.0, intensity))
+        radius = max(1.0, min(5.0, radius))
+        threshold = max(0, min(10, threshold))
+        
+        logger.info(f"📸 Sharpening photo {photo_id} for user {current_user.id} with intensity={intensity}, radius={radius}")
+        
+        # Get original photo
+        photo = Photo.query.filter_by(id=photo_id, user_id=current_user.id).first()
+        
+        if not photo:
+            return jsonify({
+                'success': False,
+                'error': 'Photo not found or unauthorized'
+            }), 404
+        
+        # Get source file path
+        original_path = photo.file_path
+        
+        if not os.path.exists(original_path):
+            return jsonify({
+                'success': False,
+                'error': 'Original photo file not found'
+            }), 404
+        
+        # Generate filename for sharpened version
+        date = datetime.now().strftime('%Y%m%d')
+        random_number = random.randint(100000, 999999)
+        safe_username = sanitize_name(current_user.username)
+        sharpened_filename = f"{safe_username}.sharp.{date}.{random_number}.jpg"
+        
+        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'photovault/uploads')
+        user_upload_folder = os.path.join(upload_folder, str(current_user.id))
+        os.makedirs(user_upload_folder, exist_ok=True)
+        sharpened_filepath = os.path.join(user_upload_folder, sharpened_filename)
+        
+        # Apply sharpening using the enhancer
+        logger.info(f"🔧 Applying {method} sharpen: radius={radius}, amount={intensity}, threshold={threshold}")
+        output_path, settings = enhancer.sharpen_image(
+            original_path,
+            sharpened_filepath,
+            radius=radius,
+            amount=intensity,
+            threshold=threshold,
+            method=method
+        )
+        
+        # Create new photo record for the sharpened version
+        new_photo = Photo()
+        new_photo.user_id = current_user.id
+        new_photo.filename = sharpened_filename
+        new_photo.original_name = f"sharpened_{photo.original_name}"
+        new_photo.file_path = sharpened_filepath
+        new_photo.file_size = os.path.getsize(sharpened_filepath)
+        new_photo.upload_source = 'enhancement'
+        new_photo.auto_enhanced = True
+        new_photo.processing_notes = f"Sharpened from photo {photo_id}"
+        new_photo.enhancement_metadata = {
+            'type': 'sharpen',
+            'source': 'mobile_app',
+            'original_photo_id': photo_id,
+            'settings': settings,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        # Create thumbnail
+        thumbnail_filename = f"thumb_{sharpened_filename}"
+        thumbnail_path = os.path.join(user_upload_folder, thumbnail_filename)
+        try:
+            from PIL import Image
+            img = Image.open(sharpened_filepath)
+            img.thumbnail((300, 300))
+            img.save(thumbnail_path, 'JPEG', quality=85)
+            new_photo.thumbnail_path = thumbnail_path
+        except Exception as e:
+            logger.warning(f"Thumbnail creation failed: {e}")
+            new_photo.thumbnail_path = sharpened_filepath
+        
+        db.session.add(new_photo)
+        db.session.commit()
+        
+        logger.info(f"✅ Sharpened photo saved as new photo {new_photo.id}")
+        
+        # Return new photo details
+        photo_data = {
+            'id': new_photo.id,
+            'filename': new_photo.filename,
+            'original_url': f'/uploads/{current_user.id}/{new_photo.filename}',
+            'url': f'/uploads/{current_user.id}/{new_photo.filename}',
+            'thumbnail_url': f'/uploads/{current_user.id}/{os.path.basename(thumbnail_path)}',
+            'created_at': new_photo.created_at.isoformat() if new_photo.created_at else None,
+            'file_size': new_photo.file_size,
+            'has_edited': False,
+            'enhancement_metadata': new_photo.enhancement_metadata,
+            'processing_notes': new_photo.processing_notes,
+            'auto_enhanced': new_photo.auto_enhanced
+        }
+        
+        return jsonify({
+            'success': True,
+            'photo_id': new_photo.id,
+            'photo': photo_data,
+            'message': 'Photo sharpened successfully'
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"❌ Sharpen failed for photo {photo_id}: {str(e)}")
+        logger.error(traceback.format_exc())
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': f'Sharpening failed: {str(e)}'
+        }), 500
