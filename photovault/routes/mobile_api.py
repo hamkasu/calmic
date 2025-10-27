@@ -545,8 +545,11 @@ def get_photos(current_user):
         for photo in photos:
             # Build photo URL based on storage type (object storage vs local)
             if photo.filename:
-                if photo.filename.startswith('users/') or photo.filename.startswith('uploads/'):
-                    # Object storage - use direct path
+                if photo.filename.startswith('uploads/'):
+                    # Object storage with uploads/ prefix - just add leading slash
+                    photo_url = f'/{photo.filename}'
+                elif photo.filename.startswith('users/'):
+                    # Object storage with users/ prefix - add /uploads/ prefix
                     photo_url = f'/uploads/{photo.filename}'
                 else:
                     # Local storage - use user_id path
@@ -557,6 +560,7 @@ def get_photos(current_user):
             photo_dict = {
                 'id': photo.id,
                 'filename': photo.filename,
+                'original_url': photo_url,
                 'url': photo_url,
                 'thumbnail_url': photo_url,
                 'created_at': photo.created_at.isoformat() if photo.created_at else None,
@@ -569,8 +573,11 @@ def get_photos(current_user):
             
             # Add edited URL if it exists
             if photo.edited_filename:
-                if photo.edited_filename.startswith('users/') or photo.edited_filename.startswith('uploads/'):
-                    # Object storage - use direct path
+                if photo.edited_filename.startswith('uploads/'):
+                    # Object storage with uploads/ prefix - just add leading slash
+                    photo_dict['edited_url'] = f'/{photo.edited_filename}'
+                elif photo.edited_filename.startswith('users/'):
+                    # Object storage with users/ prefix - add /uploads/ prefix
                     photo_dict['edited_url'] = f'/uploads/{photo.edited_filename}'
                 else:
                     # Local storage - use user_id path
@@ -625,8 +632,11 @@ def get_photo_detail(current_user, photo_id):
         
         # Build photo URL based on storage type (object storage vs local)
         if photo.filename:
-            if photo.filename.startswith('users/') or photo.filename.startswith('uploads/'):
-                # Object storage - use direct path
+            if photo.filename.startswith('uploads/'):
+                # Object storage with uploads/ prefix - just add leading slash
+                photo_url = f'/{photo.filename}'
+            elif photo.filename.startswith('users/'):
+                # Object storage with users/ prefix - add /uploads/ prefix
                 photo_url = f'/uploads/{photo.filename}'
             else:
                 # Local storage - use user_id path
@@ -660,8 +670,11 @@ def get_photo_detail(current_user, photo_id):
         
         # Add edited URL if it exists
         if photo.edited_filename:
-            if photo.edited_filename.startswith('users/') or photo.edited_filename.startswith('uploads/'):
-                # Object storage - use direct path
+            if photo.edited_filename.startswith('uploads/'):
+                # Object storage with uploads/ prefix - just add leading slash
+                photo_data['edited_url'] = f'/{photo.edited_filename}'
+            elif photo.edited_filename.startswith('users/'):
+                # Object storage with users/ prefix - add /uploads/ prefix
                 photo_data['edited_url'] = f'/uploads/{photo.edited_filename}'
             else:
                 # Local storage - use user_id path
