@@ -40,6 +40,8 @@ export default function EnhancePhotoScreen({ route, navigation }) {
   const [sharpenOriginal, setSharpenOriginal] = useState(null);
   const [sharpenProcessing, setSharpenProcessing] = useState(false);
   const [showBeforeAfter, setShowBeforeAfter] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [downloadMessage, setDownloadMessage] = useState('');
   
   // AI Restoration controls modal state
   const [showAIRestorationControls, setShowAIRestorationControls] = useState(false);
@@ -111,37 +113,106 @@ export default function EnhancePhotoScreen({ route, navigation }) {
     setShowSharpenControls(true);
   };
 
+  // Helper: Download image with retry logic and caching
+  const downloadImageWithRetry = async (imageUrl, maxRetries = 3) => {
+    const cacheDir = FileSystem.cacheDirectory + 'sharpen_cache/';
+    const cacheKey = imageUrl.split('/').pop().replace(/[^a-zA-Z0-9]/g, '_');
+    const cachedPath = cacheDir + cacheKey + '.jpg';
+    
+    // Create cache directory if it doesn't exist
+    const cacheDirInfo = await FileSystem.getInfoAsync(cacheDir);
+    if (!cacheDirInfo.exists) {
+      await FileSystem.makeDirectoryAsync(cacheDir, { intermediates: true });
+    }
+    
+    // Check if cached version exists
+    const cachedInfo = await FileSystem.getInfoAsync(cachedPath);
+    if (cachedInfo.exists) {
+      console.log('✅ Using cached image from:', cachedPath);
+      setDownloadMessage('Using cached image');
+      setDownloadProgress(100);
+      return cachedPath;
+    }
+    
+    // Download with retry logic
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const fullUrl = `${BASE_URL}${imageUrl}`;
+        console.log(`📥 Download attempt ${attempt}/${maxRetries}:`, fullUrl);
+        setDownloadMessage(`Downloading... (attempt ${attempt}/${maxRetries})`);
+        setDownloadProgress(0);
+        
+        // Create download with progress callback
+        const downloadResumable = FileSystem.createDownloadResumable(
+          fullUrl,
+          cachedPath,
+          {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          },
+          (downloadProgress) => {
+            const progress = (downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite) * 100;
+            setDownloadProgress(Math.round(progress));
+            const mbDownloaded = (downloadProgress.totalBytesWritten / 1024 / 1024).toFixed(1);
+            const mbTotal = (downloadProgress.totalBytesExpectedToWrite / 1024 / 1024).toFixed(1);
+            setDownloadMessage(`Downloading: ${mbDownloaded}MB / ${mbTotal}MB`);
+          }
+        );
+        
+        // Add 60 second timeout
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Download timeout after 60s')), 60000)
+        );
+        
+        const downloadPromise = downloadResumable.downloadAsync();
+        await Promise.race([downloadPromise, timeoutPromise]);
+        
+        console.log('✅ Download complete:', cachedPath);
+        setDownloadMessage('Download complete');
+        setDownloadProgress(100);
+        return cachedPath;
+        
+      } catch (error) {
+        console.error(`❌ Download attempt ${attempt} failed:`, error.message);
+        
+        // Clean up failed download
+        const failedInfo = await FileSystem.getInfoAsync(cachedPath);
+        if (failedInfo.exists) {
+          await FileSystem.deleteAsync(cachedPath, { idempotent: true });
+        }
+        
+        if (attempt === maxRetries) {
+          throw new Error(`Download failed after ${maxRetries} attempts: ${error.message}`);
+        }
+        
+        // Exponential backoff: 1s, 2s, 4s
+        const backoffMs = Math.pow(2, attempt - 1) * 1000;
+        console.log(`⏳ Retrying in ${backoffMs}ms...`);
+        setDownloadMessage(`Retrying in ${backoffMs / 1000}s...`);
+        await new Promise(resolve => setTimeout(resolve, backoffMs));
+      }
+    }
+  };
+
   const generateSharpenPreview = async () => {
     let tempUri = null;
     let previewUri = null;
     try {
       setSharpenProcessing(true);
+      setDownloadProgress(0);
+      setDownloadMessage('Preparing download...');
       
       // Get the image URI
       const imageUrl = showOriginal ? photo.original_url : (photo.edited_url || photo.original_url);
-      const fullUrl = `${BASE_URL}${imageUrl}`;
       
       console.log('📥 Downloading image for preview...');
-      // Download image to temp location with auth (with timeout)
-      tempUri = FileSystem.documentDirectory + 'temp_sharpen_preview.jpg';
-      
-      const downloadPromise = FileSystem.downloadAsync(fullUrl, tempUri, {
-        headers: {
-          'Authorization': `Bearer ${authToken}`
-        }
-      });
-      
-      // Add 30 second timeout
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Download timeout - check your connection')), 30000)
-      );
-      
-      await Promise.race([downloadPromise, timeoutPromise]);
+      // Download with retry and caching
+      tempUri = await downloadImageWithRetry(imageUrl);
       
       // Store original for before/after comparison
       setSharpenOriginal(tempUri);
       
       console.log('⚡ Generating instant preview...');
+      setDownloadMessage('Generating preview...');
       // Apply sharpening locally (instant)
       const result = await sharpenImage(tempUri, sharpenIntensity, sharpenRadius);
       previewUri = result.uri;
@@ -149,6 +220,7 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       setShowBeforeAfter(false); // Default to showing after (sharpened)
       
       console.log('✅ Preview ready!');
+      setDownloadMessage('Preview ready!');
       
     } catch (error) {
       console.error('❌ Preview generation error:', error);
@@ -157,15 +229,14 @@ export default function EnhancePhotoScreen({ route, navigation }) {
         error.message || 'Failed to generate preview. Please check your connection and try again.',
         [{ text: 'OK' }]
       );
-      // Cleanup on error - delete both temp and preview
-      if (tempUri) {
-        await FileSystem.deleteAsync(tempUri, { idempotent: true }).catch(() => {});
-      }
+      // Note: Don't delete cached files on error - keep for next attempt
       if (previewUri) {
         await FileSystem.deleteAsync(previewUri, { idempotent: true }).catch(() => {});
       }
       setSharpenOriginal(null);
       setSharpenPreview(null);
+      setDownloadMessage('');
+      setDownloadProgress(0);
     } finally {
       setSharpenProcessing(false);
     }
@@ -615,7 +686,17 @@ export default function EnhancePhotoScreen({ route, navigation }) {
                 {sharpenProcessing ? (
                   <View style={styles.previewLoading}>
                     <ActivityIndicator size="large" color="#FF9800" />
-                    <Text style={styles.previewLoadingText}>Generating preview...</Text>
+                    <Text style={styles.previewLoadingText}>
+                      {downloadMessage || 'Generating preview...'}
+                    </Text>
+                    {downloadProgress > 0 && downloadProgress < 100 && (
+                      <View style={styles.progressContainer}>
+                        <View style={styles.progressBar}>
+                          <View style={[styles.progressFill, { width: `${downloadProgress}%` }]} />
+                        </View>
+                        <Text style={styles.progressText}>{downloadProgress}%</Text>
+                      </View>
+                    )}
                   </View>
                 ) : sharpenPreview ? (
                   <View style={styles.beforeAfterContainer}>
@@ -1330,5 +1411,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     padding: 20,
     marginBottom: 15,
+  },
+  progressContainer: {
+    width: '80%',
+    marginTop: 15,
+    alignItems: 'center',
+  },
+  progressBar: {
+    width: '100%',
+    height: 8,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#FF9800',
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 8,
+    fontWeight: '600',
   },
 });
