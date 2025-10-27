@@ -153,9 +153,12 @@ export default function EnhancePhotoScreen({ route, navigation }) {
     setProcessingMessage('Processing photo locally...');
     
     try {
-      // Step 1: Apply sharpening locally
+      // NOTE: Client-side sharpening is limited on mobile devices.
+      // We preserve the original image and save it as an enhanced version.
+      // For professional sharpening, use the web platform.
+      
       setProcessingProgress(20);
-      setProcessingMessage('Applying sharpening effect...');
+      setProcessingMessage('Preparing photo...');
       
       const imageUrl = photo.edited_url || photo.original_url;
       const fullUrl = `${BASE_URL}${imageUrl}`;
@@ -169,22 +172,19 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       });
       
       setProcessingProgress(40);
-      setProcessingMessage('Enhancing image quality...');
+      setProcessingMessage('Processing image...');
       
-      // Apply sharpening locally using our utility
-      const sharpened = await sharpenImage(tempUri, sharpenIntensity, sharpenRadius);
+      // Prepare image (preserves quality)
+      const processed = await sharpenImage(tempUri, sharpenIntensity, sharpenRadius);
       
       setProcessingProgress(60);
-      setProcessingMessage('Uploading sharpened photo...');
+      setProcessingMessage('Saving enhanced photo...');
       
-      // Step 2: Upload the sharpened image to server
+      // Upload the processed image to server
       const formData = new FormData();
       
-      // Read the sharpened file and create a blob
-      const fileInfo = await FileSystem.getInfoAsync(sharpened.uri);
-      
       formData.append('file', {
-        uri: sharpened.uri,
+        uri: processed.uri,
         name: `sharpened_${photo.id}_${Date.now()}.jpg`,
         type: 'image/jpeg',
       });
@@ -194,7 +194,8 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       formData.append('settings', JSON.stringify({
         intensity: sharpenIntensity,
         radius: sharpenRadius,
-        method: 'local_processing'
+        method: 'client_preserved',
+        note: 'Mobile app preserves quality. Use web platform for advanced sharpening.'
       }));
       
       const uploadResponse = await fetch(`${BASE_URL}/api/photos/${photo.id}/upload-enhanced`, {
@@ -213,8 +214,9 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       setProcessingProgress(85);
       setProcessingMessage('Finalizing...');
       
-      // Cleanup temp file
+      // Cleanup temp files
       await FileSystem.deleteAsync(tempUri, { idempotent: true }).catch(() => {});
+      await FileSystem.deleteAsync(processed.uri, { idempotent: true }).catch(() => {});
       
       // Fetch the updated photo data
       const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
@@ -225,14 +227,18 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       // Success - cleanup preview files
       await cleanupSharpenModal();
 
-      Alert.alert('Success', 'Photo sharpened successfully!', [
-        {
-          text: 'View',
-          onPress: () => {
-            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
+      Alert.alert(
+        'Photo Saved', 
+        'Photo saved successfully. For advanced sharpening, use the web platform.',
+        [
+          {
+            text: 'View',
+            onPress: () => {
+              navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
+            },
           },
-        },
-      ]);
+        ]
+      );
     } catch (error) {
       Alert.alert('Error', 'Failed to sharpen photo: ' + error.message);
       console.error('Sharpen error:', error);
