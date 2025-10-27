@@ -335,9 +335,17 @@ export default function EnhancePhotoScreen({ route, navigation }) {
     try {
       console.log('💾 Applying sharpen to full-resolution image');
       
-      // Step 1: Download FULL-RESOLUTION image (not thumbnail!)
-      setProcessingProgress(10);
+      // Step 1: Get the full-resolution image URL with proper null checks
       const imageUrl = showOriginal ? photo.original_url : (photo.edited_url || photo.original_url);
+      
+      if (!imageUrl) {
+        throw new Error('Image URL not available. Please try again.');
+      }
+      
+      setProcessingProgress(10);
+      console.log('📥 Downloading full-resolution image:', imageUrl);
+      
+      // Download full-res (not thumbnail!)
       fullResUri = await downloadImageWithRetry(imageUrl, 3, false); // useThumbnail = false!
       
       setProcessingProgress(30);
@@ -348,18 +356,18 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       const sharpenResult = await sharpenImage(fullResUri, sharpenIntensity, sharpenRadius);
       sharpenedFullResUri = sharpenResult.uri;
       
-      // Verify sharpened full-res exists
+      // Verify sharpened image exists
       const fileInfo = await FileSystem.getInfoAsync(sharpenedFullResUri);
       if (!fileInfo.exists) {
-        throw new Error('Sharpened full-res image not found');
+        throw new Error('Sharpened image not found');
       }
       
-      setProcessingProgress(60);
+      setProcessingProgress(40);
       setProcessingMessage('Uploading to gallery...');
       
-      // Step 3: Upload the FULL-RES sharpened image
+      // Upload using 'image' field (same as vault uploads)
       const formData = new FormData();
-      formData.append('photo', {
+      formData.append('image', {
         uri: sharpenedFullResUri,
         type: 'image/jpeg',
         name: `sharpened_${Date.now()}.jpg`,
@@ -435,11 +443,11 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       Alert.alert('Error', 'Failed to save sharpened photo: ' + error.message);
       console.error('Sharpen save error:', error);
     } finally {
-      // Cleanup temp full-res files
+      // Cleanup temp sharpened file
       if (sharpenedFullResUri) {
         await FileSystem.deleteAsync(sharpenedFullResUri, { idempotent: true }).catch(() => {});
       }
-      // Note: Don't delete fullResUri as it's cached - keep for next use
+      // Note: fullResUri is cached by downloadImageWithRetry - will be reused next time
       
       setProcessing(false);
       setProcessingProgress(0);
