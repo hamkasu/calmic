@@ -650,11 +650,15 @@ def upload_photo(current_user):
     try:
         logger.info(f"Mobile upload from user: {current_user.id}")
         
-        # Check if file was provided
-        if 'photo' not in request.files:
+        # Check if file was provided (accept both 'photo' and 'image' field names)
+        file = None
+        if 'photo' in request.files:
+            file = request.files['photo']
+        elif 'image' in request.files:
+            file = request.files['image']
+        else:
             return jsonify({'error': 'No photo provided'}), 400
         
-        file = request.files['photo']
         if not file or file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
         
@@ -706,6 +710,19 @@ def upload_photo(current_user):
         photo.file_size = file_size
         photo.upload_source = 'mobile_camera'
         
+        # Add metadata from request form (for enhanced photos)
+        if 'title' in request.form:
+            photo.occasion = request.form.get('title')
+        if 'description' in request.form:
+            photo.processing_notes = request.form.get('description')
+        if 'enhancement_type' in request.form:
+            enhancement_type = request.form.get('enhancement_type')
+            photo.enhancement_metadata = {'type': enhancement_type, 'source': 'mobile_app'}
+            photo.auto_enhanced = True
+        if 'original_photo_id' in request.form:
+            original_id = request.form.get('original_photo_id')
+            logger.info(f"Enhanced photo uploaded from original photo {original_id}")
+        
         db.session.add(photo)
         db.session.commit()
         
@@ -728,6 +745,7 @@ def upload_photo(current_user):
         
         return jsonify({
             'success': True,
+            'photo_id': photo.id,
             'photo': {
                 'id': photo.id,
                 'filename': photo.filename,
