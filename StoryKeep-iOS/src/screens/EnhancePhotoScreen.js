@@ -150,68 +150,33 @@ export default function EnhancePhotoScreen({ route, navigation }) {
     setShowSharpenControls(false);
     setProcessing(true);
     setProcessingProgress(0);
-    setProcessingMessage('Sharpening photo locally...');
-    
-    let tempUri = null;
-    let resultUri = null;
+    setProcessingMessage('Sending sharpen request to server...');
     
     try {
-      // Reuse existing sharpenPreview if available, otherwise generate fresh
-      if (sharpenPreview) {
-        resultUri = sharpenPreview;
-        console.log('♻️ Reusing existing sharpen preview');
-      } else {
-        // Get the image URI
-        const imageUrl = showOriginal ? photo.original_url : (photo.edited_url || photo.original_url);
-        const fullUrl = `${BASE_URL}${imageUrl}`;
-        
-        setProcessingProgress(20);
-        setProcessingMessage('Downloading photo...');
-        
-        // Download image with auth
-        tempUri = FileSystem.documentDirectory + 'temp_sharpen.jpg';
-        await FileSystem.downloadAsync(fullUrl, tempUri, {
-          headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
-        });
-        
-        setProcessingProgress(40);
-        setProcessingMessage('Applying sharpening filter...');
-        
-        // Apply sharpening locally
-        const result = await sharpenImage(tempUri, sharpenIntensity, sharpenRadius);
-        resultUri = result.uri;
-      }
+      setProcessingProgress(30);
+      setProcessingMessage('Sharpening photo on server...');
       
-      setProcessingProgress(60);
-      setProcessingMessage('Uploading sharpened photo...');
-      
-      // Upload the sharpened image to server
-      const formData = new FormData();
-      formData.append('photo', {
-        uri: resultUri,
-        type: 'image/jpeg',
-        name: 'sharpened.jpg',
-      });
-      formData.append('intensity', sharpenIntensity.toString());
-      formData.append('radius', sharpenRadius.toString());
-      formData.append('method', 'unsharp');
-      
+      // Send sharpen request with parameters - server does all the work
       const response = await fetch(`${BASE_URL}/api/photos/${photo.id}/sharpen`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
         },
-        body: formData,
+        body: JSON.stringify({
+          intensity: sharpenIntensity,
+          radius: sharpenRadius,
+          method: 'unsharp',
+        }),
       });
       
       if (!response.ok) {
-        throw new Error('Upload failed');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Sharpening failed');
       }
       
-      setProcessingProgress(90);
-      setProcessingMessage('Fetching updated photo...');
+      setProcessingProgress(70);
+      setProcessingMessage('Fetching sharpened photo...');
       
       // Fetch the updated photo data
       const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
@@ -219,11 +184,8 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       setProcessingProgress(100);
       setProcessingMessage('Complete!');
       
-      // Success - cleanup all temp files including preview
+      // Success - cleanup preview files
       await cleanupSharpenModal();
-      if (tempUri) {
-        await FileSystem.deleteAsync(tempUri, { idempotent: true }).catch(() => {});
-      }
 
       Alert.alert('Success', 'Photo sharpened successfully!', [
         {
@@ -235,16 +197,7 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       ]);
     } catch (error) {
       Alert.alert('Error', 'Failed to sharpen photo: ' + error.message);
-      console.error(error);
-      
-      // On error, cleanup temp files but keep preview for retry
-      if (tempUri) {
-        await FileSystem.deleteAsync(tempUri, { idempotent: true }).catch(() => {});
-      }
-      // Don't delete resultUri if it's the preview - user might want to retry
-      if (resultUri && resultUri !== sharpenPreview) {
-        await FileSystem.deleteAsync(resultUri, { idempotent: true }).catch(() => {});
-      }
+      console.error('Sharpen error:', error);
     } finally {
       setProcessing(false);
       setProcessingProgress(0);
