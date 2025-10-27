@@ -543,11 +543,22 @@ def get_photos(current_user):
         # Build photo list with all required metadata
         photos_list = []
         for photo in photos:
+            # Build photo URL based on storage type (object storage vs local)
+            if photo.filename:
+                if photo.filename.startswith('users/') or photo.filename.startswith('uploads/'):
+                    # Object storage - use direct path
+                    photo_url = f'/uploads/{photo.filename}'
+                else:
+                    # Local storage - use user_id path
+                    photo_url = f'/uploads/{current_user.id}/{photo.filename}'
+            else:
+                photo_url = None
+            
             photo_dict = {
                 'id': photo.id,
                 'filename': photo.filename,
-                'url': f'/uploads/{current_user.id}/{photo.filename}' if photo.filename else None,
-                'thumbnail_url': f'/uploads/{current_user.id}/{photo.filename}' if photo.filename else None,
+                'url': photo_url,
+                'thumbnail_url': photo_url,
                 'created_at': photo.created_at.isoformat() if photo.created_at else None,
                 'file_size': photo.file_size or 0,
                 'has_edited': bool(photo.edited_filename),
@@ -558,7 +569,12 @@ def get_photos(current_user):
             
             # Add edited URL if it exists
             if photo.edited_filename:
-                photo_dict['edited_url'] = f'/uploads/{current_user.id}/{photo.edited_filename}'
+                if photo.edited_filename.startswith('users/') or photo.edited_filename.startswith('uploads/'):
+                    # Object storage - use direct path
+                    photo_dict['edited_url'] = f'/uploads/{photo.edited_filename}'
+                else:
+                    # Local storage - use user_id path
+                    photo_dict['edited_url'] = f'/uploads/{current_user.id}/{photo.edited_filename}'
             
             photos_list.append(photo_dict)
         
