@@ -2423,7 +2423,7 @@ def check_grayscale_mobile(current_user, photo_id):
 @token_required
 def sharpen_photo_mobile(current_user, photo_id):
     """
-    Apply image sharpening to a photo (mobile endpoint - matches web version)
+    Apply image sharpening to a photo and save as NEW photo in gallery
     
     Request JSON:
         {
@@ -2436,8 +2436,10 @@ def sharpen_photo_mobile(current_user, photo_id):
     Returns:
         {
             "success": bool,
-            "photo_id": int,
-            "enhanced_url": str,
+            "photo_id": int,        # NEW photo ID
+            "original_photo_id": int,  # Original photo ID
+            "photo_url": str,
+            "thumbnail_url": str,
             "message": str
         }
     """
@@ -2449,17 +2451,17 @@ def sharpen_photo_mobile(current_user, photo_id):
         from datetime import datetime
         import io
         
-        # Get photo - match web version
-        photo = Photo.query.filter_by(id=photo_id, user_id=current_user.id).first()
+        # Get original photo
+        original_photo = Photo.query.filter_by(id=photo_id, user_id=current_user.id).first()
         
-        if not photo:
+        if not original_photo:
             return jsonify({
                 'success': False,
                 'error': 'Photo not found or unauthorized'
             }), 404
         
         # Get file paths
-        original_path = photo.file_path
+        original_path = original_photo.file_path
         
         if not os.path.exists(original_path):
             return jsonify({
@@ -2468,74 +2470,114 @@ def sharpen_photo_mobile(current_user, photo_id):
             }), 404
         
         # Parameters - iOS sends 'intensity', web sends 'amount'
-        # Support both for compatibility
         data = request.get_json() or {}
         amount = data.get('amount', data.get('intensity', 1.5))
         radius = data.get('radius', 2.0)
         threshold = data.get('threshold', 3)
         method = data.get('method', 'unsharp')
         
-        # Generate sharpened filename - match web version format
+        # Generate sharpened filename: <username>.sharpened.<date>.<random>.jpg
         date = datetime.now().strftime('%Y%m%d')
         random_number = random.randint(100000, 999999)
         safe_username = sanitize_name(current_user.username)
-        sharpened_filename = f"{safe_username}.{date}.sharp.{random_number}.jpg"
+        sharpened_filename = f"{safe_username}.sharpened.{date}.{random_number}.jpg"
         
-        logger.info(f"Sharpening photo {photo_id}: original='{photo.filename}', sharpened='{sharpened_filename}'")
+        logger.info(f"🔧 Sharpening photo {photo_id}: '{original_photo.filename}' -> '{sharpened_filename}'")
         
         upload_folder = current_app.config.get('UPLOAD_FOLDER', 'photovault/uploads')
         user_upload_folder = os.path.join(upload_folder, str(current_user.id))
         os.makedirs(user_upload_folder, exist_ok=True)
-        temp_sharpened_filepath = os.path.join(user_upload_folder, sharpened_filename)
+        sharpened_filepath = os.path.join(user_upload_folder, sharpened_filename)
         
-        # Apply sharpening - match web version using enhancer
+        # Apply sharpening using PIL UnsharpMask
         output_path = enhancer.sharpen_image(
             original_path,
-            temp_sharpened_filepath,
+            sharpened_filepath,
             radius=radius,
             amount=amount,
             threshold=threshold,
             method=method
         )
         
+        # Create thumbnail (300x300) - matching detect-and-extract pattern
+        thumbnail_filename = f"thumb_{sharpened_filename}"
+        thumbnail_path = os.path.join(user_upload_folder, thumbnail_filename)
+        try:
+            img = Image.open(sharpened_filepath)
+            img.thumbnail((300, 300))
+            img.save(thumbnail_path)
+            logger.info(f"📸 Created thumbnail: {thumbnail_filename}")
+        except Exception as e:
+            logger.error(f"Thumbnail creation failed: {e}")
+            thumbnail_path = sharpened_filepath
+        
+        # Get file size
+        sharpened_size = os.path.getsize(sharpened_filepath)
+        
         # Upload to app storage if available (Railway persistence)
-        sharpened_filepath = temp_sharpened_filepath
         if app_storage.is_available():
-            with open(temp_sharpened_filepath, 'rb') as f:
+            # Upload sharpened image
+            with open(sharpened_filepath, 'rb') as f:
                 img_bytes = io.BytesIO(f.read())
                 success, storage_path = app_storage.upload_file(img_bytes, sharpened_filename, str(current_user.id))
                 if success:
+                    old_path = sharpened_filepath
                     sharpened_filepath = storage_path
                     try:
-                        os.remove(temp_sharpened_filepath)
+                        os.remove(old_path)
+                    except:
+                        pass
+            
+            # Upload thumbnail
+            with open(thumbnail_path, 'rb') as f:
+                thumb_bytes = io.BytesIO(f.read())
+                success, thumb_storage_path = app_storage.upload_file(thumb_bytes, thumbnail_filename, str(current_user.id))
+                if success:
+                    old_thumb = thumbnail_path
+                    thumbnail_path = thumb_storage_path
+                    try:
+                        os.remove(old_thumb)
                     except:
                         pass
         
-        # Update database with sharpened version - match web version with metadata
-        photo.edited_filename = sharpened_filename
-        photo.edited_path = sharpened_filepath
-        photo.enhancement_metadata = {
+        # Create NEW photo record in database (like detect-and-extract does)
+        new_photo = Photo()
+        new_photo.user_id = current_user.id
+        new_photo.filename = sharpened_filename
+        new_photo.original_name = f"{original_photo.original_name or original_photo.filename} (Sharpened)"
+        new_photo.file_path = sharpened_filepath
+        new_photo.thumbnail_path = thumbnail_path
+        new_photo.file_size = sharpened_size
+        new_photo.upload_source = 'sharpened'  # Mark as sharpened photo
+        new_photo.enhancement_metadata = {
             'sharpening': {
                 'radius': radius,
                 'amount': amount,
                 'threshold': threshold,
                 'method': method,
-                'timestamp': str(datetime.now())
+                'timestamp': str(datetime.now()),
+                'original_photo_id': photo_id
             }
         }
+        
+        db.session.add(new_photo)
         db.session.commit()
         
-        logger.info(f"Photo {photo_id} sharpened successfully")
+        logger.info(f"✅ Created new sharpened photo: ID={new_photo.id}, filename='{sharpened_filename}'")
         
         return jsonify({
             'success': True,
-            'photo_id': photo.id,
-            'enhanced_url': f'/uploads/{current_user.id}/{sharpened_filename}',
-            'message': 'Photo sharpened successfully'
+            'photo_id': new_photo.id,  # New photo ID
+            'original_photo_id': photo_id,  # Original photo ID
+            'photo_url': f'/uploads/{current_user.id}/{sharpened_filename}',
+            'thumbnail_url': f'/uploads/{current_user.id}/{thumbnail_filename}',
+            'message': 'Photo sharpened and saved to gallery'
         })
         
     except Exception as e:
-        logger.error(f"Sharpening failed: {e}")
+        logger.error(f"❌ Sharpening failed: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         db.session.rollback()
         return jsonify({
             'success': False,
