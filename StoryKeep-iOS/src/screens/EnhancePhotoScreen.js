@@ -114,9 +114,12 @@ export default function EnhancePhotoScreen({ route, navigation }) {
   };
 
   // Helper: Download image with retry logic and caching
-  const downloadImageWithRetry = async (imageUrl, maxRetries = 3) => {
+  const downloadImageWithRetry = async (imageUrl, maxRetries = 3, useThumbnail = true) => {
+    // Use thumbnail for faster download if available and requested
+    const finalImageUrl = useThumbnail && photo.thumbnail_url ? photo.thumbnail_url : imageUrl;
+    
     const cacheDir = FileSystem.cacheDirectory + 'sharpen_cache/';
-    const cacheKey = imageUrl.split('/').pop().replace(/[^a-zA-Z0-9]/g, '_');
+    const cacheKey = finalImageUrl.split('/').pop().replace(/[^a-zA-Z0-9]/g, '_');
     const cachedPath = cacheDir + cacheKey + '.jpg';
     
     // Create cache directory if it doesn't exist
@@ -137,9 +140,10 @@ export default function EnhancePhotoScreen({ route, navigation }) {
     // Download with retry logic
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        const fullUrl = `${BASE_URL}${imageUrl}`;
-        console.log(`📥 Download attempt ${attempt}/${maxRetries}:`, fullUrl);
-        setDownloadMessage(`Downloading... (attempt ${attempt}/${maxRetries})`);
+        const fullUrl = `${BASE_URL}${finalImageUrl}`;
+        const imageType = useThumbnail && photo.thumbnail_url ? 'thumbnail' : 'full-res';
+        console.log(`📥 Download attempt ${attempt}/${maxRetries} (${imageType}):`, fullUrl);
+        setDownloadMessage(`Downloading ${imageType} image... (attempt ${attempt}/${maxRetries})`);
         setDownloadProgress(0);
         
         // Create download with progress callback
