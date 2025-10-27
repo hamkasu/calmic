@@ -32,6 +32,7 @@ export default function PhotoDetailScreen({ route, navigation }) {
   const [aiMetadata, setAIMetadata] = useState(null);
   const [loading, setLoading] = useState(false);
   const [authToken, setAuthToken] = useState(null);
+  const [imageLoading, setImageLoading] = useState(true);
   
   // Pinch zoom states
   const scale = new Animated.Value(1);
@@ -67,6 +68,11 @@ export default function PhotoDetailScreen({ route, navigation }) {
       }
     };
   }, []);
+
+  // Reset image loading state when switching between original/edited
+  useEffect(() => {
+    setImageLoading(true);
+  }, [showOriginal]);
 
   const loadData = async () => {
     const token = await AsyncStorage.getItem('authToken');
@@ -577,23 +583,34 @@ export default function PhotoDetailScreen({ route, navigation }) {
       <ScrollView>
         <View style={styles.imageContainer}>
           {imageUrl && authToken ? (
-            <GestureDetector gesture={composedGesture}>
-              <Animated.Image 
-                source={{ 
-                  uri: imageUrl,
-                  headers: {
-                    Authorization: `Bearer ${authToken}`
-                  }
-                }} 
-                style={[
-                  styles.image,
-                  {
-                    transform: [{ scale: scale }]
-                  }
-                ]}
-                resizeMode="contain"
-              />
-            </GestureDetector>
+            <>
+              <GestureDetector gesture={composedGesture}>
+                <Animated.Image 
+                  source={{ 
+                    uri: imageUrl,
+                    headers: {
+                      Authorization: `Bearer ${authToken}`
+                    }
+                  }} 
+                  style={[
+                    styles.image,
+                    {
+                      transform: [{ scale: scale }]
+                    }
+                  ]}
+                  resizeMode="contain"
+                  onLoadStart={() => setImageLoading(true)}
+                  onLoad={() => setImageLoading(false)}
+                  onError={() => setImageLoading(false)}
+                />
+              </GestureDetector>
+              {imageLoading && (
+                <View style={styles.imageLoadingOverlay}>
+                  <ActivityIndicator size="large" color="#E85D75" />
+                  <Text style={styles.loadingText}>Loading photo...</Text>
+                </View>
+              )}
+            </>
           ) : (
             <View style={styles.image}>
               <ActivityIndicator size="large" color="#E85D75" />
@@ -1021,6 +1038,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  imageLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(240, 240, 240, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 5,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#666',
   },
   zoomIndicator: {
     position: 'absolute',
