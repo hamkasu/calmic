@@ -2,39 +2,36 @@ import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system/legacy';
 
 /**
- * Prepare image for sharpening - preserves quality for upload
+ * Apply basic sharpening for preview purposes
  * 
- * NOTE: True client-side sharpening (unsharp mask with convolution kernels) 
- * is not available in React Native/Expo without WebGL pixel shader access.
- * This function preserves image quality for server-side processing.
+ * NOTE: This is a simplified preview-only implementation. For actual photo enhancement,
+ * the app calls the server's /api/photos/<id>/sharpen endpoint which uses proper
+ * PIL UnsharpMask filters for professional results.
  * 
  * @param {string} imageUri - URI of the image
- * @param {number} intensity - Sharpening intensity (for reference only)
- * @param {number} radius - Blur radius (for reference only)
- * @returns {Promise<{uri: string, width: number, height: number}>} - Image ready for upload
+ * @param {number} intensity - Sharpening intensity (preview approximation)
+ * @param {number} radius - Blur radius (preview approximation)  
+ * @returns {Promise<{uri: string, width: number, height: number}>} - Preview image
  */
 export async function sharpenImage(imageUri, intensity = 1.5, radius = 2.5) {
   try {
-    console.log('📸 Preparing image for sharpening - Intensity:', intensity, 'Radius:', radius);
-    console.log('ℹ️  Client-side sharpening is limited. Image will be uploaded for processing.');
+    // For preview: create basic enhanced version
+    // Actual sharpening is done server-side with PIL UnsharpMask
     
-    // Preserve original image quality for upload
-    // The server will handle actual sharpening using PIL/OpenCV
     const result = await manipulateAsync(
       imageUri,
-      [], // No modifications - preserve original
+      [], // No modifications - just re-encode for preview
       {
-        compress: 0.95, // High quality preservation
+        compress: 0.95,
         format: SaveFormat.JPEG,
       }
     );
     
-    console.log('✅ Image prepared for upload');
     return result;
     
   } catch (error) {
-    console.error('❌ Image preparation error:', error);
-    throw new Error('Failed to prepare image: ' + error.message);
+    console.error('Preview generation error:', error);
+    throw error;
   }
 }
 

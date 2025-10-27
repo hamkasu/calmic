@@ -150,76 +150,66 @@ export default function EnhancePhotoScreen({ route, navigation }) {
     setShowSharpenControls(false);
     setProcessing(true);
     setProcessingProgress(0);
-    setProcessingMessage('Processing photo locally...');
+    setProcessingMessage('Applying professional sharpening...');
     
     try {
-      // NOTE: Client-side sharpening is limited on mobile devices.
-      // We preserve the original image and save it as an enhanced version.
-      // For professional sharpening, use the web platform.
+      // Call server-side sharpening endpoint with proper PIL UnsharpMask
+      // This creates a NEW sharpened photo in the gallery
       
       setProcessingProgress(20);
-      setProcessingMessage('Preparing photo...');
+      setProcessingMessage('Processing with UnsharpMask filter...');
       
-      const imageUrl = photo.edited_url || photo.original_url;
-      const fullUrl = `${BASE_URL}${imageUrl}`;
+      const formData = new FormData();
+      formData.append('intensity', sharpenIntensity.toString());
+      formData.append('radius', sharpenRadius.toString());
+      formData.append('threshold', '3');  // Standard threshold
+      formData.append('method', 'unsharp');  // Use UnsharpMask for best quality
       
-      // Download the original image
-      const tempUri = FileSystem.documentDirectory + 'temp_sharpen_final.jpg';
-      await FileSystem.downloadAsync(fullUrl, tempUri, {
-        headers: {
-          'Authorization': `Bearer ${authToken}`
-        }
+      console.log('🔧 Calling server sharpen API:', {
+        photoId: photo.id,
+        intensity: sharpenIntensity,
+        radius: sharpenRadius
       });
       
       setProcessingProgress(40);
-      setProcessingMessage('Processing image...');
+      setProcessingMessage('Enhancing edges and details...');
       
-      // Prepare image (preserves quality)
-      const processed = await sharpenImage(tempUri, sharpenIntensity, sharpenRadius);
+      // Call the server endpoint with extended timeout for large images
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
       
-      setProcessingProgress(60);
-      setProcessingMessage('Saving enhanced photo...');
-      
-      // Upload the processed image to server
-      const formData = new FormData();
-      
-      formData.append('file', {
-        uri: processed.uri,
-        name: `sharpened_${photo.id}_${Date.now()}.jpg`,
-        type: 'image/jpeg',
-      });
-      
-      formData.append('photo_id', photo.id.toString());
-      formData.append('enhancement_type', 'sharpen');
-      formData.append('settings', JSON.stringify({
-        intensity: sharpenIntensity,
-        radius: sharpenRadius,
-        method: 'client_preserved',
-        note: 'Mobile app preserves quality. Use web platform for advanced sharpening.'
-      }));
-      
-      const uploadResponse = await fetch(`${BASE_URL}/api/photos/${photo.id}/upload-enhanced`, {
+      const response = await fetch(`${BASE_URL}/api/photos/${photo.id}/sharpen`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
         },
         body: formData,
+        signal: controller.signal,
       });
       
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Upload failed');
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Sharpening failed');
       }
       
-      setProcessingProgress(85);
-      setProcessingMessage('Finalizing...');
+      setProcessingProgress(75);
+      setProcessingMessage('Saving to gallery...');
       
-      // Cleanup temp files
-      await FileSystem.deleteAsync(tempUri, { idempotent: true }).catch(() => {});
-      await FileSystem.deleteAsync(processed.uri, { idempotent: true }).catch(() => {});
+      const result = await response.json();
       
-      // Fetch the updated photo data
-      const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
+      if (!result.success) {
+        throw new Error(result.error || 'Sharpening failed');
+      }
+      
+      console.log('✅ Server sharpening complete:', result);
+      
+      setProcessingProgress(90);
+      setProcessingMessage('Refreshing gallery...');
+      
+      // The server creates a NEW photo, so fetch it
+      const newPhoto = await photoAPI.getPhotoDetail(result.photo_id);
 
       setProcessingProgress(100);
       setProcessingMessage('Complete!');
@@ -228,13 +218,13 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       await cleanupSharpenModal();
 
       Alert.alert(
-        'Photo Saved', 
-        'Photo saved successfully. For advanced sharpening, use the web platform.',
+        'Photo Sharpened!', 
+        'A new sharpened photo has been added to your gallery.',
         [
           {
             text: 'View',
             onPress: () => {
-              navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
+              navigation.navigate('PhotoDetail', { photo: newPhoto, refresh: true });
             },
           },
         ]
