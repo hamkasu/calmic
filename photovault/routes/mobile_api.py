@@ -623,13 +623,24 @@ def get_photo_detail(current_user, photo_id):
         if not photo:
             return jsonify({'error': 'Photo not found'}), 404
         
+        # Build photo URL based on storage type (object storage vs local)
+        if photo.filename:
+            if photo.filename.startswith('users/') or photo.filename.startswith('uploads/'):
+                # Object storage - use direct path
+                photo_url = f'/uploads/{photo.filename}'
+            else:
+                # Local storage - use user_id path
+                photo_url = f'/uploads/{current_user.id}/{photo.filename}'
+        else:
+            photo_url = None
+        
         # Build photo data - same format as get_photos
         photo_data = {
             'id': photo.id,
             'filename': photo.filename,
-            'original_url': f'/uploads/{current_user.id}/{photo.filename}' if photo.filename else None,
-            'url': f'/uploads/{current_user.id}/{photo.filename}' if photo.filename else None,
-            'thumbnail_url': f'/uploads/{current_user.id}/{photo.filename}' if photo.filename else None,
+            'original_url': photo_url,
+            'url': photo_url,
+            'thumbnail_url': photo_url,
             'created_at': photo.created_at.isoformat() if photo.created_at else None,
             'file_size': photo.file_size,
             'has_edited': photo.edited_filename is not None,
@@ -647,8 +658,14 @@ def get_photo_detail(current_user, photo_id):
             'auto_enhanced': photo.auto_enhanced
         }
         
+        # Add edited URL if it exists
         if photo.edited_filename:
-            photo_data['edited_url'] = f'/uploads/{current_user.id}/{photo.edited_filename}'
+            if photo.edited_filename.startswith('users/') or photo.edited_filename.startswith('uploads/'):
+                # Object storage - use direct path
+                photo_data['edited_url'] = f'/uploads/{photo.edited_filename}'
+            else:
+                # Local storage - use user_id path
+                photo_data['edited_url'] = f'/uploads/{current_user.id}/{photo.edited_filename}'
         
         logger.info(f"📸 Photo detail fetched: {photo.id} for user {current_user.username}")
         
