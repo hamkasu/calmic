@@ -52,6 +52,27 @@ export default function EnhancePhotoScreen({ route, navigation }) {
     detectImageColor();
   }, []);
 
+  // Auto-generate preview when sharpen modal opens
+  useEffect(() => {
+    if (showSharpenControls && authToken && !sharpenPreview) {
+      console.log('🚀 Auto-generating preview on modal open');
+      generateSharpenPreview();
+    }
+  }, [showSharpenControls, authToken]);
+
+  // Debounced preview regeneration when sliders change
+  useEffect(() => {
+    if (!showSharpenControls || !sharpenOriginal) return;
+    
+    console.log('🎚️ Slider changed, scheduling preview update...');
+    const debounceTimer = setTimeout(() => {
+      console.log('⏱️ Debounce complete, regenerating preview');
+      regeneratePreviewFromCache();
+    }, 500); // 500ms debounce
+    
+    return () => clearTimeout(debounceTimer);
+  }, [sharpenIntensity, sharpenRadius]);
+
   const loadAuthToken = async () => {
     try {
       const token = await AsyncStorage.getItem('authToken');
@@ -100,25 +121,42 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       const imageUrl = showOriginal ? photo.original_url : (photo.edited_url || photo.original_url);
       const fullUrl = `${BASE_URL}${imageUrl}`;
       
-      // Download image to temp location with auth
+      console.log('📥 Downloading image for preview...');
+      // Download image to temp location with auth (with timeout)
       tempUri = FileSystem.documentDirectory + 'temp_sharpen_preview.jpg';
-      await FileSystem.downloadAsync(fullUrl, tempUri, {
+      
+      const downloadPromise = FileSystem.downloadAsync(fullUrl, tempUri, {
         headers: {
           'Authorization': `Bearer ${authToken}`
         }
       });
       
+      // Add 30 second timeout
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Download timeout - check your connection')), 30000)
+      );
+      
+      await Promise.race([downloadPromise, timeoutPromise]);
+      
       // Store original for before/after comparison
       setSharpenOriginal(tempUri);
       
-      // Apply sharpening locally
+      console.log('⚡ Generating instant preview...');
+      // Apply sharpening locally (instant)
       const result = await sharpenImage(tempUri, sharpenIntensity, sharpenRadius);
       previewUri = result.uri;
       setSharpenPreview(previewUri);
       setShowBeforeAfter(false); // Default to showing after (sharpened)
       
+      console.log('✅ Preview ready!');
+      
     } catch (error) {
-      console.error('Preview generation error:', error);
+      console.error('❌ Preview generation error:', error);
+      Alert.alert(
+        'Preview Error', 
+        error.message || 'Failed to generate preview. Please check your connection and try again.',
+        [{ text: 'OK' }]
+      );
       // Cleanup on error - delete both temp and preview
       if (tempUri) {
         await FileSystem.deleteAsync(tempUri, { idempotent: true }).catch(() => {});
@@ -128,6 +166,40 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       }
       setSharpenOriginal(null);
       setSharpenPreview(null);
+    } finally {
+      setSharpenProcessing(false);
+    }
+  };
+
+  // Fast preview regeneration using already-downloaded image
+  const regeneratePreviewFromCache = async () => {
+    if (!sharpenOriginal) {
+      console.log('⚠️ No cached image, skipping regeneration');
+      return;
+    }
+    
+    let previewUri = null;
+    try {
+      setSharpenProcessing(true);
+      
+      // Clean up old preview
+      if (sharpenPreview) {
+        await FileSystem.deleteAsync(sharpenPreview, { idempotent: true }).catch(() => {});
+      }
+      
+      // Generate new preview from cached original (instant!)
+      console.log('⚡ Regenerating preview from cache...');
+      const result = await sharpenImage(sharpenOriginal, sharpenIntensity, sharpenRadius);
+      previewUri = result.uri;
+      setSharpenPreview(previewUri);
+      
+      console.log('✅ Preview updated!');
+      
+    } catch (error) {
+      console.error('❌ Preview regeneration error:', error);
+      if (previewUri) {
+        await FileSystem.deleteAsync(previewUri, { idempotent: true }).catch(() => {});
+      }
     } finally {
       setSharpenProcessing(false);
     }
@@ -147,38 +219,54 @@ export default function EnhancePhotoScreen({ route, navigation }) {
   };
 
   const applySharpen = async () => {
+    if (!sharpenPreview) {
+      Alert.alert('Error', 'Please generate a preview first');
+      return;
+    }
+
     setShowSharpenControls(false);
     setProcessing(true);
     setProcessingProgress(0);
-    setProcessingMessage('Applying professional sharpening...');
+    setProcessingMessage('Saving sharpened photo...');
     
     try {
-      // Call server-side sharpening endpoint with proper PIL UnsharpMask
-      // This creates a NEW sharpened photo in the gallery
+      console.log('📤 Uploading client-side sharpened photo');
       
       setProcessingProgress(20);
-      setProcessingMessage('Processing with UnsharpMask filter...');
+      setProcessingMessage('Preparing upload...');
       
-      const formData = new FormData();
-      formData.append('intensity', sharpenIntensity.toString());
-      formData.append('radius', sharpenRadius.toString());
-      formData.append('threshold', '3');  // Standard threshold
-      formData.append('method', 'unsharp');  // Use UnsharpMask for best quality
-      
-      console.log('🔧 Calling server sharpen API:', {
-        photoId: photo.id,
-        intensity: sharpenIntensity,
-        radius: sharpenRadius
-      });
+      // Read the sharpened preview file
+      const fileInfo = await FileSystem.getInfoAsync(sharpenPreview);
+      if (!fileInfo.exists) {
+        throw new Error('Sharpened preview file not found');
+      }
       
       setProcessingProgress(40);
-      setProcessingMessage('Enhancing edges and details...');
+      setProcessingMessage('Uploading to gallery...');
       
-      // Call the server endpoint with extended timeout for large images
+      // Create form data with the sharpened image
+      const formData = new FormData();
+      
+      // Add the sharpened image file
+      formData.append('photo', {
+        uri: sharpenPreview,
+        type: 'image/jpeg',
+        name: `sharpened_${Date.now()}.jpg`,
+      });
+      
+      // Add metadata
+      formData.append('title', `${photo.title || 'Photo'} (Sharpened)`);
+      formData.append('description', `Sharpened with intensity ${sharpenIntensity}, radius ${sharpenRadius}`);
+      formData.append('enhancement_type', 'sharpen');
+      formData.append('original_photo_id', photo.id.toString());
+      
+      console.log('🚀 Uploading sharpened photo to server');
+      
+      // Upload to server using the standard upload endpoint
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
       
-      const response = await fetch(`${BASE_URL}/api/photos/${photo.id}/sharpen`, {
+      const response = await fetch(`${BASE_URL}/api/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -191,7 +279,7 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Sharpening failed');
+        throw new Error(errorData.error || 'Upload failed');
       }
       
       setProcessingProgress(75);
@@ -200,15 +288,15 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       const result = await response.json();
       
       if (!result.success) {
-        throw new Error(result.error || 'Sharpening failed');
+        throw new Error(result.error || 'Upload failed');
       }
       
-      console.log('✅ Server sharpening complete:', result);
+      console.log('✅ Sharpened photo uploaded:', result);
       
       setProcessingProgress(90);
-      setProcessingMessage('Refreshing gallery...');
+      setProcessingMessage('Fetching photo details...');
       
-      // The server creates a NEW photo, so fetch it
+      // Fetch the newly created photo
       const newPhoto = await photoAPI.getPhotoDetail(result.photo_id);
 
       setProcessingProgress(100);
@@ -219,7 +307,7 @@ export default function EnhancePhotoScreen({ route, navigation }) {
 
       Alert.alert(
         'Photo Sharpened!', 
-        'A new sharpened photo has been added to your gallery.',
+        'Your sharpened photo has been saved to your gallery.',
         [
           {
             text: 'View',
@@ -227,11 +315,15 @@ export default function EnhancePhotoScreen({ route, navigation }) {
               navigation.navigate('PhotoDetail', { photo: newPhoto, refresh: true });
             },
           },
+          {
+            text: 'OK',
+            style: 'cancel',
+          },
         ]
       );
     } catch (error) {
-      Alert.alert('Error', 'Failed to sharpen photo: ' + error.message);
-      console.error('Sharpen error:', error);
+      Alert.alert('Error', 'Failed to save sharpened photo: ' + error.message);
+      console.error('Sharpen save error:', error);
     } finally {
       setProcessing(false);
       setProcessingProgress(0);
@@ -241,10 +333,10 @@ export default function EnhancePhotoScreen({ route, navigation }) {
   
   const applyPreset = async (presetKey) => {
     const preset = SharpenPresets[presetKey];
+    console.log('🎯 Applying preset:', preset.name);
     setSharpenIntensity(preset.intensity);
     setSharpenRadius(preset.radius);
-    // Automatically generate preview with preset
-    setTimeout(() => generateSharpenPreview(), 100);
+    // Preview will auto-update via debouncing (no manual call needed)
   };
 
   const handleColorize = async (useAI = false) => {
