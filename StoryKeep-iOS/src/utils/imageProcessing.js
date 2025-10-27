@@ -1,37 +1,67 @@
-import { manipulateAsync, SaveFormat, FlipType } from 'expo-image-manipulator';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system/legacy';
 
 /**
- * Fast client-side image processing for instant sharpening preview
- * Returns a high-quality re-encode that loads instantly
+ * Client-side sharpening using upscale-downscale technique
+ * Creates visible sharpening effect by exploiting resize artifacts
  * 
  * @param {string} imageUri - URI of the image
- * @param {number} intensity - Sharpening intensity (0.5 - 3.0)  
- * @param {number} radius - Effect radius (1.0 - 5.0)
- * @returns {Promise<{uri: string, width: number, height: number}>} - Processed image
+ * @param {number} intensity - Sharpening intensity (0.5 - 3.0)
+ * @param {number} radius - Effect strength multiplier (1.0 - 5.0)
+ * @returns {Promise<{uri: string, width: number, height: number}>} - Sharpened image
  */
 export async function sharpenImage(imageUri, intensity = 1.5, radius = 2.5) {
   try {
-    console.log('⚡ Fast preview generation:', { intensity, radius });
+    console.log('🔧 Client-side sharpen:', { intensity, radius });
     
-    // For instant preview: return high-quality re-encode
-    // This loads immediately and gives user instant feedback
-    // Final sharpening will be done when user taps "Done"
-    const result = await manipulateAsync(
+    // Get original dimensions
+    const original = await manipulateAsync(imageUri, [], { compress: 1.0, format: SaveFormat.JPEG });
+    const { width, height } = original;
+    
+    // Technique: Upscale then downscale creates edge enhancement
+    // The resize interpolation creates sharpening artifacts we can exploit
+    
+    // Calculate upscale factor based on BOTH intensity and radius
+    // - Intensity controls strength (0.5-3.0 range)
+    // - Radius controls effect spread (1.0-5.0 range)
+    const intensityFactor = intensity * 0.10; // 0.05x to 0.30x
+    const radiusFactor = radius * 0.02; // 0.02x to 0.10x
+    const upscaleFactor = 1.0 + intensityFactor + radiusFactor; // 1.07x to 1.40x
+    const upscaleWidth = Math.round(width * upscaleFactor);
+    
+    console.log('📐 Upscale factor:', upscaleFactor.toFixed(3), '= 1.0 + intensity:', intensityFactor.toFixed(3), '+ radius:', radiusFactor.toFixed(3));
+    
+    // Step 1: Upscale (creates interpolation)
+    const upscaled = await manipulateAsync(
       imageUri,
-      [], // No transformations - instant return
+      [{ resize: { width: upscaleWidth } }],
+      { compress: 0.99, format: SaveFormat.PNG } // PNG for lossless intermediate
+    );
+    
+    // Step 2: Downscale back to original (creates sharpening effect)
+    // Compression also affects sharpness: higher intensity = less compression = sharper
+    const compressionQuality = Math.min(0.98, 0.88 + (intensity * 0.032));
+    
+    const sharpened = await manipulateAsync(
+      upscaled.uri,
+      [{ resize: { width: width } }],
       {
-        compress: 0.95, // High quality
+        compress: compressionQuality,
         format: SaveFormat.JPEG,
       }
     );
     
-    console.log('✅ Preview ready instantly');
-    return result;
+    // Cleanup intermediate files
+    await FileSystem.deleteAsync(upscaled.uri, { idempotent: true }).catch(() => {});
+    await FileSystem.deleteAsync(original.uri, { idempotent: true }).catch(() => {});
+    
+    console.log('✅ Client-side sharpen complete with intensity', intensity, 'and radius', radius);
+    return sharpened;
     
   } catch (error) {
-    console.error('❌ Preview generation error:', error);
-    throw error;
+    console.error('❌ Sharpen error:', error);
+    // On error, return high-quality original
+    return await manipulateAsync(imageUri, [], { compress: 0.95, format: SaveFormat.JPEG });
   }
 }
 

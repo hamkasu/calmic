@@ -220,7 +220,7 @@ export default function EnhancePhotoScreen({ route, navigation }) {
 
   const applySharpen = async () => {
     if (!sharpenPreview) {
-      Alert.alert('Error', 'Please generate a preview first');
+      Alert.alert('Error', 'Please wait for preview to load');
       return;
     }
 
@@ -230,24 +230,22 @@ export default function EnhancePhotoScreen({ route, navigation }) {
     setProcessingMessage('Saving sharpened photo...');
     
     try {
-      console.log('📤 Uploading client-side sharpened photo');
+      console.log('💾 Saving client-side sharpened photo to gallery');
       
       setProcessingProgress(20);
       setProcessingMessage('Preparing upload...');
       
-      // Read the sharpened preview file
+      // Verify sharpened preview exists
       const fileInfo = await FileSystem.getInfoAsync(sharpenPreview);
       if (!fileInfo.exists) {
-        throw new Error('Sharpened preview file not found');
+        throw new Error('Sharpened preview not found');
       }
       
       setProcessingProgress(40);
       setProcessingMessage('Uploading to gallery...');
       
-      // Create form data with the sharpened image
+      // Upload the client-side sharpened image
       const formData = new FormData();
-      
-      // Add the sharpened image file
       formData.append('photo', {
         uri: sharpenPreview,
         type: 'image/jpeg',
@@ -256,15 +254,14 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       
       // Add metadata
       formData.append('title', `${photo.title || 'Photo'} (Sharpened)`);
-      formData.append('description', `Sharpened with intensity ${sharpenIntensity}, radius ${sharpenRadius}`);
+      formData.append('description', `Client-side sharpened: intensity ${sharpenIntensity}, radius ${sharpenRadius}`);
       formData.append('enhancement_type', 'sharpen');
       formData.append('original_photo_id', photo.id.toString());
       
-      console.log('🚀 Uploading sharpened photo to server');
+      console.log('📤 Uploading sharpened photo');
       
-      // Upload to server using the standard upload endpoint
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
       
       const response = await fetch(`${BASE_URL}/api/upload`, {
         method: 'POST',
@@ -291,7 +288,7 @@ export default function EnhancePhotoScreen({ route, navigation }) {
         throw new Error(result.error || 'Upload failed');
       }
       
-      console.log('✅ Sharpened photo uploaded:', result);
+      console.log('✅ Sharpened photo saved:', result);
       
       setProcessingProgress(90);
       setProcessingMessage('Fetching photo details...');
