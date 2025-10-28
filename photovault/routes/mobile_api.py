@@ -3421,7 +3421,7 @@ def detect_damage_mobile(current_user, photo_id):
             }), 503
         
         # Get storage path
-        from photovault.utils.app_storage import app_storage
+        from photovault.services.app_storage_service import app_storage
         if app_storage.is_available() and photo.file_path.startswith('uploads/'):
             photo_path = app_storage.download_to_temp(photo.file_path)
         else:
@@ -3490,7 +3490,7 @@ def repair_damage_mobile(current_user, photo_id):
             quality = data.get('quality', 'balanced')  # 'fast', 'balanced', 'quality', 'maximum'
             fidelity = float(data.get('fidelity', 0.5))  # CodeFormer only
             
-            from photovault.utils.app_storage import app_storage
+            from photovault.services.app_storage_service import app_storage
             from datetime import datetime
             import random
             
@@ -3603,7 +3603,7 @@ def repair_damage_mobile(current_user, photo_id):
         sensitivity = int(data.get('sensitivity', 5))
         
         from photovault.utils.damage_repair import damage_repair
-        from photovault.utils.app_storage import app_storage
+        from photovault.services.app_storage_service import app_storage
         from datetime import datetime
         import random
         
