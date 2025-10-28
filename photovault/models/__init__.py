@@ -131,6 +131,11 @@ class Photo(db.Model):
     paired_photo_id = db.Column(db.Integer, db.ForeignKey('photo.id'))
     is_back_side = db.Column(db.Boolean, nullable=False, default=False)
     
+    # Enhanced version tracking - links enhanced photos to their original
+    original_photo_id = db.Column(db.Integer, db.ForeignKey('photo.id'), nullable=True)
+    is_enhanced_version = db.Column(db.Boolean, nullable=False, default=False)
+    enhancement_type = db.Column(db.String(50))  # 'colorized', 'sharpened', 'auto_enhanced', etc.
+    
     # Many-to-many relationship with people through PhotoPerson association
     people = db.relationship('Person', secondary='photo_people', lazy='subquery',
                            backref=db.backref('photos', lazy=True, overlaps="photo_people_records"), 

@@ -688,6 +688,62 @@ def get_photo_detail(current_user, photo_id):
         logger.error(f"Photo detail error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@mobile_api_bp.route('/photos/<int:photo_id>/enhanced-versions', methods=['GET'])
+@csrf.exempt
+@token_required
+def get_enhanced_versions(current_user, photo_id):
+    """Get all enhanced versions of a photo for mobile app"""
+    try:
+        # Verify the original photo exists and user owns it
+        original_photo = Photo.query.filter_by(id=photo_id, user_id=current_user.id).first()
+        
+        if not original_photo:
+            return jsonify({'error': 'Photo not found'}), 404
+        
+        # Find all enhanced versions that reference this photo as their original
+        enhanced_photos = Photo.query.filter_by(
+            original_photo_id=photo_id,
+            user_id=current_user.id,
+            is_enhanced_version=True
+        ).order_by(Photo.created_at.desc()).all()
+        
+        # Build response with enhanced versions
+        enhanced_versions = []
+        for photo in enhanced_photos:
+            # Build photo URL
+            if photo.filename:
+                if photo.filename.startswith('uploads/') or photo.filename.startswith('users/'):
+                    photo_url = f'/uploads/{photo.filename}' if photo.filename.startswith('users/') else f'/{photo.filename}'
+                else:
+                    photo_url = f'/uploads/{current_user.id}/{photo.filename}'
+            else:
+                photo_url = None
+            
+            enhanced_versions.append({
+                'id': photo.id,
+                'filename': photo.filename,
+                'url': photo_url,
+                'thumbnail_url': photo_url,
+                'enhancement_type': photo.enhancement_type or 'enhanced',
+                'created_at': photo.created_at.isoformat() if photo.created_at else None,
+                'file_size': photo.file_size,
+                'width': photo.width,
+                'height': photo.height,
+                'enhancement_metadata': photo.enhancement_metadata
+            })
+        
+        logger.info(f"✨ Found {len(enhanced_versions)} enhanced versions for photo {photo_id}")
+        
+        return jsonify({
+            'success': True,
+            'enhanced_versions': enhanced_versions,
+            'count': len(enhanced_versions)
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Enhanced versions error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @mobile_api_bp.route('/upload', methods=['POST'])
 @csrf.exempt
 @token_required
