@@ -515,6 +515,234 @@ export default function EnhancePhotoScreen({ route, navigation }) {
     }
   };
 
+  const handleOilPainting = async (size = 7) => {
+    setProcessing(true);
+    setProcessingProgress(0);
+    setProcessingMessage('Creating oil painting effect...');
+    
+    try {
+      setProcessingProgress(20);
+      setProcessingMessage('Applying oil painting effect...');
+      
+      const response = await photoAPI.oilPaintingPhoto(photo.id, size);
+      
+      setProcessingProgress(75);
+      setProcessingMessage('Fetching oil painting...');
+      
+      const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
+
+      setProcessingProgress(100);
+      setProcessingMessage('Complete!');
+
+      Alert.alert('Success', `Oil painting created successfully!`, [
+        {
+          text: 'View',
+          onPress: () => {
+            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
+          },
+        },
+      ]);
+    } catch (error) {
+      const errorMsg = error.response?.data?.error || 'Failed to create oil painting';
+      Alert.alert('Error', errorMsg);
+      console.error(error);
+    } finally {
+      setProcessing(false);
+      setProcessingProgress(0);
+      setProcessingMessage('');
+    }
+  };
+
+  const handleWatercolor = async () => {
+    setProcessing(true);
+    setProcessingProgress(0);
+    setProcessingMessage('Creating watercolor effect...');
+    
+    try {
+      setProcessingProgress(20);
+      setProcessingMessage('Applying watercolor effect...');
+      
+      const response = await photoAPI.watercolorPhoto(photo.id);
+      
+      setProcessingProgress(75);
+      setProcessingMessage('Fetching watercolor...');
+      
+      const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
+
+      setProcessingProgress(100);
+      setProcessingMessage('Complete!');
+
+      Alert.alert('Success', `Watercolor created successfully!`, [
+        {
+          text: 'View',
+          onPress: () => {
+            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
+          },
+        },
+      ]);
+    } catch (error) {
+      const errorMsg = error.response?.data?.error || 'Failed to create watercolor';
+      Alert.alert('Error', errorMsg);
+      console.error(error);
+    } finally {
+      setProcessing(false);
+      setProcessingProgress(0);
+      setProcessingMessage('');
+    }
+  };
+
+  const handleVintage = async (style = 'sepia') => {
+    setProcessing(true);
+    setProcessingProgress(0);
+    setProcessingMessage(`Creating vintage ${style} effect...`);
+    
+    try {
+      setProcessingProgress(20);
+      setProcessingMessage('Applying vintage effect...');
+      
+      const response = await photoAPI.vintagePhoto(photo.id, style);
+      
+      setProcessingProgress(75);
+      setProcessingMessage('Fetching vintage photo...');
+      
+      const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
+
+      setProcessingProgress(100);
+      setProcessingMessage('Complete!');
+
+      Alert.alert('Success', `Vintage ${style} created successfully!`, [
+        {
+          text: 'View',
+          onPress: () => {
+            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
+          },
+        },
+      ]);
+    } catch (error) {
+      const errorMsg = error.response?.data?.error || 'Failed to create vintage effect';
+      Alert.alert('Error', errorMsg);
+      console.error(error);
+    } finally {
+      setProcessing(false);
+      setProcessingProgress(0);
+      setProcessingMessage('');
+    }
+  };
+
+  const handlePopArt = async (colors = 8) => {
+    setProcessing(true);
+    setProcessingProgress(0);
+    setProcessingMessage('Creating pop art effect...');
+    
+    try {
+      setProcessingProgress(20);
+      setProcessingMessage('Applying pop art effect...');
+      
+      const response = await photoAPI.popArtPhoto(photo.id, colors);
+      
+      setProcessingProgress(75);
+      setProcessingMessage('Fetching pop art...');
+      
+      const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
+
+      setProcessingProgress(100);
+      setProcessingMessage('Complete!');
+
+      Alert.alert('Success', `Pop art created successfully!`, [
+        {
+          text: 'View',
+          onPress: () => {
+            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
+          },
+        },
+      ]);
+    } catch (error) {
+      const errorMsg = error.response?.data?.error || 'Failed to create pop art';
+      Alert.alert('Error', errorMsg);
+      console.error(error);
+    } finally {
+      setProcessing(false);
+      setProcessingProgress(0);
+      setProcessingMessage('');
+    }
+  };
+
+  const handleHDR = async () => {
+    setProcessing(true);
+    setProcessingProgress(0);
+    setProcessingMessage('Creating HDR enhancement...');
+    
+    try {
+      setProcessingProgress(20);
+      setProcessingMessage('Applying HDR tone mapping...');
+      
+      const response = await photoAPI.hdrPhoto(photo.id);
+      
+      setProcessingProgress(75);
+      setProcessingMessage('Fetching HDR photo...');
+      
+      const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
+
+      setProcessingProgress(100);
+      setProcessingMessage('Complete!');
+
+      Alert.alert('Success', `HDR enhancement created successfully!`, [
+        {
+          text: 'View',
+          onPress: () => {
+            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
+          },
+        },
+      ]);
+    } catch (error) {
+      const errorMsg = error.response?.data?.error || 'Failed to create HDR enhancement';
+      Alert.alert('Error', errorMsg);
+      console.error(error);
+    } finally {
+      setProcessing(false);
+      setProcessingProgress(0);
+      setProcessingMessage('');
+    }
+  };
+
+  const handleBlackWhite = async (style = 'classic') => {
+    setProcessing(true);
+    setProcessingProgress(0);
+    setProcessingMessage(`Creating ${style} B&W...`);
+    
+    try {
+      setProcessingProgress(20);
+      setProcessingMessage('Applying B&W effect...');
+      
+      const response = await photoAPI.blackWhitePhoto(photo.id, style);
+      
+      setProcessingProgress(75);
+      setProcessingMessage('Fetching B&W photo...');
+      
+      const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
+
+      setProcessingProgress(100);
+      setProcessingMessage('Complete!');
+
+      Alert.alert('Success', `Black & white created successfully!`, [
+        {
+          text: 'View',
+          onPress: () => {
+            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
+          },
+        },
+      ]);
+    } catch (error) {
+      const errorMsg = error.response?.data?.error || 'Failed to create B&W';
+      Alert.alert('Error', errorMsg);
+      console.error(error);
+    } finally {
+      setProcessing(false);
+      setProcessingProgress(0);
+      setProcessingMessage('');
+    }
+  };
+
   const handleAIRestorationWithControls = () => {
     setShowAIRestorationControls(true);
   };
@@ -712,6 +940,54 @@ export default function EnhancePhotoScreen({ route, navigation }) {
             description="Create comic/cartoon effect"
             onPress={() => handleCartoon('balanced')}
             color="#00BCD4"
+          />
+
+          <EnhancementOption
+            icon="brush"
+            title="Oil Painting"
+            description="Hand-painted artwork look"
+            onPress={() => handleOilPainting(7)}
+            color="#FF9800"
+          />
+
+          <EnhancementOption
+            icon="water"
+            title="Watercolor"
+            description="Soft, dreamy painting effect"
+            onPress={() => handleWatercolor()}
+            color="#4FC3F7"
+          />
+
+          <EnhancementOption
+            icon="time"
+            title="Vintage"
+            description="Classic sepia tone effect"
+            onPress={() => handleVintage('sepia')}
+            color="#8D6E63"
+          />
+
+          <EnhancementOption
+            icon="color-palette"
+            title="Pop Art"
+            description="Warhol-style bold colors"
+            onPress={() => handlePopArt(8)}
+            color="#E91E63"
+          />
+
+          <EnhancementOption
+            icon="contrast"
+            title="HDR"
+            description="Dramatic high-contrast enhancement"
+            onPress={() => handleHDR()}
+            color="#9C27B0"
+          />
+
+          <EnhancementOption
+            icon="moon"
+            title="Black & White"
+            description="Professional B&W conversion"
+            onPress={() => handleBlackWhite('classic')}
+            color="#616161"
           />
         </View>
 

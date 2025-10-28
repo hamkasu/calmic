@@ -185,6 +185,36 @@ export const photoAPI = {
     return response.data;
   },
   
+  oilPaintingPhoto: async (photoId, size = 7) => {
+    const response = await api.post(`/api/photos/${photoId}/oil-painting`, { size });
+    return response.data;
+  },
+  
+  watercolorPhoto: async (photoId) => {
+    const response = await api.post(`/api/photos/${photoId}/watercolor`, {});
+    return response.data;
+  },
+  
+  vintagePhoto: async (photoId, style = 'sepia') => {
+    const response = await api.post(`/api/photos/${photoId}/vintage`, { style });
+    return response.data;
+  },
+  
+  popArtPhoto: async (photoId, colors = 8) => {
+    const response = await api.post(`/api/photos/${photoId}/pop-art`, { colors });
+    return response.data;
+  },
+  
+  hdrPhoto: async (photoId) => {
+    const response = await api.post(`/api/photos/${photoId}/hdr`, {});
+    return response.data;
+  },
+  
+  blackWhitePhoto: async (photoId, style = 'classic') => {
+    const response = await api.post(`/api/photos/${photoId}/black-white`, { style });
+    return response.data;
+  },
+  
   renamePhoto: async (photoId, newName) => {
     const response = await api.put(`/api/photos/${photoId}/rename`, { new_name: newName });
     return response.data;
