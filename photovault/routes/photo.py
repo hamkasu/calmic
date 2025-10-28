@@ -2423,3 +2423,249 @@ def check_grayscale_route(photo_id):
             'success': False,
             'error': 'Failed to check photo color mode'
         }), 500
+
+
+@photo_bp.route('/api/photo/<int:photo_id>/sketch', methods=['POST'])
+@hybrid_auth
+def sketch_photo_route(photo_id):
+    """
+    Convert photo to sketch/drawing effect
+    
+    Args:
+        photo_id: ID of the photo to convert
+        
+    Request JSON:
+        style: 'pencil' or 'pen' (optional, default: 'pencil')
+        
+    Returns:
+        JSON with success status and sketch photo information
+    """
+    try:
+        from photovault.utils.artistic_effects import get_artistic_effects
+        
+        photo = Photo.query.get_or_404(photo_id)
+        
+        if photo.user_id != current_user.id and not current_user.is_admin:
+            return jsonify({
+                'success': False,
+                'error': 'Unauthorized access to this photo'
+            }), 403
+        
+        data = request.get_json() or {}
+        style = data.get('style', 'pencil')
+        
+        if style not in ['pencil', 'pen']:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid style. Use pencil or pen'
+            }), 400
+        
+        artistic_effects = get_artistic_effects()
+        
+        unique_id = str(uuid.uuid4())
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        file_extension = os.path.splitext(photo.filename)[1] or '.jpg'
+        
+        sketch_filename = f"{current_user.id}_{unique_id}_sketch_{timestamp}{file_extension}"
+        
+        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'photovault/uploads')
+        user_folder = os.path.join(upload_folder, str(current_user.id))
+        os.makedirs(user_folder, exist_ok=True)
+        
+        sketch_path = os.path.join(user_folder, sketch_filename)
+        
+        logger.info(f"Creating sketch for photo {photo_id} using style: {style}")
+        
+        artistic_effects.create_sketch(photo.file_path, sketch_path, style=style)
+        
+        thumbnail_path = None
+        thumbnail_filename = f"{current_user.id}_{unique_id}_sketch_thumb_{timestamp}.jpg"
+        thumbnail_full_path = os.path.join(user_folder, thumbnail_filename)
+        
+        if create_thumbnail_local(sketch_path, thumbnail_full_path):
+            thumbnail_path = thumbnail_full_path
+        
+        image_info = get_image_info(sketch_path)
+        
+        new_photo = Photo(
+            filename=sketch_filename,
+            original_name=f"sketch_{photo.original_name}",
+            file_path=sketch_path,
+            thumbnail_path=thumbnail_path,
+            file_size=image_info.get('size_bytes') if image_info else None,
+            width=image_info.get('width') if image_info else None,
+            height=image_info.get('height') if image_info else None,
+            mime_type=f"image/{image_info.get('format', 'jpeg').lower()}" if image_info else 'image/jpeg',
+            upload_source='artistic_effect',
+            user_id=current_user.id,
+            album_id=photo.album_id,
+            description=f"Sketch version of {photo.original_name}",
+            original_photo_id=photo_id,
+            is_enhanced_version=True,
+            enhancement_type='sketch'
+        )
+        
+        db.session.add(new_photo)
+        db.session.commit()
+        
+        logger.info(f"Created sketch photo {new_photo.id} from original {photo_id}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Sketch created successfully',
+            'original_photo_id': photo_id,
+            'sketch_photo_id': new_photo.id,
+            'style_used': style,
+            'sketch_photo': {
+                'id': new_photo.id,
+                'filename': new_photo.filename,
+                'original_name': new_photo.original_name,
+                'width': new_photo.width,
+                'height': new_photo.height,
+                'file_size': new_photo.file_size,
+                'created_at': new_photo.created_at.isoformat() if new_photo.created_at else None,
+                'thumbnail_url': url_for('gallery.uploaded_file', 
+                                        user_id=current_user.id, 
+                                        filename=thumbnail_filename) if thumbnail_path else None,
+                'image_url': url_for('gallery.uploaded_file', 
+                                    user_id=current_user.id, 
+                                    filename=sketch_filename)
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Sketch creation failed for photo {photo_id}: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Sketch creation failed due to unexpected error'
+        }), 500
+
+
+@photo_bp.route('/api/photo/<int:photo_id>/cartoon', methods=['POST'])
+@hybrid_auth
+def cartoon_photo_route(photo_id):
+    """
+    Convert photo to cartoon/comic effect
+    
+    Args:
+        photo_id: ID of the photo to convert
+        
+    Request JSON:
+        quality: 'fast', 'balanced', or 'high' (optional, default: 'balanced')
+        
+    Returns:
+        JSON with success status and cartoon photo information
+    """
+    try:
+        from photovault.utils.artistic_effects import get_artistic_effects
+        
+        photo = Photo.query.get_or_404(photo_id)
+        
+        if photo.user_id != current_user.id and not current_user.is_admin:
+            return jsonify({
+                'success': False,
+                'error': 'Unauthorized access to this photo'
+            }), 403
+        
+        data = request.get_json() or {}
+        quality = data.get('quality', 'balanced')
+        
+        if quality not in ['fast', 'balanced', 'high']:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid quality. Use fast, balanced, or high'
+            }), 400
+        
+        quality_params = {
+            'fast': {'num_down': 1, 'num_bilateral': 5},
+            'balanced': {'num_down': 2, 'num_bilateral': 7},
+            'high': {'num_down': 2, 'num_bilateral': 10}
+        }
+        
+        params = quality_params[quality]
+        artistic_effects = get_artistic_effects()
+        
+        unique_id = str(uuid.uuid4())
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        file_extension = os.path.splitext(photo.filename)[1] or '.jpg'
+        
+        cartoon_filename = f"{current_user.id}_{unique_id}_cartoon_{timestamp}{file_extension}"
+        
+        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'photovault/uploads')
+        user_folder = os.path.join(upload_folder, str(current_user.id))
+        os.makedirs(user_folder, exist_ok=True)
+        
+        cartoon_path = os.path.join(user_folder, cartoon_filename)
+        
+        logger.info(f"Creating cartoon for photo {photo_id} using quality: {quality}")
+        
+        artistic_effects.create_cartoon(
+            photo.file_path, 
+            cartoon_path, 
+            num_down=params['num_down'],
+            num_bilateral=params['num_bilateral']
+        )
+        
+        thumbnail_path = None
+        thumbnail_filename = f"{current_user.id}_{unique_id}_cartoon_thumb_{timestamp}.jpg"
+        thumbnail_full_path = os.path.join(user_folder, thumbnail_filename)
+        
+        if create_thumbnail_local(cartoon_path, thumbnail_full_path):
+            thumbnail_path = thumbnail_full_path
+        
+        image_info = get_image_info(cartoon_path)
+        
+        new_photo = Photo(
+            filename=cartoon_filename,
+            original_name=f"cartoon_{photo.original_name}",
+            file_path=cartoon_path,
+            thumbnail_path=thumbnail_path,
+            file_size=image_info.get('size_bytes') if image_info else None,
+            width=image_info.get('width') if image_info else None,
+            height=image_info.get('height') if image_info else None,
+            mime_type=f"image/{image_info.get('format', 'jpeg').lower()}" if image_info else 'image/jpeg',
+            upload_source='artistic_effect',
+            user_id=current_user.id,
+            album_id=photo.album_id,
+            description=f"Cartoon version of {photo.original_name}",
+            original_photo_id=photo_id,
+            is_enhanced_version=True,
+            enhancement_type='cartoon'
+        )
+        
+        db.session.add(new_photo)
+        db.session.commit()
+        
+        logger.info(f"Created cartoon photo {new_photo.id} from original {photo_id}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Cartoon created successfully',
+            'original_photo_id': photo_id,
+            'cartoon_photo_id': new_photo.id,
+            'quality_used': quality,
+            'cartoon_photo': {
+                'id': new_photo.id,
+                'filename': new_photo.filename,
+                'original_name': new_photo.original_name,
+                'width': new_photo.width,
+                'height': new_photo.height,
+                'file_size': new_photo.file_size,
+                'created_at': new_photo.created_at.isoformat() if new_photo.created_at else None,
+                'thumbnail_url': url_for('gallery.uploaded_file', 
+                                        user_id=current_user.id, 
+                                        filename=thumbnail_filename) if thumbnail_path else None,
+                'image_url': url_for('gallery.uploaded_file', 
+                                    user_id=current_user.id, 
+                                    filename=cartoon_filename)
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Cartoon creation failed for photo {photo_id}: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Cartoon creation failed due to unexpected error'
+        }), 500
