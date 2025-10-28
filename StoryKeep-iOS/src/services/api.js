@@ -175,6 +175,16 @@ export const photoAPI = {
     return response.data;
   },
   
+  sketchPhoto: async (photoId, style = 'pencil') => {
+    const response = await api.post(`/api/photo/${photoId}/sketch`, { style });
+    return response.data;
+  },
+  
+  cartoonPhoto: async (photoId, quality = 'balanced') => {
+    const response = await api.post(`/api/photo/${photoId}/cartoon`, { quality });
+    return response.data;
+  },
+  
   renamePhoto: async (photoId, newName) => {
     const response = await api.put(`/api/photos/${photoId}/rename`, { new_name: newName });
     return response.data;
