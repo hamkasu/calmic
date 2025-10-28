@@ -176,12 +176,12 @@ export const photoAPI = {
   },
   
   sketchPhoto: async (photoId, style = 'pencil') => {
-    const response = await api.post(`/api/photo/${photoId}/sketch`, { style });
+    const response = await api.post(`/api/photos/${photoId}/sketch`, { style });
     return response.data;
   },
   
   cartoonPhoto: async (photoId, quality = 'balanced') => {
-    const response = await api.post(`/api/photo/${photoId}/cartoon`, { quality });
+    const response = await api.post(`/api/photos/${photoId}/cartoon`, { quality });
     return response.data;
   },
   

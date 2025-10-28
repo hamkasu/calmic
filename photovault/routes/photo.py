@@ -2425,7 +2425,7 @@ def check_grayscale_route(photo_id):
         }), 500
 
 
-@photo_bp.route('/api/photo/<int:photo_id>/sketch', methods=['POST'])
+@photo_bp.route('/api/photos/<int:photo_id>/sketch', methods=['POST'])
 @hybrid_auth
 def sketch_photo_route(photo_id):
     """
@@ -2542,7 +2542,7 @@ def sketch_photo_route(photo_id):
         }), 500
 
 
-@photo_bp.route('/api/photo/<int:photo_id>/cartoon', methods=['POST'])
+@photo_bp.route('/api/photos/<int:photo_id>/cartoon', methods=['POST'])
 @hybrid_auth
 def cartoon_photo_route(photo_id):
     """
