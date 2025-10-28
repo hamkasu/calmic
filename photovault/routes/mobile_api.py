@@ -2304,19 +2304,40 @@ def enhance_photo_mobile(current_user, photo_id):
         
         logger.info(f"✅ Enhancement complete: {output_path}, settings: {applied_settings}")
         
-        # Update photo record with enhanced version
-        photo.edited_filename = enhanced_filename
-        photo.updated_at = datetime.utcnow()
+        # Get file size
+        enhanced_size = os.path.getsize(enhanced_filepath)
+        
+        # Create NEW photo record for enhanced version
+        new_photo = Photo()
+        new_photo.user_id = current_user.id
+        new_photo.filename = enhanced_filename
+        new_photo.original_name = f"{photo.original_name or photo.filename} (Enhanced)"
+        new_photo.file_path = enhanced_filepath
+        new_photo.file_size = enhanced_size
+        new_photo.upload_source = 'enhanced'
+        new_photo.original_photo_id = photo_id
+        new_photo.is_enhanced_version = True
+        new_photo.enhancement_type = 'enhanced'
+        new_photo.enhancement_metadata = {
+            'enhancement': {
+                'settings': applied_settings,
+                'timestamp': str(datetime.now()),
+                'original_photo_id': photo_id
+            }
+        }
+        
+        db.session.add(new_photo)
         db.session.commit()
         
-        logger.info(f"💾 Database updated: photo {photo_id} enhanced successfully")
+        logger.info(f"💾 Created new enhanced photo: ID={new_photo.id}, filename='{enhanced_filename}'")
         
         return jsonify({
             'success': True,
             'message': 'Photo enhanced successfully',
             'photo': {
-                'id': photo.id,
-                'filename': photo.filename,
+                'id': new_photo.id,
+                'original_photo_id': photo_id,
+                'filename': enhanced_filename,
                 'enhanced_filename': enhanced_filename,
                 'enhanced_url': f'/uploads/{current_user.id}/{enhanced_filename}',
                 'settings_applied': applied_settings
@@ -2404,19 +2425,40 @@ def colorize_photo_mobile(current_user, photo_id):
             else:
                 raise
         
-        # Update photo record with colorized version
-        photo.edited_filename = colorized_filename
-        photo.updated_at = datetime.utcnow()
+        # Get file size
+        colorized_size = os.path.getsize(colorized_path)
+        
+        # Create NEW photo record for colorized version
+        new_photo = Photo()
+        new_photo.user_id = current_user.id
+        new_photo.filename = colorized_filename
+        new_photo.original_name = f"{photo.original_name or photo.filename} (Colorized)"
+        new_photo.file_path = colorized_path
+        new_photo.file_size = colorized_size
+        new_photo.upload_source = 'colorized'
+        new_photo.original_photo_id = photo_id
+        new_photo.is_enhanced_version = True
+        new_photo.enhancement_type = 'colorized'
+        new_photo.enhancement_metadata = {
+            'colorization': {
+                'method': actual_method,
+                'timestamp': str(datetime.now()),
+                'original_photo_id': photo_id
+            }
+        }
+        
+        db.session.add(new_photo)
         db.session.commit()
         
-        logger.info(f"Photo {photo_id} colorized successfully using {actual_method}")
+        logger.info(f"Photo {photo_id} colorized successfully using {actual_method}, new photo ID: {new_photo.id}")
         
         return jsonify({
             'success': True,
             'message': 'Photo colorized successfully',
             'photo': {
-                'id': photo.id,
-                'filename': photo.filename,
+                'id': new_photo.id,
+                'original_photo_id': photo_id,
+                'filename': colorized_filename,
                 'colorized_filename': colorized_filename,
                 'colorized_url': f'/uploads/{current_user.id}/{colorized_filename}',
                 'method_used': actual_method
@@ -2517,18 +2559,31 @@ def colorize_photo_ai_mobile(current_user, photo_id):
             except Exception as e:
                 logger.warning(f"App Storage upload failed, keeping local: {str(e)}")
         
-        # Update photo record with colorized version
-        photo.edited_filename = colorized_filename
-        photo.edited_path = edited_path
-        photo.enhancement_metadata = {
+        # Get file size
+        colorized_size = os.path.getsize(edited_path) if os.path.exists(edited_path) else 0
+        
+        # Create NEW photo record for AI-colorized version
+        new_photo = Photo()
+        new_photo.user_id = current_user.id
+        new_photo.filename = colorized_filename
+        new_photo.original_name = f"{photo.original_name or photo.filename} (AI Colorized)"
+        new_photo.file_path = edited_path
+        new_photo.file_size = colorized_size
+        new_photo.upload_source = 'colorized_ai'
+        new_photo.original_photo_id = photo_id
+        new_photo.is_enhanced_version = True
+        new_photo.enhancement_type = 'colorized_ai'
+        new_photo.enhancement_metadata = {
             'colorization': {
                 'method': metadata['method'],
                 'ai_guidance': metadata.get('ai_guidance', ''),
                 'model': metadata.get('model', 'gemini-2.0-flash-exp'),
-                'timestamp': str(datetime.now())
+                'timestamp': str(datetime.now()),
+                'original_photo_id': photo_id
             }
         }
-        photo.updated_at = datetime.utcnow()
+        
+        db.session.add(new_photo)
         db.session.commit()
         
         # Increment AI quota usage (atomic operation)
@@ -2536,14 +2591,15 @@ def colorize_photo_ai_mobile(current_user, photo_id):
         if not success:
             logger.error(f"Quota increment failed after colorization: {usage_error}")
         else:
-            logger.info(f"✅ Photo {photo_id} AI-colorized successfully using {metadata['method']} (quota: {new_usage}/{quota_info['quota_limit']})")
+            logger.info(f"✅ Photo {photo_id} AI-colorized successfully using {metadata['method']} (quota: {new_usage}/{quota_info['quota_limit']}), new photo ID: {new_photo.id}")
         
         return jsonify({
             'success': True,
             'message': 'Photo colorized successfully using AI',
             'photo': {
-                'id': photo.id,
-                'filename': photo.filename,
+                'id': new_photo.id,
+                'original_photo_id': photo_id,
+                'filename': colorized_filename,
                 'colorized_filename': colorized_filename,
                 'colorized_url': f'/uploads/{current_user.id}/{colorized_filename}',
                 'method_used': metadata['method'],
@@ -2789,6 +2845,9 @@ def sharpen_photo_mobile(current_user, photo_id):
         new_photo.thumbnail_path = thumbnail_path
         new_photo.file_size = sharpened_size
         new_photo.upload_source = 'sharpened'  # Mark as sharpened photo
+        new_photo.original_photo_id = photo_id  # Link to original photo
+        new_photo.is_enhanced_version = True  # Mark as enhanced version
+        new_photo.enhancement_type = 'sharpened'  # Set enhancement type
         new_photo.enhancement_metadata = {
             'sharpening': {
                 'radius': radius,
