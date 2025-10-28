@@ -1,3 +1,7 @@
+"""
+PhotoVault Admin Export Routes
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+"""
 # photovault/routes/admin_export.py
 from flask import Blueprint, request, redirect, url_for, flash, make_response, current_app
 from flask_login import login_required, current_user

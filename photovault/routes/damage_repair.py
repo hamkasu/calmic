@@ -1,5 +1,7 @@
 """
 Damage Repair Routes
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 Handles photo damage repair and restoration features
 """
 

@@ -1,5 +1,7 @@
 """
 PhotoVault Enhanced Upload Route
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 Handles file uploads from both traditional file selection and camera capture
 """
 import os

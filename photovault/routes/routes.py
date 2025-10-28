@@ -1,3 +1,7 @@
+"""
+PhotoVault Routes
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+"""
 from flask import Blueprint, render_template, request, jsonify, current_app, flash, redirect, url_for
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename

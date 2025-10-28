@@ -1,5 +1,7 @@
 """
 Smart Face Tagging Routes for PhotoVault
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 Combines automatic face detection with manual tagging capabilities
 """
 

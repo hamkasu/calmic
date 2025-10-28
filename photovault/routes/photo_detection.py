@@ -1,3 +1,7 @@
+"""
+PhotoVault Photo Detection Routes
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+"""
 # photovault/routes/photo_detection.py
 
 import os

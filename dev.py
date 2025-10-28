@@ -1,5 +1,7 @@
 """
 PhotoVault Development Server
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 Runs Flask development server on 0.0.0.0:5000 for Replit environment
 """
 import os

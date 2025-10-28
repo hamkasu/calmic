@@ -1,5 +1,6 @@
 """
 Mobile API Routes for StoryKeep iOS/Android App
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
 """
 from flask import Blueprint, jsonify, request, current_app, url_for
 from photovault.models import Photo, UserSubscription, FamilyVault, FamilyMember, User, VaultPhoto, VaultInvitation, PhotoComment

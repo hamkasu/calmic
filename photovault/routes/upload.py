@@ -1,3 +1,7 @@
+"""
+PhotoVault Upload Routes
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+"""
 # photovault/routes/upload.py
 
 import os

@@ -1,5 +1,6 @@
 """
 OAuth Social Login Routes (Google, Apple)
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
 """
 from flask import Blueprint, redirect, url_for, session, flash, request
 from flask_login import login_user, current_user

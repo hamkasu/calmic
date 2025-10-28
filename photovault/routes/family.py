@@ -1,3 +1,7 @@
+"""
+PhotoVault Family Vault Routes
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+"""
 # photovault/routes/family.py
 
 import logging

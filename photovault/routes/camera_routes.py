@@ -1,5 +1,7 @@
 """
 PhotoVault Camera Routes
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 Enhanced camera functionality with full screen + landscape support
 """
 

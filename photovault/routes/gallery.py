@@ -1,5 +1,7 @@
 """
 PhotoVault Gallery Routes
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 Simple gallery blueprint for photo management
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_from_directory, send_file, abort, current_app, Response, jsonify

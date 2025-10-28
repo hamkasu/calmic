@@ -1,5 +1,7 @@
 """
 Multi-Factor Authentication (MFA/2FA) Routes
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 Handles MFA setup, verification, and management
 """
 from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for, flash

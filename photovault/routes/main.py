@@ -1,5 +1,7 @@
 """
 PhotoVault Main Routes Blueprint
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 This should only contain routes, not a Flask app
 """
 from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify, send_file

@@ -1,5 +1,7 @@
 """
 Social Media Integration Routes
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 Handles OAuth flows and photo sharing to social platforms
 """
 from flask import Blueprint, request, redirect, url_for, render_template, flash, jsonify, session
