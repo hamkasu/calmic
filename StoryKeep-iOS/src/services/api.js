@@ -174,6 +174,11 @@ export const photoAPI = {
     const response = await api.post(`/api/photos/${photoId}/repair`, options);
     return response.data;
   },
+  
+  renamePhoto: async (photoId, newName) => {
+    const response = await api.put(`/api/photos/${photoId}/rename`, { new_name: newName });
+    return response.data;
+  },
 };
 
 export const vaultAPI = {

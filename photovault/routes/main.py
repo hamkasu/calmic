@@ -303,6 +303,43 @@ def edit_photo(photo_id):
         print(f"Edit photo error: {str(e)}")
         return redirect(url_for('main.dashboard'))
 
+@main_bp.route('/photos/<int:photo_id>/rename', methods=['POST'])
+@login_required
+def rename_photo(photo_id):
+    """Rename a photo (preserves enhanced photo relationships)"""
+    try:
+        from photovault.models import Photo
+        from photovault.extensions import db
+        
+        # Get the photo and verify ownership
+        photo = Photo.query.get_or_404(photo_id)
+        if photo.user_id != current_user.id:
+            flash('Access denied.', 'error')
+            return redirect(url_for('main.dashboard'))
+        
+        # Get new name from form
+        new_name = request.form.get('new_name', '').strip()
+        
+        if not new_name:
+            flash('Photo name cannot be empty.', 'error')
+            return redirect(request.referrer or url_for('main.dashboard'))
+        
+        # Update the photo name
+        old_name = photo.original_name
+        photo.original_name = new_name
+        photo.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        flash(f'Photo renamed from "{old_name}" to "{new_name}".', 'success')
+        return redirect(request.referrer or url_for('main.view_photo', photo_id=photo_id))
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Rename photo error: {str(e)}")
+        flash('Error renaming photo.', 'error')
+        return redirect(request.referrer or url_for('main.dashboard'))
+
 @main_bp.route('/advanced-enhancement')
 @login_required
 def advanced_enhancement():

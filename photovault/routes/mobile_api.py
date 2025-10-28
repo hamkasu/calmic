@@ -688,6 +688,52 @@ def get_photo_detail(current_user, photo_id):
         logger.error(f"Photo detail error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@mobile_api_bp.route('/photos/<int:photo_id>/rename', methods=['PUT'])
+@csrf.exempt
+@token_required
+def rename_photo_mobile(current_user, photo_id):
+    """Rename a photo for mobile app (preserves enhanced photo relationships)"""
+    try:
+        # Get the photo and verify ownership
+        photo = Photo.query.filter_by(id=photo_id, user_id=current_user.id).first()
+        
+        if not photo:
+            return jsonify({'error': 'Photo not found'}), 404
+        
+        # Get new name from request
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        new_name = data.get('new_name', '').strip()
+        
+        if not new_name:
+            return jsonify({'error': 'Photo name cannot be empty'}), 400
+        
+        # Update the photo name
+        old_name = photo.original_name
+        photo.original_name = new_name
+        photo.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        logger.info(f"📝 Photo {photo_id} renamed from '{old_name}' to '{new_name}' by {current_user.username}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Photo renamed successfully',
+            'photo': {
+                'id': photo.id,
+                'original_name': photo.original_name,
+                'old_name': old_name
+            }
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"❌ Rename photo error: {str(e)}")
+        return jsonify({'error': 'Error renaming photo'}), 500
+
 @mobile_api_bp.route('/photos/<int:photo_id>/enhanced-versions', methods=['GET'])
 @csrf.exempt
 @token_required

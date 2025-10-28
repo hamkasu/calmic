@@ -336,6 +336,48 @@ export default function PhotoDetailScreen({ route, navigation }) {
     await sharePhoto(photo, authToken, !showOriginal);
   };
 
+  const handleRename = () => {
+    Alert.prompt(
+      'Rename Photo',
+      'Enter a new name for this photo:',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Rename',
+          onPress: async (newName) => {
+            if (!newName || !newName.trim()) {
+              Alert.alert('Error', 'Photo name cannot be empty');
+              return;
+            }
+            
+            try {
+              setLoading(true);
+              const response = await photoAPI.renamePhoto(photo.id, newName.trim());
+              
+              if (response.success) {
+                // Update local photo state
+                setPhoto({ ...photo, original_name: newName.trim() });
+                Alert.alert('Success', 'Photo renamed successfully');
+              } else {
+                Alert.alert('Error', response.error || 'Failed to rename photo');
+              }
+            } catch (error) {
+              console.error('❌ Rename error:', error);
+              Alert.alert('Error', 'Failed to rename photo');
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ],
+      'plain-text',
+      photo.original_name || 'Photo'
+    );
+  };
+
   // Simple debugging voice memo functions
   const startRecording = async () => {
     try {
@@ -690,6 +732,14 @@ export default function PhotoDetailScreen({ route, navigation }) {
           >
             <Ionicons name="share-social" size={24} color="#E85D75" />
             <Text style={styles.actionText}>Share</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.actionButton} 
+            onPress={handleRename}
+          >
+            <Ionicons name="pencil" size={24} color="#E85D75" />
+            <Text style={styles.actionText}>Rename</Text>
           </TouchableOpacity>
         </View>
 
