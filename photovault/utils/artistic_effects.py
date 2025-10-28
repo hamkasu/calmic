@@ -184,13 +184,13 @@ class ArtisticEffects:
     
     def create_oil_painting(self, image_path, output_path=None, size=7, dynRatio=1):
         """
-        Convert photo to oil painting effect
+        Convert photo to oil painting effect using bilateral filtering
         
         Args:
             image_path: Path to input image
             output_path: Path to save oil painting (optional)
             size: Size of the filter (default: 7, range: 1-10)
-            dynRatio: Image dynamic ratio (default: 1)
+            dynRatio: Image dynamic ratio (not used, kept for API compatibility)
             
         Returns:
             Path to oil painting image if output_path provided, else PIL Image
@@ -201,15 +201,31 @@ class ArtisticEffects:
             if img is None:
                 raise ValueError(f"Could not read image from {image_path}")
             
-            # Apply oil painting effect using xphoto module
-            oil_painting = cv2.xphoto.oilPainting(img, size, dynRatio)
+            # Validate size parameter
+            size = max(1, min(10, int(size)))
+            
+            # Map size (1-10) to bilateral filter diameter (9-25)
+            diameter = 9 + (size * 2)
+            
+            # Apply multiple passes of bilateral filtering for painterly effect
+            result = img.copy()
+            for _ in range(2):
+                result = cv2.bilateralFilter(result, diameter, 90, 90)
+            
+            # Apply edge-preserving smoothing for brush stroke effect
+            result = cv2.edgePreservingFilter(result, flags=1, sigma_s=60, sigma_r=0.4)
+            
+            # Convert to HSV and boost saturation for vibrant oil painting look
+            hsv = cv2.cvtColor(result, cv2.COLOR_BGR2HSV).astype(np.float32)
+            hsv[:, :, 1] = np.clip(hsv[:, :, 1] * 1.2, 0, 255)
+            result = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
             
             if output_path:
-                cv2.imwrite(output_path, oil_painting)
+                cv2.imwrite(output_path, result)
                 logger.info(f"Oil painting created and saved to {output_path}")
                 return output_path
             else:
-                oil_rgb = cv2.cvtColor(oil_painting, cv2.COLOR_BGR2RGB)
+                oil_rgb = cv2.cvtColor(result, cv2.COLOR_BGR2RGB)
                 return Image.fromarray(oil_rgb)
                 
         except Exception as e:
