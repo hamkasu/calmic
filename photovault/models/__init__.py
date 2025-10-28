@@ -1,5 +1,7 @@
 """
 PhotoVault Database Models
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 Complete models for User, Photo, Album, Person, and PhotoPerson management
 """
 from datetime import datetime, timedelta
