@@ -66,7 +66,10 @@ def repair_scratches(photo_id):
             mime_type=f"image/{image_info.get('format', 'jpeg').lower()}" if image_info else 'image/jpeg',
             upload_source='damage_repair',
             user_id=current_user.id,
-            album_id=photo.album_id
+            album_id=photo.album_id,
+            original_photo_id=photo_id,
+            is_enhanced_version=True,
+            enhancement_type='scratch_repair'
         )
         
         db.session.add(new_photo)
@@ -140,7 +143,10 @@ def repair_stains(photo_id):
             mime_type=f"image/{image_info.get('format', 'jpeg').lower()}" if image_info else 'image/jpeg',
             upload_source='damage_repair',
             user_id=current_user.id,
-            album_id=photo.album_id
+            album_id=photo.album_id,
+            original_photo_id=photo_id,
+            is_enhanced_version=True,
+            enhancement_type='stain_removal'
         )
         
         db.session.add(new_photo)
@@ -214,7 +220,10 @@ def repair_cracks(photo_id):
             mime_type=f"image/{image_info.get('format', 'jpeg').lower()}" if image_info else 'image/jpeg',
             upload_source='damage_repair',
             user_id=current_user.id,
-            album_id=photo.album_id
+            album_id=photo.album_id,
+            original_photo_id=photo_id,
+            is_enhanced_version=True,
+            enhancement_type='crack_repair'
         )
         
         db.session.add(new_photo)
@@ -289,7 +298,10 @@ def repair_severe_cracks(photo_id):
             mime_type=f"image/{image_info.get('format', 'jpeg').lower()}" if image_info else 'image/jpeg',
             upload_source='severe_damage_repair',
             user_id=current_user.id,
-            album_id=photo.album_id
+            album_id=photo.album_id,
+            original_photo_id=photo_id,
+            is_enhanced_version=True,
+            enhancement_type='severe_crack_repair'
         )
         
         db.session.add(new_photo)
@@ -366,7 +378,10 @@ def comprehensive_repair(photo_id):
             mime_type=f"image/{image_info.get('format', 'jpeg').lower()}" if image_info else 'image/jpeg',
             upload_source='damage_repair',
             user_id=current_user.id,
-            album_id=photo.album_id
+            album_id=photo.album_id,
+            original_photo_id=photo_id,
+            is_enhanced_version=True,
+            enhancement_type='comprehensive_repair'
         )
         
         db.session.add(new_photo)

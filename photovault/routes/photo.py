@@ -2321,7 +2321,10 @@ def colorize_photo_route(photo_id):
             upload_source='colorization',
             user_id=current_user.id,
             album_id=photo.album_id,
-            description=f"Colorized version of {photo.original_name}"
+            description=f"Colorized version of {photo.original_name}",
+            original_photo_id=photo_id,
+            is_enhanced_version=True,
+            enhancement_type='colorized'
         )
         
         db.session.add(new_photo)
