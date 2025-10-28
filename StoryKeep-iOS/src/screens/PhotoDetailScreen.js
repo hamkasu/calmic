@@ -646,7 +646,10 @@ export default function PhotoDetailScreen({ route, navigation }) {
                 styles.toggleButton,
                 !showOriginal && styles.toggleButtonActive,
               ]}
-              onPress={() => setShowOriginal(false)}
+              onPress={() => {
+                // Navigate to enhanced gallery instead of toggling
+                navigation.navigate('EnhancedGallery', { photo });
+              }}
             >
               <Text
                 style={[
@@ -654,7 +657,7 @@ export default function PhotoDetailScreen({ route, navigation }) {
                   !showOriginal && styles.toggleTextActive,
                 ]}
               >
-                Colorized
+                Enhanced
               </Text>
             </TouchableOpacity>
           </View>

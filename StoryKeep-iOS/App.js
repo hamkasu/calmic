@@ -22,6 +22,7 @@ import VaultDetailScreen from './src/screens/VaultDetailScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import EnhancePhotoScreen from './src/screens/EnhancePhotoScreen';
+import EnhancedGalleryScreen from './src/screens/EnhancedGalleryScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -162,6 +163,7 @@ export default function App() {
               <>
                 <Stack.Screen name="Main" component={MainTabs} />
                 <Stack.Screen name="PhotoDetail" component={PhotoDetailScreen} />
+                <Stack.Screen name="EnhancedGallery" component={EnhancedGalleryScreen} />
                 <Stack.Screen name="VaultDetail" component={VaultDetailScreen} />
                 <Stack.Screen name="Profile" component={ProfileScreen} />
                 <Stack.Screen name="EnhancePhoto" component={EnhancePhotoScreen} />
