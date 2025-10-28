@@ -2671,3 +2671,685 @@ def cartoon_photo_route(current_user, photo_id):
             'success': False,
             'error': 'Cartoon creation failed due to unexpected error'
         }), 500
+
+
+@photo_bp.route('/api/photos/<int:photo_id>/oil-painting', methods=['POST'])
+@csrf.exempt
+@hybrid_auth
+def oil_painting_photo_route(current_user, photo_id):
+    """
+    Convert photo to oil painting effect
+    
+    Args:
+        current_user: Authenticated user (from hybrid_auth decorator)
+        photo_id: ID of the photo to convert
+        
+    Request JSON:
+        size: Filter size 1-10 (optional, default: 7)
+        
+    Returns:
+        JSON with success status and oil painting photo information
+    """
+    try:
+        from photovault.utils.artistic_effects import get_artistic_effects
+        
+        photo = Photo.query.get_or_404(photo_id)
+        
+        if photo.user_id != current_user.id and not current_user.is_admin:
+            return jsonify({
+                'success': False,
+                'error': 'Unauthorized access to this photo'
+            }), 403
+        
+        data = request.get_json() or {}
+        size = data.get('size', 7)
+        
+        if not isinstance(size, int) or size < 1 or size > 10:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid size. Must be integer between 1 and 10'
+            }), 400
+        
+        artistic_effects = get_artistic_effects()
+        
+        unique_id = str(uuid.uuid4())
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        file_extension = os.path.splitext(photo.filename)[1] or '.jpg'
+        
+        oil_filename = f"{current_user.id}_{unique_id}_oil_{timestamp}{file_extension}"
+        
+        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'photovault/uploads')
+        user_folder = os.path.join(upload_folder, str(current_user.id))
+        os.makedirs(user_folder, exist_ok=True)
+        
+        oil_path = os.path.join(user_folder, oil_filename)
+        
+        logger.info(f"Creating oil painting for photo {photo_id} with size: {size}")
+        
+        artistic_effects.create_oil_painting(photo.file_path, oil_path, size=size)
+        
+        thumbnail_path = None
+        thumbnail_filename = f"{current_user.id}_{unique_id}_oil_thumb_{timestamp}.jpg"
+        thumbnail_full_path = os.path.join(user_folder, thumbnail_filename)
+        
+        if create_thumbnail_local(oil_path, thumbnail_full_path):
+            thumbnail_path = thumbnail_full_path
+        
+        image_info = get_image_info(oil_path)
+        
+        new_photo = Photo(
+            filename=oil_filename,
+            original_name=f"oil_{photo.original_name}",
+            file_path=oil_path,
+            thumbnail_path=thumbnail_path,
+            file_size=image_info.get('size_bytes') if image_info else None,
+            width=image_info.get('width') if image_info else None,
+            height=image_info.get('height') if image_info else None,
+            mime_type=f"image/{image_info.get('format', 'jpeg').lower()}" if image_info else 'image/jpeg',
+            upload_source='artistic_effect',
+            user_id=current_user.id,
+            album_id=photo.album_id,
+            original_photo_id=photo_id,
+            is_enhanced_version=True,
+            enhancement_type='oil_painting'
+        )
+        
+        db.session.add(new_photo)
+        db.session.commit()
+        
+        logger.info(f"Created oil painting photo {new_photo.id} from original {photo_id}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Oil painting created successfully',
+            'original_photo_id': photo_id,
+            'oil_photo_id': new_photo.id,
+            'size_used': size,
+            'oil_photo': {
+                'id': new_photo.id,
+                'filename': new_photo.filename,
+                'original_name': new_photo.original_name,
+                'width': new_photo.width,
+                'height': new_photo.height,
+                'file_size': new_photo.file_size,
+                'created_at': new_photo.created_at.isoformat() if new_photo.created_at else None,
+                'thumbnail_url': url_for('gallery.uploaded_file', 
+                                        user_id=current_user.id, 
+                                        filename=thumbnail_filename) if thumbnail_path else None,
+                'image_url': url_for('gallery.uploaded_file', 
+                                    user_id=current_user.id, 
+                                    filename=oil_filename)
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Oil painting creation failed for photo {photo_id}: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Oil painting creation failed due to unexpected error'
+        }), 500
+
+
+@photo_bp.route('/api/photos/<int:photo_id>/watercolor', methods=['POST'])
+@csrf.exempt
+@hybrid_auth
+def watercolor_photo_route(current_user, photo_id):
+    """
+    Convert photo to watercolor painting effect
+    
+    Args:
+        current_user: Authenticated user (from hybrid_auth decorator)
+        photo_id: ID of the photo to convert
+        
+    Returns:
+        JSON with success status and watercolor photo information
+    """
+    try:
+        from photovault.utils.artistic_effects import get_artistic_effects
+        
+        photo = Photo.query.get_or_404(photo_id)
+        
+        if photo.user_id != current_user.id and not current_user.is_admin:
+            return jsonify({
+                'success': False,
+                'error': 'Unauthorized access to this photo'
+            }), 403
+        
+        artistic_effects = get_artistic_effects()
+        
+        unique_id = str(uuid.uuid4())
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        file_extension = os.path.splitext(photo.filename)[1] or '.jpg'
+        
+        watercolor_filename = f"{current_user.id}_{unique_id}_watercolor_{timestamp}{file_extension}"
+        
+        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'photovault/uploads')
+        user_folder = os.path.join(upload_folder, str(current_user.id))
+        os.makedirs(user_folder, exist_ok=True)
+        
+        watercolor_path = os.path.join(user_folder, watercolor_filename)
+        
+        logger.info(f"Creating watercolor for photo {photo_id}")
+        
+        artistic_effects.create_watercolor(photo.file_path, watercolor_path)
+        
+        thumbnail_path = None
+        thumbnail_filename = f"{current_user.id}_{unique_id}_watercolor_thumb_{timestamp}.jpg"
+        thumbnail_full_path = os.path.join(user_folder, thumbnail_filename)
+        
+        if create_thumbnail_local(watercolor_path, thumbnail_full_path):
+            thumbnail_path = thumbnail_full_path
+        
+        image_info = get_image_info(watercolor_path)
+        
+        new_photo = Photo(
+            filename=watercolor_filename,
+            original_name=f"watercolor_{photo.original_name}",
+            file_path=watercolor_path,
+            thumbnail_path=thumbnail_path,
+            file_size=image_info.get('size_bytes') if image_info else None,
+            width=image_info.get('width') if image_info else None,
+            height=image_info.get('height') if image_info else None,
+            mime_type=f"image/{image_info.get('format', 'jpeg').lower()}" if image_info else 'image/jpeg',
+            upload_source='artistic_effect',
+            user_id=current_user.id,
+            album_id=photo.album_id,
+            original_photo_id=photo_id,
+            is_enhanced_version=True,
+            enhancement_type='watercolor'
+        )
+        
+        db.session.add(new_photo)
+        db.session.commit()
+        
+        logger.info(f"Created watercolor photo {new_photo.id} from original {photo_id}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Watercolor created successfully',
+            'original_photo_id': photo_id,
+            'watercolor_photo_id': new_photo.id,
+            'watercolor_photo': {
+                'id': new_photo.id,
+                'filename': new_photo.filename,
+                'original_name': new_photo.original_name,
+                'width': new_photo.width,
+                'height': new_photo.height,
+                'file_size': new_photo.file_size,
+                'created_at': new_photo.created_at.isoformat() if new_photo.created_at else None,
+                'thumbnail_url': url_for('gallery.uploaded_file', 
+                                        user_id=current_user.id, 
+                                        filename=thumbnail_filename) if thumbnail_path else None,
+                'image_url': url_for('gallery.uploaded_file', 
+                                    user_id=current_user.id, 
+                                    filename=watercolor_filename)
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Watercolor creation failed for photo {photo_id}: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Watercolor creation failed due to unexpected error'
+        }), 500
+
+
+@photo_bp.route('/api/photos/<int:photo_id>/vintage', methods=['POST'])
+@csrf.exempt
+@hybrid_auth
+def vintage_photo_route(current_user, photo_id):
+    """
+    Convert photo to vintage/sepia effect
+    
+    Args:
+        current_user: Authenticated user (from hybrid_auth decorator)
+        photo_id: ID of the photo to convert
+        
+    Request JSON:
+        style: 'sepia', '1950s', '1970s', or 'polaroid' (optional, default: 'sepia')
+        
+    Returns:
+        JSON with success status and vintage photo information
+    """
+    try:
+        from photovault.utils.artistic_effects import get_artistic_effects
+        
+        photo = Photo.query.get_or_404(photo_id)
+        
+        if photo.user_id != current_user.id and not current_user.is_admin:
+            return jsonify({
+                'success': False,
+                'error': 'Unauthorized access to this photo'
+            }), 403
+        
+        data = request.get_json() or {}
+        style = data.get('style', 'sepia')
+        
+        if style not in ['sepia', '1950s', '1970s', 'polaroid']:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid style. Use sepia, 1950s, 1970s, or polaroid'
+            }), 400
+        
+        artistic_effects = get_artistic_effects()
+        
+        unique_id = str(uuid.uuid4())
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        file_extension = os.path.splitext(photo.filename)[1] or '.jpg'
+        
+        vintage_filename = f"{current_user.id}_{unique_id}_vintage_{timestamp}{file_extension}"
+        
+        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'photovault/uploads')
+        user_folder = os.path.join(upload_folder, str(current_user.id))
+        os.makedirs(user_folder, exist_ok=True)
+        
+        vintage_path = os.path.join(user_folder, vintage_filename)
+        
+        logger.info(f"Creating vintage {style} for photo {photo_id}")
+        
+        artistic_effects.create_vintage_sepia(photo.file_path, vintage_path, style=style)
+        
+        thumbnail_path = None
+        thumbnail_filename = f"{current_user.id}_{unique_id}_vintage_thumb_{timestamp}.jpg"
+        thumbnail_full_path = os.path.join(user_folder, thumbnail_filename)
+        
+        if create_thumbnail_local(vintage_path, thumbnail_full_path):
+            thumbnail_path = thumbnail_full_path
+        
+        image_info = get_image_info(vintage_path)
+        
+        new_photo = Photo(
+            filename=vintage_filename,
+            original_name=f"vintage_{photo.original_name}",
+            file_path=vintage_path,
+            thumbnail_path=thumbnail_path,
+            file_size=image_info.get('size_bytes') if image_info else None,
+            width=image_info.get('width') if image_info else None,
+            height=image_info.get('height') if image_info else None,
+            mime_type=f"image/{image_info.get('format', 'jpeg').lower()}" if image_info else 'image/jpeg',
+            upload_source='artistic_effect',
+            user_id=current_user.id,
+            album_id=photo.album_id,
+            original_photo_id=photo_id,
+            is_enhanced_version=True,
+            enhancement_type='vintage'
+        )
+        
+        db.session.add(new_photo)
+        db.session.commit()
+        
+        logger.info(f"Created vintage photo {new_photo.id} from original {photo_id}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Vintage effect created successfully',
+            'original_photo_id': photo_id,
+            'vintage_photo_id': new_photo.id,
+            'style_used': style,
+            'vintage_photo': {
+                'id': new_photo.id,
+                'filename': new_photo.filename,
+                'original_name': new_photo.original_name,
+                'width': new_photo.width,
+                'height': new_photo.height,
+                'file_size': new_photo.file_size,
+                'created_at': new_photo.created_at.isoformat() if new_photo.created_at else None,
+                'thumbnail_url': url_for('gallery.uploaded_file', 
+                                        user_id=current_user.id, 
+                                        filename=thumbnail_filename) if thumbnail_path else None,
+                'image_url': url_for('gallery.uploaded_file', 
+                                    user_id=current_user.id, 
+                                    filename=vintage_filename)
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Vintage creation failed for photo {photo_id}: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Vintage creation failed due to unexpected error'
+        }), 500
+
+
+@photo_bp.route('/api/photos/<int:photo_id>/pop-art', methods=['POST'])
+@csrf.exempt
+@hybrid_auth
+def pop_art_photo_route(current_user, photo_id):
+    """
+    Convert photo to pop art (Warhol style) effect
+    
+    Args:
+        current_user: Authenticated user (from hybrid_auth decorator)
+        photo_id: ID of the photo to convert
+        
+    Request JSON:
+        colors: Number of colors 4-12 (optional, default: 8)
+        
+    Returns:
+        JSON with success status and pop art photo information
+    """
+    try:
+        from photovault.utils.artistic_effects import get_artistic_effects
+        
+        photo = Photo.query.get_or_404(photo_id)
+        
+        if photo.user_id != current_user.id and not current_user.is_admin:
+            return jsonify({
+                'success': False,
+                'error': 'Unauthorized access to this photo'
+            }), 403
+        
+        data = request.get_json() or {}
+        colors = data.get('colors', 8)
+        
+        if not isinstance(colors, int) or colors < 4 or colors > 12:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid colors. Must be integer between 4 and 12'
+            }), 400
+        
+        artistic_effects = get_artistic_effects()
+        
+        unique_id = str(uuid.uuid4())
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        file_extension = os.path.splitext(photo.filename)[1] or '.jpg'
+        
+        popart_filename = f"{current_user.id}_{unique_id}_popart_{timestamp}{file_extension}"
+        
+        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'photovault/uploads')
+        user_folder = os.path.join(upload_folder, str(current_user.id))
+        os.makedirs(user_folder, exist_ok=True)
+        
+        popart_path = os.path.join(user_folder, popart_filename)
+        
+        logger.info(f"Creating pop art for photo {photo_id} with {colors} colors")
+        
+        artistic_effects.create_pop_art(photo.file_path, popart_path, colors=colors)
+        
+        thumbnail_path = None
+        thumbnail_filename = f"{current_user.id}_{unique_id}_popart_thumb_{timestamp}.jpg"
+        thumbnail_full_path = os.path.join(user_folder, thumbnail_filename)
+        
+        if create_thumbnail_local(popart_path, thumbnail_full_path):
+            thumbnail_path = thumbnail_full_path
+        
+        image_info = get_image_info(popart_path)
+        
+        new_photo = Photo(
+            filename=popart_filename,
+            original_name=f"popart_{photo.original_name}",
+            file_path=popart_path,
+            thumbnail_path=thumbnail_path,
+            file_size=image_info.get('size_bytes') if image_info else None,
+            width=image_info.get('width') if image_info else None,
+            height=image_info.get('height') if image_info else None,
+            mime_type=f"image/{image_info.get('format', 'jpeg').lower()}" if image_info else 'image/jpeg',
+            upload_source='artistic_effect',
+            user_id=current_user.id,
+            album_id=photo.album_id,
+            original_photo_id=photo_id,
+            is_enhanced_version=True,
+            enhancement_type='pop_art'
+        )
+        
+        db.session.add(new_photo)
+        db.session.commit()
+        
+        logger.info(f"Created pop art photo {new_photo.id} from original {photo_id}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Pop art created successfully',
+            'original_photo_id': photo_id,
+            'popart_photo_id': new_photo.id,
+            'colors_used': colors,
+            'popart_photo': {
+                'id': new_photo.id,
+                'filename': new_photo.filename,
+                'original_name': new_photo.original_name,
+                'width': new_photo.width,
+                'height': new_photo.height,
+                'file_size': new_photo.file_size,
+                'created_at': new_photo.created_at.isoformat() if new_photo.created_at else None,
+                'thumbnail_url': url_for('gallery.uploaded_file', 
+                                        user_id=current_user.id, 
+                                        filename=thumbnail_filename) if thumbnail_path else None,
+                'image_url': url_for('gallery.uploaded_file', 
+                                    user_id=current_user.id, 
+                                    filename=popart_filename)
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Pop art creation failed for photo {photo_id}: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Pop art creation failed due to unexpected error'
+        }), 500
+
+
+@photo_bp.route('/api/photos/<int:photo_id>/hdr', methods=['POST'])
+@csrf.exempt
+@hybrid_auth
+def hdr_photo_route(current_user, photo_id):
+    """
+    Apply HDR tone mapping for dramatic, high-contrast images
+    
+    Args:
+        current_user: Authenticated user (from hybrid_auth decorator)
+        photo_id: ID of the photo to convert
+        
+    Returns:
+        JSON with success status and HDR photo information
+    """
+    try:
+        from photovault.utils.artistic_effects import get_artistic_effects
+        
+        photo = Photo.query.get_or_404(photo_id)
+        
+        if photo.user_id != current_user.id and not current_user.is_admin:
+            return jsonify({
+                'success': False,
+                'error': 'Unauthorized access to this photo'
+            }), 403
+        
+        artistic_effects = get_artistic_effects()
+        
+        unique_id = str(uuid.uuid4())
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        file_extension = os.path.splitext(photo.filename)[1] or '.jpg'
+        
+        hdr_filename = f"{current_user.id}_{unique_id}_hdr_{timestamp}{file_extension}"
+        
+        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'photovault/uploads')
+        user_folder = os.path.join(upload_folder, str(current_user.id))
+        os.makedirs(user_folder, exist_ok=True)
+        
+        hdr_path = os.path.join(user_folder, hdr_filename)
+        
+        logger.info(f"Creating HDR enhancement for photo {photo_id}")
+        
+        artistic_effects.create_hdr_enhancement(photo.file_path, hdr_path)
+        
+        thumbnail_path = None
+        thumbnail_filename = f"{current_user.id}_{unique_id}_hdr_thumb_{timestamp}.jpg"
+        thumbnail_full_path = os.path.join(user_folder, thumbnail_filename)
+        
+        if create_thumbnail_local(hdr_path, thumbnail_full_path):
+            thumbnail_path = thumbnail_full_path
+        
+        image_info = get_image_info(hdr_path)
+        
+        new_photo = Photo(
+            filename=hdr_filename,
+            original_name=f"hdr_{photo.original_name}",
+            file_path=hdr_path,
+            thumbnail_path=thumbnail_path,
+            file_size=image_info.get('size_bytes') if image_info else None,
+            width=image_info.get('width') if image_info else None,
+            height=image_info.get('height') if image_info else None,
+            mime_type=f"image/{image_info.get('format', 'jpeg').lower()}" if image_info else 'image/jpeg',
+            upload_source='artistic_effect',
+            user_id=current_user.id,
+            album_id=photo.album_id,
+            original_photo_id=photo_id,
+            is_enhanced_version=True,
+            enhancement_type='hdr'
+        )
+        
+        db.session.add(new_photo)
+        db.session.commit()
+        
+        logger.info(f"Created HDR photo {new_photo.id} from original {photo_id}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'HDR enhancement created successfully',
+            'original_photo_id': photo_id,
+            'hdr_photo_id': new_photo.id,
+            'hdr_photo': {
+                'id': new_photo.id,
+                'filename': new_photo.filename,
+                'original_name': new_photo.original_name,
+                'width': new_photo.width,
+                'height': new_photo.height,
+                'file_size': new_photo.file_size,
+                'created_at': new_photo.created_at.isoformat() if new_photo.created_at else None,
+                'thumbnail_url': url_for('gallery.uploaded_file', 
+                                        user_id=current_user.id, 
+                                        filename=thumbnail_filename) if thumbnail_path else None,
+                'image_url': url_for('gallery.uploaded_file', 
+                                    user_id=current_user.id, 
+                                    filename=hdr_filename)
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"HDR enhancement failed for photo {photo_id}: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'HDR enhancement failed due to unexpected error'
+        }), 500
+
+
+@photo_bp.route('/api/photos/<int:photo_id>/black-white', methods=['POST'])
+@csrf.exempt
+@hybrid_auth
+def black_white_photo_route(current_user, photo_id):
+    """
+    Convert to high-quality black & white with professional toning
+    
+    Args:
+        current_user: Authenticated user (from hybrid_auth decorator)
+        photo_id: ID of the photo to convert
+        
+    Request JSON:
+        style: 'classic', 'high_contrast', or 'film_noir' (optional, default: 'classic')
+        
+    Returns:
+        JSON with success status and B&W photo information
+    """
+    try:
+        from photovault.utils.artistic_effects import get_artistic_effects
+        
+        photo = Photo.query.get_or_404(photo_id)
+        
+        if photo.user_id != current_user.id and not current_user.is_admin:
+            return jsonify({
+                'success': False,
+                'error': 'Unauthorized access to this photo'
+            }), 403
+        
+        data = request.get_json() or {}
+        style = data.get('style', 'classic')
+        
+        if style not in ['classic', 'high_contrast', 'film_noir']:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid style. Use classic, high_contrast, or film_noir'
+            }), 400
+        
+        artistic_effects = get_artistic_effects()
+        
+        unique_id = str(uuid.uuid4())
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        file_extension = os.path.splitext(photo.filename)[1] or '.jpg'
+        
+        bw_filename = f"{current_user.id}_{unique_id}_bw_{timestamp}{file_extension}"
+        
+        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'photovault/uploads')
+        user_folder = os.path.join(upload_folder, str(current_user.id))
+        os.makedirs(user_folder, exist_ok=True)
+        
+        bw_path = os.path.join(user_folder, bw_filename)
+        
+        logger.info(f"Creating professional B&W ({style}) for photo {photo_id}")
+        
+        artistic_effects.create_professional_bw(photo.file_path, bw_path, style=style)
+        
+        thumbnail_path = None
+        thumbnail_filename = f"{current_user.id}_{unique_id}_bw_thumb_{timestamp}.jpg"
+        thumbnail_full_path = os.path.join(user_folder, thumbnail_filename)
+        
+        if create_thumbnail_local(bw_path, thumbnail_full_path):
+            thumbnail_path = thumbnail_full_path
+        
+        image_info = get_image_info(bw_path)
+        
+        new_photo = Photo(
+            filename=bw_filename,
+            original_name=f"bw_{photo.original_name}",
+            file_path=bw_path,
+            thumbnail_path=thumbnail_path,
+            file_size=image_info.get('size_bytes') if image_info else None,
+            width=image_info.get('width') if image_info else None,
+            height=image_info.get('height') if image_info else None,
+            mime_type=f"image/{image_info.get('format', 'jpeg').lower()}" if image_info else 'image/jpeg',
+            upload_source='artistic_effect',
+            user_id=current_user.id,
+            album_id=photo.album_id,
+            original_photo_id=photo_id,
+            is_enhanced_version=True,
+            enhancement_type='black_white'
+        )
+        
+        db.session.add(new_photo)
+        db.session.commit()
+        
+        logger.info(f"Created B&W photo {new_photo.id} from original {photo_id}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Black & white created successfully',
+            'original_photo_id': photo_id,
+            'bw_photo_id': new_photo.id,
+            'style_used': style,
+            'bw_photo': {
+                'id': new_photo.id,
+                'filename': new_photo.filename,
+                'original_name': new_photo.original_name,
+                'width': new_photo.width,
+                'height': new_photo.height,
+                'file_size': new_photo.file_size,
+                'created_at': new_photo.created_at.isoformat() if new_photo.created_at else None,
+                'thumbnail_url': url_for('gallery.uploaded_file', 
+                                        user_id=current_user.id, 
+                                        filename=thumbnail_filename) if thumbnail_path else None,
+                'image_url': url_for('gallery.uploaded_file', 
+                                    user_id=current_user.id, 
+                                    filename=bw_filename)
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Black & white creation failed for photo {photo_id}: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Black & white creation failed due to unexpected error'
+        }), 500
