@@ -1,3 +1,7 @@
+"""
+PhotoVault App Storage Service
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+"""
 # photovault/services/app_storage_service.py
 
 import os

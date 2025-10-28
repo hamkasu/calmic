@@ -1,3 +1,7 @@
+"""
+PhotoVault Montage Service
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+"""
 # photovault/services/montage_service.py
 
 import os

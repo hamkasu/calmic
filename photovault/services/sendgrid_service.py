@@ -1,5 +1,7 @@
 """
 SendGrid email service for PhotoVault
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 Based on the python_sendgrid blueprint integration
 """
 import os

@@ -1,5 +1,7 @@
 """
 Social Media Integration Service
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 Handles OAuth authentication and photo sharing to various platforms
 """
 import os

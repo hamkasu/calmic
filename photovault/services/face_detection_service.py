@@ -1,5 +1,7 @@
 """
 Face Detection Service for PhotoVault
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 Integrates automatic face detection with photo uploads and person assignment
 """
 
