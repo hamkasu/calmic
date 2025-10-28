@@ -98,6 +98,31 @@ class AppStorageService:
             logger.error(f"Error downloading from App Storage: {str(e)}")
             return False, str(e).encode()
     
+    def download_to_temp(self, object_path: str) -> str:
+        """
+        Download a file from App Storage to a temporary file
+        
+        Args:
+            object_path: Path to the object in storage
+            
+        Returns:
+            str: Path to the temporary file
+        """
+        import tempfile
+        
+        success, file_bytes = self.download_file(object_path)
+        if not success:
+            raise Exception(f"Failed to download file: {file_bytes.decode()}")
+        
+        # Create temp file with same extension as original
+        _, ext = os.path.splitext(object_path)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as temp_file:
+            temp_file.write(file_bytes)
+            temp_path = temp_file.name
+        
+        logger.info(f"Downloaded {object_path} to temp file: {temp_path}")
+        return temp_path
+    
     def delete_file(self, object_path: str) -> bool:
         """
         Delete a file from App Storage
