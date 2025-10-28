@@ -1,5 +1,7 @@
 """
 PhotoVault Upload Security & Validation Utility
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 Centralized, comprehensive validation and security for all file uploads
 """
 import os

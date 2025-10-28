@@ -1,5 +1,7 @@
 """
 Artistic Effects Utilities
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 Provides sketch and cartoonify effects for photos using OpenCV
 """
 

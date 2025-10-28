@@ -1,5 +1,7 @@
 """
 AI Enhancement Quota Management
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 Tracks and enforces monthly limits for AI-powered photo enhancements (colorization and restoration)
 """
 from datetime import datetime, timedelta

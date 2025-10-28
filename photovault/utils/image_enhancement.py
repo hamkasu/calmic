@@ -1,5 +1,7 @@
 """
 Image Enhancement Utilities for PhotoVault
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 Provides auto-enhancement functions for digitizing old photographs
 """
 

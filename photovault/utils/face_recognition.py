@@ -1,5 +1,7 @@
 """
 Face Recognition Utilities for PhotoVault
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 Implements face encoding, matching, and identification of known people
 """
 

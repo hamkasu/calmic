@@ -1,5 +1,7 @@
 """
 Download Colorization Models
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 Downloads the required model files for photo colorization.
 """
 

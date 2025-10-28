@@ -1,5 +1,7 @@
 """
 Security Utilities for PhotoVault/StoryKeep
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 Includes password validation, rate limiting, MFA, and security logging
 """
 import re

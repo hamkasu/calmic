@@ -1,5 +1,6 @@
 """
 OAuth 2.0 Social Login Utilities (Google, Apple)
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
 """
 from authlib.integrations.flask_client import OAuth
 from flask import current_app, url_for, session

@@ -1,5 +1,7 @@
 """
 Photo Damage Repair Utilities
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 Advanced restoration features for damaged photographs
 """
 

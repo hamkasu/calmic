@@ -1,3 +1,7 @@
+"""
+PhotoVault File Handler
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+"""
 # photovault/utils/file_handler.py
 
 import os

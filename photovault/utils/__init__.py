@@ -1,5 +1,6 @@
 """
-PhotoVault utilities package
+PhotoVault Utilities Package
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
 """
 
 from functools import wraps

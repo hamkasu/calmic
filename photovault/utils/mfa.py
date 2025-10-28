@@ -1,5 +1,6 @@
 """
 Multi-Factor Authentication (MFA/2FA) Utilities using TOTP
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
 """
 import pyotp
 import qrcode

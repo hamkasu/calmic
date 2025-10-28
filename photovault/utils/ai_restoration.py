@@ -1,5 +1,7 @@
 """
 AI-Powered Photo Restoration using Replicate API
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 Provides access to state-of-the-art AI models for photo restoration
 """
 

@@ -1,5 +1,7 @@
 """
 PhotoVault Photo Detection - Simple & Robust
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 Clean edge detection with accurate rectangular photo extraction
 """
 import os

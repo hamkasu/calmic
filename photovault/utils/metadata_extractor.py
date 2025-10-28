@@ -1,5 +1,7 @@
 """
 EXIF Metadata Extraction Utilities for PhotoVault
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 Extracts comprehensive metadata from photographs for digitization projects
 """
 

@@ -1,5 +1,6 @@
 """
 JWT Authentication utility for mobile API endpoints
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
 """
 from functools import wraps
 from flask import request, jsonify, current_app, abort
