@@ -2501,7 +2501,6 @@ def sketch_photo_route(current_user, photo_id):
             upload_source='artistic_effect',
             user_id=current_user.id,
             album_id=photo.album_id,
-            description=f"Sketch version of {photo.original_name}",
             original_photo_id=photo_id,
             is_enhanced_version=True,
             enhancement_type='sketch'
@@ -2632,7 +2631,6 @@ def cartoon_photo_route(current_user, photo_id):
             upload_source='artistic_effect',
             user_id=current_user.id,
             album_id=photo.album_id,
-            description=f"Cartoon version of {photo.original_name}",
             original_photo_id=photo_id,
             is_enhanced_version=True,
             enhancement_type='cartoon'
