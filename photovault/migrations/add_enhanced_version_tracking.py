@@ -1,4 +1,9 @@
 """
+Database Migration
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+"""
+
+"""
 Database migration: Add enhanced version tracking fields to Photo model
 Created: 2025-10-28
 """

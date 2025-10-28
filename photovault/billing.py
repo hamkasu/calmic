@@ -1,5 +1,7 @@
 """
 PhotoVault Billing Blueprint
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
 Handles subscription management, Stripe checkout, and billing for Malaysian market
 """
 from datetime import datetime, timedelta

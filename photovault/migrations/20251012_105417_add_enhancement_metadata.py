@@ -1,3 +1,8 @@
+"""
+Database Migration
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+"""
+
 """Add enhancement metadata fields to Photo model
 
 Revision ID: 20251012_105417

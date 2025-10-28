@@ -3,6 +3,28 @@
 ## Overview
 StoryKeep is a subscription-based platform for photo management and enhancement. It offers a professional camera interface, automatic upload and organization, secure storage, face detection and recognition, advanced AI-powered photo enhancement and restoration, smart tagging, family vault sharing, and social media integration. The platform aims to provide comprehensive photo management solutions to a broad market, enabling users to preserve and enhance their family memories.
 
+## Recent Changes
+
+### Copyright Notice Addition (October 2025)
+Successfully added Calmic Sdn Bhd copyright notices to entire codebase:
+- [x] Core Python files (main.py, dev.py, config.py)
+- [x] All Python files in photovault/routes/ (15 files)
+- [x] All Python files in photovault/utils/ (19 files)
+- [x] All Python files in photovault/services/ (7 files)
+- [x] All Python files in photovault/models/ (1 file)
+- [x] All Python files in photovault/ root (billing.py, forms.py, config.py)
+- [x] All database migration files (2 files)
+- [x] All HTML template files (109 files in templates/ and photovault/templates/)
+- [x] All iOS JavaScript files in StoryKeep-iOS/src/ (19 files)
+- [x] StoryKeep-iOS/App.js
+
+Total files updated: 180+ files across Python backend, HTML templates, and React Native mobile app.
+
+Copyright format used:
+- Python files: Multi-line docstring with "Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved."
+- HTML files: HTML comment with copyright notice
+- JavaScript files: JSDoc comment block with copyright notice
+
 ## User Preferences
 None configured yet (will be added as needed)
 
