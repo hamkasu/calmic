@@ -194,6 +194,8 @@ export default function EnhancedGalleryScreen({ route, navigation }) {
             data={enhancedVersions}
             renderItem={renderEnhancedVersion}
             keyExtractor={(item) => item.id.toString()}
+            numColumns={2}
+            columnWrapperStyle={styles.columnWrapper}
             contentContainerStyle={styles.listContainer}
             showsVerticalScrollIndicator={false}
           />
@@ -253,47 +255,51 @@ const styles = StyleSheet.create({
   listContainer: {
     padding: 16,
   },
+  columnWrapper: {
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
   enhancedCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    marginBottom: 16,
     overflow: 'hidden',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    width: (width - 48) / 2,
   },
   thumbnail: {
     width: '100%',
-    height: 200,
+    height: 150,
     backgroundColor: '#f0f0f0',
   },
   cardInfo: {
-    padding: 16,
+    padding: 12,
   },
   labelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   enhancementLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#333',
-    marginLeft: 8,
+    marginLeft: 6,
   },
   dateText: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#666',
   },
   deleteButton: {
     position: 'absolute',
-    top: 16,
-    right: 16,
-    padding: 8,
+    top: 12,
+    right: 12,
+    padding: 6,
     backgroundColor: '#fff',
-    borderRadius: 20,
+    borderRadius: 16,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
