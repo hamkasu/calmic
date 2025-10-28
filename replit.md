@@ -19,6 +19,14 @@ The `AdvancedPhotoDetector` implements production-grade edge detection with mult
 The Mobile Digitizer App (React Native/Expo) features a smart camera with real-time edge detection, batch capture, client-side photo enhancement, server-side AI photo detection and extraction, an offline queue, upload service with progress tracking, JWT authentication, React Navigation, family vault management with multi-select deletion and permission-based access, and device photo library uploads. It supports voice memo recording and playback using expo-av. Profile picture uploads support HEIC/HEIF with automatic conversion to JPEG.
 
 **Recent Enhancements (Oct 2025):**
+- **Enhanced Versions Gallery (Oct 28, 2025)**: Dedicated gallery screen to view all enhanced versions of a photo in a responsive 2-column grid:
+  - **Backend API**: New `/api/photos/<id>/enhanced-versions` endpoint queries all enhanced versions using `original_photo_id` foreign key relationship
+  - **Grid Layout**: Responsive 2-column FlatList with `numColumns={2}`, card width calculated as `(width - 48) / 2` for proper spacing
+  - **Enhancement Type Labels**: Auto-detects and displays enhancement type badges (Colorized, Sharpened, Auto Enhanced) with matching icons
+  - **Full-Size Viewing**: Tap any enhanced version to navigate to PhotoDetailScreen with full-size view and swipe gestures
+  - **Delete Functionality**: Individual delete with confirmation dialog, auto-refreshes gallery after deletion
+  - **Navigation**: Changed "Colorized" button to "Enhanced" button on PhotoDetailScreen, navigates to gallery instead of toggle behavior
+  - **Result**: Users can now manage multiple enhanced versions (colorized, sharpened, AI-restored) in one organized gallery view
 - **Client-Side Photo Sharpening (Oct 27, 2025)**: Fully client-side sharpening solution using upscale-downscale technique for responsive, instant results:
   - **Sharpening Algorithm**: Upscales image by 1.07x-1.40x (based on intensity + radius), then downscales back to original size. Resize interpolation creates visible edge enhancement.
   - **Dual-Parameter Control**: Intensity (0.5-3.0) controls strength via upscale factor and JPEG compression (88-98%). Radius (1.0-5.0) controls effect spread via additional upscale contribution.
