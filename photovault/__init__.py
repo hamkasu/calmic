@@ -394,6 +394,37 @@ def create_app(config_class=None):
                                 ))
                                 db.session.commit()
                                 app.logger.info("✅ Added social_media_integration column")
+                        
+                        # Check if photo table exists and add enhanced photo tracking columns
+                        if 'photo' in inspector.get_table_names():
+                            photo_columns = [col['name'] for col in inspector.get_columns('photo')]
+                            
+                            # Add original_photo_id column if missing
+                            if 'original_photo_id' not in photo_columns:
+                                app.logger.info("Adding missing column: original_photo_id")
+                                db.session.execute(text(
+                                    'ALTER TABLE photo ADD COLUMN original_photo_id INTEGER'
+                                ))
+                                db.session.commit()
+                                app.logger.info("✅ Added original_photo_id column")
+                            
+                            # Add is_enhanced_version column if missing
+                            if 'is_enhanced_version' not in photo_columns:
+                                app.logger.info("Adding missing column: is_enhanced_version")
+                                db.session.execute(text(
+                                    'ALTER TABLE photo ADD COLUMN is_enhanced_version BOOLEAN DEFAULT false NOT NULL'
+                                ))
+                                db.session.commit()
+                                app.logger.info("✅ Added is_enhanced_version column")
+                            
+                            # Add enhancement_type column if missing
+                            if 'enhancement_type' not in photo_columns:
+                                app.logger.info("Adding missing column: enhancement_type")
+                                db.session.execute(text(
+                                    'ALTER TABLE photo ADD COLUMN enhancement_type VARCHAR(50)'
+                                ))
+                                db.session.commit()
+                                app.logger.info("✅ Added enhancement_type column")
                             
                             app.logger.info("✅ Database schema updated successfully")
                     except Exception as fallback_error:

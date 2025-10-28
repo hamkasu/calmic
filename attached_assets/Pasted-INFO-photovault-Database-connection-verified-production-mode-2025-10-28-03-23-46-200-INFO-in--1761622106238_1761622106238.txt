@@ -1,0 +1,26 @@
+INFO:photovault:Database connection verified (production mode)
+[2025-10-28 03:23:46,200] INFO in __init__: Running database migrations automatically...
+2025-10-28 03:23:46,200 INFO: Running database migrations automatically... [in /app/photovault/__init__.py:372]
+2025-10-28 03:23:46,200 INFO: Running database migrations automatically... [in /app/photovault/__init__.py:372]
+INFO:photovault:Running database migrations automatically...
+2025-10-28 03:23:46,201 INFO: Attempting direct column addition as fallback... [in /app/photovault/__init__.py:378]
+[2025-10-28 03:23:46,201] INFO in __init__: Attempting direct column addition as fallback...
+2025-10-28 03:23:46,201 INFO: Attempting direct column addition as fallback... [in /app/photovault/__init__.py:378]
+INFO:photovault:Attempting direct column addition as fallback...
+[2025-10-28 03:23:46,236] INFO in __init__: ✅ Database schema updated successfully
+2025-10-28 03:23:46,236 INFO: ✅ Database schema updated successfully [in /app/photovault/__init__.py:398]
+2025-10-28 03:23:46,236 INFO: ✅ Database schema updated successfully [in /app/photovault/__init__.py:398]
+INFO:photovault:✅ Database schema updated successfully
+[2025-10-28 03:23:46,249] INFO in __init__: Subscription plans: created 0, updated 4
+2025-10-28 03:23:46,249 INFO: Subscription plans: created 0, updated 4 [in /app/photovault/__init__.py:136]
+2025-10-28 03:23:46,249 INFO: Subscription plans: created 0, updated 4 [in /app/photovault/__init__.py:136]
+[2025-10-28 03:23:46,201] WARNING in __init__: Auto-migration via Alembic failed: 'NoneType' object is not iterable
+2025-10-28 03:23:46,201 WARNING: Auto-migration via Alembic failed: 'NoneType' object is not iterable [in /app/photovault/__init__.py:377]
+2025-10-28 03:23:46,201 WARNING: Auto-migration via Alembic failed: 'NoneType' object is not iterable [in /app/photovault/__init__.py:377]
+WARNING:photovault:Auto-migration via Alembic failed: 'NoneType' object is not iterable
+INFO:photovault:Subscription plans: created 0, updated 4
+PhotoVault WSGI: Environment = production
+PhotoVault WSGI: Debug = False
+PhotoVault WSGI: Config = Config
+PhotoVault WSGI: Database URI set = Yes
+PhotoVault WSGI: App created successfully, ready to handle requests

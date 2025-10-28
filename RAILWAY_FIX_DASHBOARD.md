@@ -3,7 +3,8 @@
 ## Problem
 Your iOS app's dashboard is failing to load on Railway with this error:
 ```
-ERROR: column photo.original_photo_id does not exist
+ERROR: AxiosError: Request failed with status code 500
+Dashboard error: column photo.original_photo_id does not exist
 ```
 
 This happens because your Railway production database is missing columns that were added to the Photo model for enhanced photo tracking.
@@ -14,32 +15,35 @@ The Photo table on Railway needs these columns:
 - `is_enhanced_version` - Boolean flag for enhanced photos
 - `enhancement_type` - Type of enhancement applied (colorized, sharpened, etc.)
 
-## Solution
-I've created a database migration file that will automatically add these columns when you deploy to Railway.
+## Solution - Automatic Migration
+I've updated the app to automatically add these columns when Railway restarts. The fallback migration system will detect the missing columns and add them automatically.
 
 ### Steps to Deploy
 
-1. **Commit the migration file**
+1. **Commit the automatic migration fix**
    ```bash
+   git add photovault/__init__.py
    git add migrations/versions/g2a3b4c5d6e7_add_enhanced_photo_tracking_columns.py
-   git commit -m "Add enhanced photo tracking columns migration"
+   git add RAILWAY_FIX_DASHBOARD.md
+   git commit -m "Fix: Add automatic migration for enhanced photo tracking columns"
    ```
 
-2. **Push to GitHub**
+2. **Push to Railway**
    ```bash
    git push origin main
    ```
 
 3. **Railway will automatically:**
    - Pull the new code
-   - Run the migration during deployment
-   - Add the missing columns to your database
-   - Restart your app
+   - Detect the missing columns during startup
+   - Add them automatically using the fallback migration system
+   - Restart your app with the correct schema
 
 4. **Verify the fix**
+   - Wait for Railway deployment to complete (watch the logs)
    - Open your iOS app
    - Login
-   - The dashboard should now load successfully
+   - The dashboard should now load successfully with all your data
 
 ## What This Migration Does
 
@@ -54,9 +58,16 @@ ALTER TABLE photo ADD CONSTRAINT fk_photo_original_photo_id
 
 ## Verification
 
-After deployment, check the Railway logs to confirm the migration ran:
+After deployment, check the Railway logs to confirm the columns were added:
 ```
-INFO  [alembic.runtime.migration] Running upgrade f1a2b3c4d5e6 -> g2a3b4c5d6e7, add_enhanced_photo_tracking_columns
+INFO: Attempting direct column addition as fallback...
+INFO: Adding missing column: original_photo_id
+INFO: ✅ Added original_photo_id column
+INFO: Adding missing column: is_enhanced_version
+INFO: ✅ Added is_enhanced_version column
+INFO: Adding missing column: enhancement_type
+INFO: ✅ Added enhancement_type column
+INFO: ✅ Database schema updated successfully
 ```
 
 Your iOS dashboard should then load without errors!
