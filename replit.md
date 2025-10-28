@@ -19,6 +19,13 @@ The `AdvancedPhotoDetector` implements production-grade edge detection with mult
 The Mobile Digitizer App (React Native/Expo) features a smart camera with real-time edge detection, batch capture, client-side photo enhancement, server-side AI photo detection and extraction, an offline queue, upload service with progress tracking, JWT authentication, React Navigation, family vault management with multi-select deletion and permission-based access, and device photo library uploads. It supports voice memo recording and playback using expo-av. Profile picture uploads support HEIC/HEIF with automatic conversion to JPEG.
 
 **Recent Enhancements (Oct 2025):**
+- **Artistic Effects - Sketch & Cartoonify (Oct 28, 2025)**: Added two new artistic transformation effects using OpenCV for creative photo styling:
+  - **Sketch Effect**: Transform photos into pencil or pen sketches using edge detection and Gaussian blur inversion. Supports 'pencil' (soft sketch) and 'pen' (high-contrast ink drawing) styles.
+  - **Cartoon Effect**: Create comic/cartoon-style images using bilateral filtering, edge detection, and color quantization. Three quality presets: 'fast' (1 downsample, 5 bilateral iterations), 'balanced' (2 downsamples, 7 iterations), 'high' (2 downsamples, 10 iterations).
+  - **Backend API**: New `/api/photos/<id>/sketch` and `/api/photos/<id>/cartoon` endpoints with hybrid auth (JWT + session) for mobile and web access.
+  - **Mobile UI**: Added "Artistic Effects" section in EnhancePhotoScreen with Sketch and Cartoonify buttons, full progress tracking, and automatic result display.
+  - **Processing**: All effects run server-side using OpenCV (cv2.pencilSketch, bilateral filtering, adaptive thresholding), create new enhanced photo records with proper metadata tracking.
+  - **Result**: Users can instantly transform photos into artistic styles without external AI APIs, completely free and fast.
 - **Enhanced Versions Gallery (Oct 28, 2025)**: Dedicated gallery screen to view all enhanced versions of a photo in a responsive 2-column grid:
   - **Backend API**: New `/api/photos/<id>/enhanced-versions` endpoint queries all enhanced versions using `original_photo_id` foreign key relationship
   - **Grid Layout**: Responsive 2-column FlatList with `numColumns={2}`, card width calculated as `(width - 48) / 2` for proper spacing
