@@ -439,6 +439,82 @@ export default function EnhancePhotoScreen({ route, navigation }) {
     }
   };
 
+  const handleSketch = async (style = 'pencil') => {
+    setProcessing(true);
+    setProcessingProgress(0);
+    setProcessingMessage(`Creating ${style} sketch...`);
+    
+    try {
+      setProcessingProgress(20);
+      setProcessingMessage('Applying sketch effect...');
+      
+      const response = await photoAPI.sketchPhoto(photo.id, style);
+      
+      setProcessingProgress(75);
+      setProcessingMessage('Fetching sketch photo...');
+      
+      const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
+
+      setProcessingProgress(100);
+      setProcessingMessage('Complete!');
+
+      Alert.alert('Success', `Sketch created successfully!`, [
+        {
+          text: 'View',
+          onPress: () => {
+            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
+          },
+        },
+      ]);
+    } catch (error) {
+      const errorMsg = error.response?.data?.error || 'Failed to create sketch';
+      Alert.alert('Error', errorMsg);
+      console.error(error);
+    } finally {
+      setProcessing(false);
+      setProcessingProgress(0);
+      setProcessingMessage('');
+    }
+  };
+
+  const handleCartoon = async (quality = 'balanced') => {
+    setProcessing(true);
+    setProcessingProgress(0);
+    setProcessingMessage('Creating cartoon effect...');
+    
+    try {
+      setProcessingProgress(20);
+      setProcessingMessage('Applying cartoon effect...');
+      
+      const response = await photoAPI.cartoonPhoto(photo.id, quality);
+      
+      setProcessingProgress(75);
+      setProcessingMessage('Fetching cartoon photo...');
+      
+      const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
+
+      setProcessingProgress(100);
+      setProcessingMessage('Complete!');
+
+      Alert.alert('Success', `Cartoon created successfully!`, [
+        {
+          text: 'View',
+          onPress: () => {
+            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
+          },
+        },
+      ]);
+    } catch (error) {
+      const errorMsg = error.response?.data?.error || 'Failed to create cartoon';
+      Alert.alert('Error', errorMsg);
+      console.error(error);
+    } finally {
+      setProcessing(false);
+      setProcessingProgress(0);
+      setProcessingMessage('');
+    }
+  };
+
   const handleAIRestorationWithControls = () => {
     setShowAIRestorationControls(true);
   };
@@ -618,6 +694,24 @@ export default function EnhancePhotoScreen({ route, navigation }) {
             onPress={() => handleColorize(true)}
             color="#9C27B0"
             disabled={!isBlackAndWhite}
+          />
+
+          <Text style={styles.sectionTitle}>Artistic Effects</Text>
+
+          <EnhancementOption
+            icon="pencil"
+            title="Sketch"
+            description="Transform photo into pencil sketch"
+            onPress={() => handleSketch('pencil')}
+            color="#2196F3"
+          />
+
+          <EnhancementOption
+            icon="color-filter"
+            title="Cartoonify"
+            description="Create comic/cartoon effect"
+            onPress={() => handleCartoon('balanced')}
+            color="#00BCD4"
           />
         </View>
 
