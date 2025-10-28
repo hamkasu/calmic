@@ -2426,12 +2426,14 @@ def check_grayscale_route(photo_id):
 
 
 @photo_bp.route('/api/photos/<int:photo_id>/sketch', methods=['POST'])
+@csrf.exempt
 @hybrid_auth
-def sketch_photo_route(photo_id):
+def sketch_photo_route(current_user, photo_id):
     """
     Convert photo to sketch/drawing effect
     
     Args:
+        current_user: Authenticated user (from hybrid_auth decorator)
         photo_id: ID of the photo to convert
         
     Request JSON:
@@ -2543,12 +2545,14 @@ def sketch_photo_route(photo_id):
 
 
 @photo_bp.route('/api/photos/<int:photo_id>/cartoon', methods=['POST'])
+@csrf.exempt
 @hybrid_auth
-def cartoon_photo_route(photo_id):
+def cartoon_photo_route(current_user, photo_id):
     """
     Convert photo to cartoon/comic effect
     
     Args:
+        current_user: Authenticated user (from hybrid_auth decorator)
         photo_id: ID of the photo to convert
         
     Request JSON:
