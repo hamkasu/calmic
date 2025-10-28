@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+ */
+
 import React from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 

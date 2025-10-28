@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+ */
+
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,

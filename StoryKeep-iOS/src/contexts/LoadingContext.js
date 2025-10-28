@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+ */
+
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 
 const LoadingContext = createContext();

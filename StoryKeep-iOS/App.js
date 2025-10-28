@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+ */
+
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
