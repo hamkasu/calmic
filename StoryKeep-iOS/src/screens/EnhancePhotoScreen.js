@@ -1388,9 +1388,9 @@ export default function EnhancePhotoScreen({ route, navigation }) {
                 <TouchableOpacity
                   style={[
                     styles.presetCard,
-                    cartoonQuality === 'strong' && styles.presetCardActive
+                    cartoonQuality === 'high' && styles.presetCardActive
                   ]}
-                  onPress={() => { setCartoonQuality('strong'); setCartoonEdgeThickness(8); }}
+                  onPress={() => { setCartoonQuality('high'); setCartoonEdgeThickness(8); }}
                 >
                   <Ionicons name="contrast" size={32} color="#FF9800" />
                   <Text style={styles.presetCardTitle}>Strong</Text>
@@ -1400,9 +1400,9 @@ export default function EnhancePhotoScreen({ route, navigation }) {
                 <TouchableOpacity
                   style={[
                     styles.presetCard,
-                    cartoonQuality === 'subtle' && styles.presetCardActive
+                    cartoonQuality === 'fast' && styles.presetCardActive
                   ]}
-                  onPress={() => { setCartoonQuality('subtle'); setCartoonEdgeThickness(3); }}
+                  onPress={() => { setCartoonQuality('fast'); setCartoonEdgeThickness(3); }}
                 >
                   <Ionicons name="radio-button-off" size={32} color="#FF9800" />
                   <Text style={styles.presetCardTitle}>Subtle</Text>
