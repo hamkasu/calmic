@@ -2440,6 +2440,8 @@ def sketch_photo_route(current_user, photo_id):
         
     Request JSON:
         style: 'pencil' or 'pen' (optional, default: 'pencil')
+        intensity: Blur intensity (0.1-1.0, optional, default: 0.5)
+                  Lower values = more detail, Higher values = softer sketch
         
     Returns:
         JSON with success status and sketch photo information
@@ -2457,11 +2459,25 @@ def sketch_photo_route(current_user, photo_id):
         
         data = request.get_json() or {}
         style = data.get('style', 'pencil')
+        intensity = data.get('intensity', 0.5)
         
         if style not in ['pencil', 'pen']:
             return jsonify({
                 'success': False,
                 'error': 'Invalid style. Use pencil or pen'
+            }), 400
+        
+        try:
+            intensity = float(intensity)
+            if intensity < 0.1 or intensity > 1.0:
+                return jsonify({
+                    'success': False,
+                    'error': 'Invalid intensity. Must be between 0.1 and 1.0'
+                }), 400
+        except (TypeError, ValueError):
+            return jsonify({
+                'success': False,
+                'error': 'Invalid intensity. Must be a number between 0.1 and 1.0'
             }), 400
         
         artistic_effects = get_artistic_effects()
@@ -2478,9 +2494,9 @@ def sketch_photo_route(current_user, photo_id):
         
         sketch_path = os.path.join(user_folder, sketch_filename)
         
-        logger.info(f"Creating sketch for photo {photo_id} using style: {style}")
+        logger.info(f"Creating sketch for photo {photo_id} using style: {style}, intensity: {intensity}")
         
-        artistic_effects.create_sketch(photo.file_path, sketch_path, style=style)
+        artistic_effects.create_sketch(photo.file_path, sketch_path, style=style, intensity=intensity)
         
         thumbnail_path = None
         thumbnail_filename = f"{current_user.id}_{unique_id}_sketch_thumb_{timestamp}.jpg"
@@ -2519,6 +2535,7 @@ def sketch_photo_route(current_user, photo_id):
             'original_photo_id': photo_id,
             'sketch_photo_id': new_photo.id,
             'style_used': style,
+            'intensity_used': intensity,
             'sketch_photo': {
                 'id': new_photo.id,
                 'filename': new_photo.filename,
@@ -2558,6 +2575,8 @@ def cartoon_photo_route(current_user, photo_id):
         
     Request JSON:
         quality: 'fast', 'balanced', or 'high' (optional, default: 'balanced')
+        edge_thickness: Edge detection block size (1-10, optional, default: 5)
+                       Lower values = thinner edges, Higher values = thicker edges
         
     Returns:
         JSON with success status and cartoon photo information
@@ -2575,11 +2594,25 @@ def cartoon_photo_route(current_user, photo_id):
         
         data = request.get_json() or {}
         quality = data.get('quality', 'balanced')
+        edge_thickness = data.get('edge_thickness', 5)
         
         if quality not in ['fast', 'balanced', 'high']:
             return jsonify({
                 'success': False,
                 'error': 'Invalid quality. Use fast, balanced, or high'
+            }), 400
+        
+        try:
+            edge_thickness = int(edge_thickness)
+            if edge_thickness < 1 or edge_thickness > 10:
+                return jsonify({
+                    'success': False,
+                    'error': 'Invalid edge_thickness. Must be integer between 1 and 10'
+                }), 400
+        except (TypeError, ValueError):
+            return jsonify({
+                'success': False,
+                'error': 'Invalid edge_thickness. Must be an integer between 1 and 10'
             }), 400
         
         quality_params = {
@@ -2603,13 +2636,14 @@ def cartoon_photo_route(current_user, photo_id):
         
         cartoon_path = os.path.join(user_folder, cartoon_filename)
         
-        logger.info(f"Creating cartoon for photo {photo_id} using quality: {quality}")
+        logger.info(f"Creating cartoon for photo {photo_id} using quality: {quality}, edge_thickness: {edge_thickness}")
         
         artistic_effects.create_cartoon(
             photo.file_path, 
             cartoon_path, 
             num_down=params['num_down'],
-            num_bilateral=params['num_bilateral']
+            num_bilateral=params['num_bilateral'],
+            edge_thickness=edge_thickness
         )
         
         thumbnail_path = None
@@ -2649,6 +2683,7 @@ def cartoon_photo_route(current_user, photo_id):
             'original_photo_id': photo_id,
             'cartoon_photo_id': new_photo.id,
             'quality_used': quality,
+            'edge_thickness_used': edge_thickness,
             'cartoon_photo': {
                 'id': new_photo.id,
                 'filename': new_photo.filename,
@@ -2687,7 +2722,10 @@ def oil_painting_photo_route(current_user, photo_id):
         photo_id: ID of the photo to convert
         
     Request JSON:
-        size: Filter size 1-10 (optional, default: 7)
+        brush_size: Brush stroke size (1-15, optional, default: 7)
+                   Lower values = fine detail, Higher values = broad strokes
+        detail_level: Level of detail preservation (1-5, optional, default: 3)
+                     Lower values = more smoothing, Higher values = more detail
         
     Returns:
         JSON with success status and oil painting photo information
@@ -2704,12 +2742,33 @@ def oil_painting_photo_route(current_user, photo_id):
             }), 403
         
         data = request.get_json() or {}
-        size = data.get('size', 7)
+        brush_size = data.get('brush_size', 7)
+        detail_level = data.get('detail_level', 3)
         
-        if not isinstance(size, int) or size < 1 or size > 10:
+        try:
+            brush_size = int(brush_size)
+            if brush_size < 1 or brush_size > 15:
+                return jsonify({
+                    'success': False,
+                    'error': 'Invalid brush_size. Must be integer between 1 and 15'
+                }), 400
+        except (TypeError, ValueError):
             return jsonify({
                 'success': False,
-                'error': 'Invalid size. Must be integer between 1 and 10'
+                'error': 'Invalid brush_size. Must be an integer between 1 and 15'
+            }), 400
+        
+        try:
+            detail_level = int(detail_level)
+            if detail_level < 1 or detail_level > 5:
+                return jsonify({
+                    'success': False,
+                    'error': 'Invalid detail_level. Must be integer between 1 and 5'
+                }), 400
+        except (TypeError, ValueError):
+            return jsonify({
+                'success': False,
+                'error': 'Invalid detail_level. Must be an integer between 1 and 5'
             }), 400
         
         artistic_effects = get_artistic_effects()
@@ -2726,9 +2785,9 @@ def oil_painting_photo_route(current_user, photo_id):
         
         oil_path = os.path.join(user_folder, oil_filename)
         
-        logger.info(f"Creating oil painting for photo {photo_id} with size: {size}")
+        logger.info(f"Creating oil painting for photo {photo_id} with brush_size: {brush_size}, detail_level: {detail_level}")
         
-        artistic_effects.create_oil_painting(photo.file_path, oil_path, size=size)
+        artistic_effects.create_oil_painting(photo.file_path, oil_path, brush_size=brush_size, detail_level=detail_level)
         
         thumbnail_path = None
         thumbnail_filename = f"{current_user.id}_{unique_id}_oil_thumb_{timestamp}.jpg"
@@ -2766,7 +2825,8 @@ def oil_painting_photo_route(current_user, photo_id):
             'message': 'Oil painting created successfully',
             'original_photo_id': photo_id,
             'oil_photo_id': new_photo.id,
-            'size_used': size,
+            'brush_size_used': brush_size,
+            'detail_level_used': detail_level,
             'oil_photo': {
                 'id': new_photo.id,
                 'filename': new_photo.filename,
@@ -2911,6 +2971,8 @@ def vintage_photo_route(current_user, photo_id):
         
     Request JSON:
         style: 'sepia', '1950s', '1970s', or 'polaroid' (optional, default: 'sepia')
+        intensity: Intensity of sepia and vignette effect (0.1-1.0, optional, default: 0.7)
+                  Lower values = subtle effect, Higher values = strong vintage look
         
     Returns:
         JSON with success status and vintage photo information
@@ -2928,11 +2990,25 @@ def vintage_photo_route(current_user, photo_id):
         
         data = request.get_json() or {}
         style = data.get('style', 'sepia')
+        intensity = data.get('intensity', 0.7)
         
         if style not in ['sepia', '1950s', '1970s', 'polaroid']:
             return jsonify({
                 'success': False,
                 'error': 'Invalid style. Use sepia, 1950s, 1970s, or polaroid'
+            }), 400
+        
+        try:
+            intensity = float(intensity)
+            if intensity < 0.1 or intensity > 1.0:
+                return jsonify({
+                    'success': False,
+                    'error': 'Invalid intensity. Must be between 0.1 and 1.0'
+                }), 400
+        except (TypeError, ValueError):
+            return jsonify({
+                'success': False,
+                'error': 'Invalid intensity. Must be a number between 0.1 and 1.0'
             }), 400
         
         artistic_effects = get_artistic_effects()
@@ -2949,9 +3025,9 @@ def vintage_photo_route(current_user, photo_id):
         
         vintage_path = os.path.join(user_folder, vintage_filename)
         
-        logger.info(f"Creating vintage {style} for photo {photo_id}")
+        logger.info(f"Creating vintage {style} for photo {photo_id} with intensity: {intensity}")
         
-        artistic_effects.create_vintage_sepia(photo.file_path, vintage_path, style=style)
+        artistic_effects.create_vintage_sepia(photo.file_path, vintage_path, style=style, intensity=intensity)
         
         thumbnail_path = None
         thumbnail_filename = f"{current_user.id}_{unique_id}_vintage_thumb_{timestamp}.jpg"
@@ -2990,6 +3066,7 @@ def vintage_photo_route(current_user, photo_id):
             'original_photo_id': photo_id,
             'vintage_photo_id': new_photo.id,
             'style_used': style,
+            'intensity_used': intensity,
             'vintage_photo': {
                 'id': new_photo.id,
                 'filename': new_photo.filename,
@@ -3251,7 +3328,9 @@ def black_white_photo_route(current_user, photo_id):
         photo_id: ID of the photo to convert
         
     Request JSON:
-        style: 'classic', 'high_contrast', or 'film_noir' (optional, default: 'classic')
+        style: 'classic', 'high_contrast', 'soft', 'film_noir', or 'selenium' (optional, default: 'classic')
+        contrast: Additional contrast adjustment (-50 to +50, optional, default: 0)
+                 Negative values = reduce contrast, Positive values = increase contrast
         
     Returns:
         JSON with success status and B&W photo information
@@ -3269,11 +3348,25 @@ def black_white_photo_route(current_user, photo_id):
         
         data = request.get_json() or {}
         style = data.get('style', 'classic')
+        contrast = data.get('contrast', 0)
         
-        if style not in ['classic', 'high_contrast', 'film_noir']:
+        if style not in ['classic', 'high_contrast', 'soft', 'film_noir', 'selenium']:
             return jsonify({
                 'success': False,
-                'error': 'Invalid style. Use classic, high_contrast, or film_noir'
+                'error': 'Invalid style. Use classic, high_contrast, soft, film_noir, or selenium'
+            }), 400
+        
+        try:
+            contrast = int(contrast)
+            if contrast < -50 or contrast > 50:
+                return jsonify({
+                    'success': False,
+                    'error': 'Invalid contrast. Must be integer between -50 and 50'
+                }), 400
+        except (TypeError, ValueError):
+            return jsonify({
+                'success': False,
+                'error': 'Invalid contrast. Must be an integer between -50 and 50'
             }), 400
         
         artistic_effects = get_artistic_effects()
@@ -3290,9 +3383,9 @@ def black_white_photo_route(current_user, photo_id):
         
         bw_path = os.path.join(user_folder, bw_filename)
         
-        logger.info(f"Creating professional B&W ({style}) for photo {photo_id}")
+        logger.info(f"Creating professional B&W ({style}, contrast: {contrast}) for photo {photo_id}")
         
-        artistic_effects.create_professional_bw(photo.file_path, bw_path, style=style)
+        artistic_effects.create_professional_bw(photo.file_path, bw_path, style=style, contrast=contrast)
         
         thumbnail_path = None
         thumbnail_filename = f"{current_user.id}_{unique_id}_bw_thumb_{timestamp}.jpg"
@@ -3331,6 +3424,7 @@ def black_white_photo_route(current_user, photo_id):
             'original_photo_id': photo_id,
             'bw_photo_id': new_photo.id,
             'style_used': style,
+            'contrast_used': contrast,
             'bw_photo': {
                 'id': new_photo.id,
                 'filename': new_photo.filename,

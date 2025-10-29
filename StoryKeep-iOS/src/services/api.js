@@ -179,18 +179,36 @@ export const photoAPI = {
     return response.data;
   },
   
-  sketchPhoto: async (photoId, style = 'pencil') => {
-    const response = await api.post(`/api/photos/${photoId}/sketch`, { style });
+  /**
+   * Apply sketch effect to a photo
+   * @param {number} photoId - The ID of the photo
+   * @param {string} style - Sketch style ('pencil', 'charcoal', etc.)
+   * @param {number} intensity - Effect intensity (0.0 to 1.0, default: 0.7)
+   */
+  sketchPhoto: async (photoId, style = 'pencil', intensity = 0.7) => {
+    const response = await api.post(`/api/photos/${photoId}/sketch`, { style, intensity });
     return response.data;
   },
   
-  cartoonPhoto: async (photoId, quality = 'balanced') => {
-    const response = await api.post(`/api/photos/${photoId}/cartoon`, { quality });
+  /**
+   * Apply cartoon effect to a photo
+   * @param {number} photoId - The ID of the photo
+   * @param {string} quality - Quality preset ('balanced', 'high', 'low')
+   * @param {number} edge_thickness - Edge line thickness (1-10, default: 5)
+   */
+  cartoonPhoto: async (photoId, quality = 'balanced', edge_thickness = 5) => {
+    const response = await api.post(`/api/photos/${photoId}/cartoon`, { quality, edge_thickness });
     return response.data;
   },
   
-  oilPaintingPhoto: async (photoId, size = 7) => {
-    const response = await api.post(`/api/photos/${photoId}/oil-painting`, { size });
+  /**
+   * Apply oil painting effect to a photo
+   * @param {number} photoId - The ID of the photo
+   * @param {number} brush_size - Brush stroke size (1-15, default: 7)
+   * @param {number} detail_level - Level of detail preservation (1-5, default: 3)
+   */
+  oilPaintingPhoto: async (photoId, brush_size = 7, detail_level = 3) => {
+    const response = await api.post(`/api/photos/${photoId}/oil-painting`, { brush_size, detail_level });
     return response.data;
   },
   
@@ -199,8 +217,14 @@ export const photoAPI = {
     return response.data;
   },
   
-  vintagePhoto: async (photoId, style = 'sepia') => {
-    const response = await api.post(`/api/photos/${photoId}/vintage`, { style });
+  /**
+   * Apply vintage effect to a photo
+   * @param {number} photoId - The ID of the photo
+   * @param {string} style - Vintage style ('sepia', 'warm', 'cool', etc.)
+   * @param {number} intensity - Effect intensity (0.0 to 1.0, default: 0.8)
+   */
+  vintagePhoto: async (photoId, style = 'sepia', intensity = 0.8) => {
+    const response = await api.post(`/api/photos/${photoId}/vintage`, { style, intensity });
     return response.data;
   },
   
@@ -214,8 +238,14 @@ export const photoAPI = {
     return response.data;
   },
   
-  blackWhitePhoto: async (photoId, style = 'classic') => {
-    const response = await api.post(`/api/photos/${photoId}/black-white`, { style });
+  /**
+   * Apply black and white effect to a photo
+   * @param {number} photoId - The ID of the photo
+   * @param {string} style - B&W style ('classic', 'high_contrast', 'soft', etc.)
+   * @param {number} contrast - Contrast adjustment (-100 to 100, default: 0)
+   */
+  blackWhitePhoto: async (photoId, style = 'classic', contrast = 0) => {
+    const response = await api.post(`/api/photos/${photoId}/black-white`, { style, contrast });
     return response.data;
   },
   

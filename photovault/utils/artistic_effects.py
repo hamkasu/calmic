@@ -23,7 +23,7 @@ class ArtisticEffects:
         self.initialized = True
         logger.info("Artistic effects processor initialized")
     
-    def create_sketch(self, image_path, output_path=None, style='pencil'):
+    def create_sketch(self, image_path, output_path=None, style='pencil', intensity=0.5):
         """
         Convert photo to sketch/drawing effect
         
@@ -31,11 +31,16 @@ class ArtisticEffects:
             image_path: Path to input image
             output_path: Path to save sketch (optional)
             style: 'pencil' for pencil sketch or 'pen' for pen sketch
+            intensity: Blur intensity for sketch effect (0.1-1.0, default: 0.5)
+                      Lower values = more detail, Higher values = softer sketch
             
         Returns:
             Path to sketch image if output_path provided, else PIL Image
         """
         try:
+            # Validate intensity parameter
+            intensity = max(0.1, min(1.0, float(intensity)))
+            
             # Read image
             img = cv2.imread(image_path)
             if img is None:
@@ -47,8 +52,12 @@ class ArtisticEffects:
             # Invert grayscale image
             inverted = 255 - gray
             
-            # Apply Gaussian blur
-            blurred = cv2.GaussianBlur(inverted, (21, 21), 0)
+            # Apply Gaussian blur with intensity-controlled kernel size
+            # Map intensity (0.1-1.0) to kernel size (5-41)
+            kernel_size = int(5 + (intensity * 36))
+            if kernel_size % 2 == 0:
+                kernel_size += 1
+            blurred = cv2.GaussianBlur(inverted, (kernel_size, kernel_size), 0)
             
             # Invert blurred image
             inverted_blur = 255 - blurred
@@ -58,11 +67,15 @@ class ArtisticEffects:
             
             if style == 'pen':
                 # For pen sketch, make it darker and more contrasted
+                # Adjust block size based on intensity
+                block_size = int(7 + (intensity * 8))
+                if block_size % 2 == 0:
+                    block_size += 1
                 sketch = cv2.adaptiveThreshold(
                     gray, 255, 
                     cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
                     cv2.THRESH_BINARY, 
-                    11, 2
+                    block_size, 2
                 )
             
             # Convert grayscale sketch to BGR for consistency
@@ -70,7 +83,7 @@ class ArtisticEffects:
             
             if output_path:
                 cv2.imwrite(output_path, sketch_bgr)
-                logger.info(f"Sketch created and saved to {output_path} (style: {style})")
+                logger.info(f"Sketch created and saved to {output_path} (style: {style}, intensity: {intensity})")
                 return output_path
             else:
                 sketch_rgb = cv2.cvtColor(sketch_bgr, cv2.COLOR_BGR2RGB)
@@ -80,7 +93,7 @@ class ArtisticEffects:
             logger.error(f"Sketch creation failed: {e}")
             raise
     
-    def create_cartoon(self, image_path, output_path=None, num_down=2, num_bilateral=7):
+    def create_cartoon(self, image_path, output_path=None, num_down=2, num_bilateral=7, edge_thickness=5):
         """
         Convert photo to cartoon/comic effect
         
@@ -89,11 +102,16 @@ class ArtisticEffects:
             output_path: Path to save cartoon (optional)
             num_down: Number of downsampling steps (default: 2)
             num_bilateral: Number of bilateral filter iterations (default: 7)
+            edge_thickness: Edge detection block size (1-10, default: 5)
+                          Lower values = thinner edges, Higher values = thicker edges
             
         Returns:
             Path to cartoon image if output_path provided, else PIL Image
         """
         try:
+            # Validate edge_thickness parameter
+            edge_thickness = max(1, min(10, int(edge_thickness)))
+            
             # Read image
             img = cv2.imread(image_path)
             if img is None:
@@ -119,12 +137,17 @@ class ArtisticEffects:
             img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             img_blur = cv2.medianBlur(img_gray, 7)
             
-            # Detect edges using adaptive threshold
+            # Detect edges using adaptive threshold with configurable block size
+            # Map edge_thickness (1-10) to blockSize (5-23)
+            block_size = 5 + (edge_thickness - 1) * 2
+            if block_size % 2 == 0:
+                block_size += 1
+            
             img_edge = cv2.adaptiveThreshold(
                 img_blur, 255,
                 cv2.ADAPTIVE_THRESH_MEAN_C,
                 cv2.THRESH_BINARY,
-                blockSize=9,
+                blockSize=block_size,
                 C=2
             )
             
@@ -136,7 +159,7 @@ class ArtisticEffects:
             
             if output_path:
                 cv2.imwrite(output_path, cartoon)
-                logger.info(f"Cartoon created and saved to {output_path}")
+                logger.info(f"Cartoon created and saved to {output_path} (edge_thickness: {edge_thickness})")
                 return output_path
             else:
                 cartoon_rgb = cv2.cvtColor(cartoon, cv2.COLOR_BGR2RGB)
@@ -184,15 +207,19 @@ class ArtisticEffects:
             logger.error(f"Colored sketch creation failed: {e}")
             raise
     
-    def create_oil_painting(self, image_path, output_path=None, size=7, dynRatio=1):
+    def create_oil_painting(self, image_path, output_path=None, size=7, dynRatio=1, brush_size=7, detail_level=3):
         """
         Convert photo to oil painting effect using bilateral filtering
         
         Args:
             image_path: Path to input image
             output_path: Path to save oil painting (optional)
-            size: Size of the filter (default: 7, range: 1-10)
+            size: Size of the filter (default: 7, range: 1-10) - DEPRECATED, use brush_size
             dynRatio: Image dynamic ratio (not used, kept for API compatibility)
+            brush_size: Brush stroke size (1-15, default: 7)
+                       Lower values = fine detail, Higher values = broad strokes
+            detail_level: Level of detail preservation (1-5, default: 3)
+                         Lower values = more smoothing, Higher values = more detail
             
         Returns:
             Path to oil painting image if output_path provided, else PIL Image
@@ -203,28 +230,38 @@ class ArtisticEffects:
             if img is None:
                 raise ValueError(f"Could not read image from {image_path}")
             
-            # Validate size parameter
-            size = max(1, min(10, int(size)))
+            # Validate parameters
+            brush_size = max(1, min(15, int(brush_size)))
+            detail_level = max(1, min(5, int(detail_level)))
             
-            # Map size (1-10) to bilateral filter diameter (9-25)
-            diameter = 9 + (size * 2)
+            # Map brush_size (1-15) to bilateral filter diameter (9-37)
+            diameter = 9 + (brush_size - 1) * 2
+            
+            # Map detail_level (1-5) to number of filtering passes (1-3)
+            # Lower detail = more passes = more smoothing
+            num_passes = 4 - ((detail_level - 1) // 2)
             
             # Apply multiple passes of bilateral filtering for painterly effect
             result = img.copy()
-            for _ in range(2):
+            for _ in range(num_passes):
                 result = cv2.bilateralFilter(result, diameter, 90, 90)
             
             # Apply edge-preserving smoothing for brush stroke effect
-            result = cv2.edgePreservingFilter(result, flags=1, sigma_s=60, sigma_r=0.4)
+            # Adjust sigma_s based on brush size and sigma_r based on detail level
+            sigma_s = 40 + (brush_size * 2)
+            sigma_r = 0.2 + (detail_level * 0.1)
+            result = cv2.edgePreservingFilter(result, flags=1, sigma_s=sigma_s, sigma_r=sigma_r)
             
             # Convert to HSV and boost saturation for vibrant oil painting look
+            # Adjust saturation boost based on detail level
+            saturation_boost = 1.1 + (detail_level * 0.05)
             hsv = cv2.cvtColor(result, cv2.COLOR_BGR2HSV).astype(np.float32)
-            hsv[:, :, 1] = np.clip(hsv[:, :, 1] * 1.2, 0, 255)
+            hsv[:, :, 1] = np.clip(hsv[:, :, 1] * saturation_boost, 0, 255)
             result = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
             
             if output_path:
                 cv2.imwrite(output_path, result)
-                logger.info(f"Oil painting created and saved to {output_path}")
+                logger.info(f"Oil painting created and saved to {output_path} (brush_size: {brush_size}, detail_level: {detail_level})")
                 return output_path
             else:
                 oil_rgb = cv2.cvtColor(result, cv2.COLOR_BGR2RGB)
@@ -283,7 +320,7 @@ class ArtisticEffects:
             logger.error(f"Watercolor creation failed: {e}")
             raise
     
-    def create_vintage_sepia(self, image_path, output_path=None, style='sepia'):
+    def create_vintage_sepia(self, image_path, output_path=None, style='sepia', intensity=0.7):
         """
         Convert photo to vintage/sepia effect
         
@@ -291,11 +328,16 @@ class ArtisticEffects:
             image_path: Path to input image
             output_path: Path to save vintage photo (optional)
             style: 'sepia', '1950s', '1970s', or 'polaroid'
+            intensity: Intensity of sepia and vignette effect (0.1-1.0, default: 0.7)
+                      Lower values = subtle effect, Higher values = strong vintage look
             
         Returns:
             Path to vintage image if output_path provided, else PIL Image
         """
         try:
+            # Validate intensity parameter
+            intensity = max(0.1, min(1.0, float(intensity)))
+            
             # Read image
             img = cv2.imread(image_path)
             if img is None:
@@ -304,7 +346,7 @@ class ArtisticEffects:
             # Convert to float for processing
             img_float = img.astype(np.float32) / 255.0
             
-            # Apply sepia tone matrix
+            # Apply sepia tone matrix with intensity control
             if style in ['sepia', '1950s']:
                 sepia_kernel = np.array([
                     [0.272, 0.534, 0.131],
@@ -312,31 +354,40 @@ class ArtisticEffects:
                     [0.393, 0.769, 0.189]
                 ])
                 sepia = cv2.transform(img_float, sepia_kernel)
+                # Blend with original based on intensity
+                sepia = img_float * (1 - intensity) + sepia * intensity
             else:
                 sepia = img_float
             
-            # Add vintage effects based on style
+            # Add vintage effects based on style (scaled by intensity)
             if style == '1970s':
                 # Warmer tones, slightly faded
-                sepia[:, :, 0] *= 0.9  # Reduce blue
-                sepia[:, :, 2] *= 1.1  # Increase red
-                sepia = sepia * 0.95 + 0.05  # Slight fade
+                fade_amount = intensity * 0.1
+                sepia[:, :, 0] *= (1 - fade_amount)  # Reduce blue
+                sepia[:, :, 2] *= (1 + fade_amount)  # Increase red
+                sepia = sepia * (1 - fade_amount * 0.5) + fade_amount * 0.5  # Slight fade
             elif style == 'polaroid':
                 # High contrast, vignette
-                sepia = np.power(sepia, 0.8)  # Increase contrast
+                contrast_power = 1.0 - (intensity * 0.2)
+                sepia = np.power(sepia, contrast_power)  # Increase contrast
             
-            # Add vignette effect
+            # Add vignette effect with intensity control
             rows, cols = img.shape[:2]
-            X_resultant_kernel = cv2.getGaussianKernel(cols, cols / 2)
-            Y_resultant_kernel = cv2.getGaussianKernel(rows, rows / 2)
+            # Adjust kernel sigma based on intensity (stronger vignette with higher intensity)
+            sigma_factor = 2.0 + (1.0 - intensity) * 2.0
+            X_resultant_kernel = cv2.getGaussianKernel(cols, cols / sigma_factor)
+            Y_resultant_kernel = cv2.getGaussianKernel(rows, rows / sigma_factor)
             resultant_kernel = Y_resultant_kernel * X_resultant_kernel.T
             mask = resultant_kernel / resultant_kernel.max()
             
+            # Apply vignette with intensity control
+            vignette_strength = 0.3 + (intensity * 0.4)
             for i in range(3):
-                sepia[:, :, i] = sepia[:, :, i] * mask + sepia[:, :, i] * (1 - mask) * 0.6
+                sepia[:, :, i] = sepia[:, :, i] * mask + sepia[:, :, i] * (1 - mask) * (1 - vignette_strength)
             
-            # Add subtle film grain
-            noise = np.random.normal(0, 0.01, img.shape).astype(np.float32)
+            # Add subtle film grain (scaled by intensity)
+            noise_amount = 0.005 + (intensity * 0.015)
+            noise = np.random.normal(0, noise_amount, img.shape).astype(np.float32)
             sepia = sepia + noise
             
             # Clip and convert back to uint8
@@ -344,7 +395,7 @@ class ArtisticEffects:
             
             if output_path:
                 cv2.imwrite(output_path, sepia)
-                logger.info(f"Vintage {style} created and saved to {output_path}")
+                logger.info(f"Vintage {style} created and saved to {output_path} (intensity: {intensity})")
                 return output_path
             else:
                 sepia_rgb = cv2.cvtColor(sepia, cv2.COLOR_BGR2RGB)
@@ -447,19 +498,24 @@ class ArtisticEffects:
             logger.error(f"HDR enhancement failed: {e}")
             raise
     
-    def create_professional_bw(self, image_path, output_path=None, style='classic'):
+    def create_professional_bw(self, image_path, output_path=None, style='classic', contrast=0):
         """
         Convert to high-quality black & white with professional toning
         
         Args:
             image_path: Path to input image
             output_path: Path to save B&W image (optional)
-            style: 'classic', 'high_contrast', or 'film_noir'
+            style: 'classic', 'high_contrast', 'soft', 'film_noir', or 'selenium'
+            contrast: Additional contrast adjustment (-50 to +50, default: 0)
+                     Negative values = reduce contrast, Positive values = increase contrast
             
         Returns:
             Path to B&W image if output_path provided, else PIL Image
         """
         try:
+            # Validate contrast parameter
+            contrast = max(-50, min(50, int(contrast)))
+            
             # Read image
             img = cv2.imread(image_path)
             if img is None:
@@ -470,6 +526,7 @@ class ArtisticEffects:
             gray = 0.299 * r + 0.587 * g + 0.114 * b
             gray = gray.astype(np.uint8)
             
+            # Apply style-specific processing
             if style == 'high_contrast':
                 # Apply CLAHE for high contrast
                 clahe = cv2.createCLAHE(clipLimit=4.0, tileGridSize=(8, 8))
@@ -479,17 +536,41 @@ class ArtisticEffects:
                 gray = cv2.convertScaleAbs(gray, alpha=1.3, beta=-30)
                 clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
                 gray = clahe.apply(gray)
+            elif style == 'soft':
+                # Soft, low-contrast B&W
+                clahe = cv2.createCLAHE(clipLimit=1.0, tileGridSize=(8, 8))
+                gray = clahe.apply(gray)
+                # Slight Gaussian blur for softness
+                gray = cv2.GaussianBlur(gray, (3, 3), 0.5)
+            elif style == 'selenium':
+                # Selenium toning effect (cool tones, slight blue tint)
+                clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
+                gray = clahe.apply(gray)
             else:
                 # Classic B&W with subtle contrast enhancement
                 clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
                 gray = clahe.apply(gray)
             
+            # Apply additional contrast adjustment
+            if contrast != 0:
+                # Map contrast (-50 to +50) to alpha (0.5 to 1.5)
+                alpha = 1.0 + (contrast / 100.0)
+                beta = -contrast / 2
+                gray = cv2.convertScaleAbs(gray, alpha=alpha, beta=beta)
+            
             # Convert back to BGR for consistency
             bw = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
             
+            # Apply selenium toning if selected
+            if style == 'selenium':
+                # Add subtle cool blue tint for selenium effect
+                bw_float = bw.astype(np.float32)
+                bw_float[:, :, 0] = np.clip(bw_float[:, :, 0] * 1.05, 0, 255)  # Slight blue boost
+                bw = bw_float.astype(np.uint8)
+            
             if output_path:
                 cv2.imwrite(output_path, bw)
-                logger.info(f"Professional B&W ({style}) created and saved to {output_path}")
+                logger.info(f"Professional B&W ({style}, contrast: {contrast}) created and saved to {output_path}")
                 return output_path
             else:
                 bw_rgb = cv2.cvtColor(bw, cv2.COLOR_BGR2RGB)

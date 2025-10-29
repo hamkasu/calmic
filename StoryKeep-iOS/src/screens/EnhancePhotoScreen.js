@@ -53,6 +53,31 @@ export default function EnhancePhotoScreen({ route, navigation }) {
   const [aiQuality, setAIQuality] = useState('balanced'); // 'fast', 'balanced', 'quality', 'maximum'
   const [fidelity, setFidelity] = useState(0.5); // CodeFormer fidelity (0.0-1.0)
 
+  // Cartoon Effect controls modal state
+  const [showCartoonControls, setShowCartoonControls] = useState(false);
+  const [cartoonEdgeThickness, setCartoonEdgeThickness] = useState(5);
+  const [cartoonQuality, setCartoonQuality] = useState('balanced');
+
+  // Sketch Effect controls modal state
+  const [showSketchControls, setShowSketchControls] = useState(false);
+  const [sketchStyle, setSketchStyle] = useState('pencil');
+  const [sketchIntensity, setSketchIntensity] = useState(0.7);
+
+  // Oil Painting controls modal state
+  const [showOilPaintingControls, setShowOilPaintingControls] = useState(false);
+  const [oilBrushSize, setOilBrushSize] = useState(7);
+  const [oilDetailLevel, setOilDetailLevel] = useState(3);
+
+  // Vintage Effect controls modal state
+  const [showVintageControls, setShowVintageControls] = useState(false);
+  const [vintageEra, setVintageEra] = useState('sepia');
+  const [vintageIntensity, setVintageIntensity] = useState(0.8);
+
+  // Black & White controls modal state
+  const [showBlackWhiteControls, setShowBlackWhiteControls] = useState(false);
+  const [bwStyle, setBwStyle] = useState('classic');
+  const [bwContrast, setBwContrast] = useState(0);
+
   useEffect(() => {
     loadAuthToken();
     detectImageColor();
@@ -395,6 +420,206 @@ export default function EnhancePhotoScreen({ route, navigation }) {
     // Preview will auto-update via debouncing (no manual call needed)
   };
 
+  const applyCartoon = async () => {
+    setShowCartoonControls(false);
+    setProcessing(true);
+    setProcessingProgress(0);
+    setProcessingMessage('Creating cartoon effect...');
+    
+    try {
+      console.log('🔧 Applying cartoon with edge thickness:', cartoonEdgeThickness);
+      
+      setProcessingProgress(20);
+      setProcessingMessage('Applying cartoon effect...');
+      
+      const response = await photoAPI.cartoonPhoto(photo.id, cartoonQuality, cartoonEdgeThickness);
+      
+      setProcessingProgress(75);
+      setProcessingMessage('Fetching cartoon photo...');
+      
+      const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
+
+      setProcessingProgress(100);
+      setProcessingMessage('Complete!');
+
+      Alert.alert('Success', 'Cartoon effect created successfully!', [
+        {
+          text: 'View',
+          onPress: () => {
+            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
+          },
+        },
+      ]);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to create cartoon: ' + error.message);
+      console.error('Cartoon error:', error);
+    } finally {
+      setProcessing(false);
+      setProcessingProgress(0);
+      setProcessingMessage('');
+    }
+  };
+
+  const applySketch = async () => {
+    setShowSketchControls(false);
+    setProcessing(true);
+    setProcessingProgress(0);
+    setProcessingMessage(`Creating ${sketchStyle} sketch...`);
+    
+    try {
+      console.log('🔧 Applying sketch with style:', sketchStyle, 'intensity:', sketchIntensity);
+      
+      setProcessingProgress(20);
+      setProcessingMessage('Applying sketch effect...');
+      
+      const response = await photoAPI.sketchPhoto(photo.id, sketchStyle, sketchIntensity);
+      
+      setProcessingProgress(75);
+      setProcessingMessage('Fetching sketch photo...');
+      
+      const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
+
+      setProcessingProgress(100);
+      setProcessingMessage('Complete!');
+
+      Alert.alert('Success', 'Sketch created successfully!', [
+        {
+          text: 'View',
+          onPress: () => {
+            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
+          },
+        },
+      ]);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to create sketch: ' + error.message);
+      console.error('Sketch error:', error);
+    } finally {
+      setProcessing(false);
+      setProcessingProgress(0);
+      setProcessingMessage('');
+    }
+  };
+
+  const applyOilPainting = async () => {
+    setShowOilPaintingControls(false);
+    setProcessing(true);
+    setProcessingProgress(0);
+    setProcessingMessage('Creating oil painting effect...');
+    
+    try {
+      console.log('🔧 Applying oil painting with size:', oilBrushSize, 'detail:', oilDetailLevel);
+      
+      setProcessingProgress(20);
+      setProcessingMessage('Applying oil painting effect...');
+      
+      const response = await photoAPI.oilPaintingPhoto(photo.id, oilBrushSize, oilDetailLevel);
+      
+      setProcessingProgress(75);
+      setProcessingMessage('Fetching oil painting...');
+      
+      const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
+
+      setProcessingProgress(100);
+      setProcessingMessage('Complete!');
+
+      Alert.alert('Success', 'Oil painting created successfully!', [
+        {
+          text: 'View',
+          onPress: () => {
+            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
+          },
+        },
+      ]);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to create oil painting: ' + error.message);
+      console.error('Oil painting error:', error);
+    } finally {
+      setProcessing(false);
+      setProcessingProgress(0);
+      setProcessingMessage('');
+    }
+  };
+
+  const applyVintage = async () => {
+    setShowVintageControls(false);
+    setProcessing(true);
+    setProcessingProgress(0);
+    setProcessingMessage(`Creating vintage ${vintageEra} effect...`);
+    
+    try {
+      console.log('🔧 Applying vintage with era:', vintageEra, 'intensity:', vintageIntensity);
+      
+      setProcessingProgress(20);
+      setProcessingMessage('Applying vintage effect...');
+      
+      const response = await photoAPI.vintagePhoto(photo.id, vintageEra, vintageIntensity);
+      
+      setProcessingProgress(75);
+      setProcessingMessage('Fetching vintage photo...');
+      
+      const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
+
+      setProcessingProgress(100);
+      setProcessingMessage('Complete!');
+
+      Alert.alert('Success', `Vintage ${vintageEra} created successfully!`, [
+        {
+          text: 'View',
+          onPress: () => {
+            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
+          },
+        },
+      ]);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to create vintage effect: ' + error.message);
+      console.error('Vintage error:', error);
+    } finally {
+      setProcessing(false);
+      setProcessingProgress(0);
+      setProcessingMessage('');
+    }
+  };
+
+  const applyBlackWhite = async () => {
+    setShowBlackWhiteControls(false);
+    setProcessing(true);
+    setProcessingProgress(0);
+    setProcessingMessage(`Creating ${bwStyle} B&W...`);
+    
+    try {
+      console.log('🔧 Applying B&W with style:', bwStyle, 'contrast:', bwContrast);
+      
+      setProcessingProgress(20);
+      setProcessingMessage('Applying B&W effect...');
+      
+      const response = await photoAPI.blackWhitePhoto(photo.id, bwStyle, bwContrast);
+      
+      setProcessingProgress(75);
+      setProcessingMessage('Fetching B&W photo...');
+      
+      const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
+
+      setProcessingProgress(100);
+      setProcessingMessage('Complete!');
+
+      Alert.alert('Success', 'Black & white created successfully!', [
+        {
+          text: 'View',
+          onPress: () => {
+            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
+          },
+        },
+      ]);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to create B&W: ' + error.message);
+      console.error('B&W error:', error);
+    } finally {
+      setProcessing(false);
+      setProcessingProgress(0);
+      setProcessingMessage('');
+    }
+  };
+
   const handleColorize = async (useAI = false) => {
     setProcessing(true);
     setProcessingProgress(0);
@@ -443,118 +668,16 @@ export default function EnhancePhotoScreen({ route, navigation }) {
     }
   };
 
-  const handleSketch = async (style = 'pencil') => {
-    setProcessing(true);
-    setProcessingProgress(0);
-    setProcessingMessage(`Creating ${style} sketch...`);
-    
-    try {
-      setProcessingProgress(20);
-      setProcessingMessage('Applying sketch effect...');
-      
-      const response = await photoAPI.sketchPhoto(photo.id, style);
-      
-      setProcessingProgress(75);
-      setProcessingMessage('Fetching sketch photo...');
-      
-      const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
-
-      setProcessingProgress(100);
-      setProcessingMessage('Complete!');
-
-      Alert.alert('Success', `Sketch created successfully!`, [
-        {
-          text: 'View',
-          onPress: () => {
-            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
-          },
-        },
-      ]);
-    } catch (error) {
-      const errorMsg = error.response?.data?.error || 'Failed to create sketch';
-      Alert.alert('Error', errorMsg);
-      console.error(error);
-    } finally {
-      setProcessing(false);
-      setProcessingProgress(0);
-      setProcessingMessage('');
-    }
+  const handleSketch = () => {
+    setShowSketchControls(true);
   };
 
-  const handleCartoon = async (quality = 'balanced') => {
-    setProcessing(true);
-    setProcessingProgress(0);
-    setProcessingMessage('Creating cartoon effect...');
-    
-    try {
-      setProcessingProgress(20);
-      setProcessingMessage('Applying cartoon effect...');
-      
-      const response = await photoAPI.cartoonPhoto(photo.id, quality);
-      
-      setProcessingProgress(75);
-      setProcessingMessage('Fetching cartoon photo...');
-      
-      const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
-
-      setProcessingProgress(100);
-      setProcessingMessage('Complete!');
-
-      Alert.alert('Success', `Cartoon created successfully!`, [
-        {
-          text: 'View',
-          onPress: () => {
-            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
-          },
-        },
-      ]);
-    } catch (error) {
-      const errorMsg = error.response?.data?.error || 'Failed to create cartoon';
-      Alert.alert('Error', errorMsg);
-      console.error(error);
-    } finally {
-      setProcessing(false);
-      setProcessingProgress(0);
-      setProcessingMessage('');
-    }
+  const handleCartoon = () => {
+    setShowCartoonControls(true);
   };
 
-  const handleOilPainting = async (size = 7) => {
-    setProcessing(true);
-    setProcessingProgress(0);
-    setProcessingMessage('Creating oil painting effect...');
-    
-    try {
-      setProcessingProgress(20);
-      setProcessingMessage('Applying oil painting effect...');
-      
-      const response = await photoAPI.oilPaintingPhoto(photo.id, size);
-      
-      setProcessingProgress(75);
-      setProcessingMessage('Fetching oil painting...');
-      
-      const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
-
-      setProcessingProgress(100);
-      setProcessingMessage('Complete!');
-
-      Alert.alert('Success', `Oil painting created successfully!`, [
-        {
-          text: 'View',
-          onPress: () => {
-            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
-          },
-        },
-      ]);
-    } catch (error) {
-      const errorMsg = error.response?.data?.error || 'Failed to create oil painting';
-      Alert.alert('Error', errorMsg);
-      console.error(error);
-    } finally {
-      setProcessing(false);
-      setProcessingProgress(0);
-      setProcessingMessage('');
-    }
+  const handleOilPainting = () => {
+    setShowOilPaintingControls(true);
   };
 
   const handleWatercolor = async () => {
@@ -595,42 +718,8 @@ export default function EnhancePhotoScreen({ route, navigation }) {
     }
   };
 
-  const handleVintage = async (style = 'sepia') => {
-    setProcessing(true);
-    setProcessingProgress(0);
-    setProcessingMessage(`Creating vintage ${style} effect...`);
-    
-    try {
-      setProcessingProgress(20);
-      setProcessingMessage('Applying vintage effect...');
-      
-      const response = await photoAPI.vintagePhoto(photo.id, style);
-      
-      setProcessingProgress(75);
-      setProcessingMessage('Fetching vintage photo...');
-      
-      const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
-
-      setProcessingProgress(100);
-      setProcessingMessage('Complete!');
-
-      Alert.alert('Success', `Vintage ${style} created successfully!`, [
-        {
-          text: 'View',
-          onPress: () => {
-            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
-          },
-        },
-      ]);
-    } catch (error) {
-      const errorMsg = error.response?.data?.error || 'Failed to create vintage effect';
-      Alert.alert('Error', errorMsg);
-      console.error(error);
-    } finally {
-      setProcessing(false);
-      setProcessingProgress(0);
-      setProcessingMessage('');
-    }
+  const handleVintage = () => {
+    setShowVintageControls(true);
   };
 
   const handlePopArt = async (colors = 8) => {
@@ -709,42 +798,8 @@ export default function EnhancePhotoScreen({ route, navigation }) {
     }
   };
 
-  const handleBlackWhite = async (style = 'classic') => {
-    setProcessing(true);
-    setProcessingProgress(0);
-    setProcessingMessage(`Creating ${style} B&W...`);
-    
-    try {
-      setProcessingProgress(20);
-      setProcessingMessage('Applying B&W effect...');
-      
-      const response = await photoAPI.blackWhitePhoto(photo.id, style);
-      
-      setProcessingProgress(75);
-      setProcessingMessage('Fetching B&W photo...');
-      
-      const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
-
-      setProcessingProgress(100);
-      setProcessingMessage('Complete!');
-
-      Alert.alert('Success', `Black & white created successfully!`, [
-        {
-          text: 'View',
-          onPress: () => {
-            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
-          },
-        },
-      ]);
-    } catch (error) {
-      const errorMsg = error.response?.data?.error || 'Failed to create B&W';
-      Alert.alert('Error', errorMsg);
-      console.error(error);
-    } finally {
-      setProcessing(false);
-      setProcessingProgress(0);
-      setProcessingMessage('');
-    }
+  const handleBlackWhite = () => {
+    setShowBlackWhiteControls(true);
   };
 
   const handleAIRestorationWithControls = () => {
@@ -934,7 +989,7 @@ export default function EnhancePhotoScreen({ route, navigation }) {
             icon="pencil"
             title="Sketch"
             description="Transform photo into pencil sketch"
-            onPress={() => handleSketch('pencil')}
+            onPress={handleSketch}
             color="#2196F3"
           />
 
@@ -942,7 +997,7 @@ export default function EnhancePhotoScreen({ route, navigation }) {
             icon="color-filter"
             title="Cartoonify"
             description="Create comic/cartoon effect"
-            onPress={() => handleCartoon('balanced')}
+            onPress={handleCartoon}
             color="#00BCD4"
           />
 
@@ -950,7 +1005,7 @@ export default function EnhancePhotoScreen({ route, navigation }) {
             icon="brush"
             title="Oil Painting"
             description="Hand-painted artwork look"
-            onPress={() => handleOilPainting(7)}
+            onPress={handleOilPainting}
             color="#FF9800"
           />
 
@@ -966,7 +1021,7 @@ export default function EnhancePhotoScreen({ route, navigation }) {
             icon="time"
             title="Vintage"
             description="Classic sepia tone effect"
-            onPress={() => handleVintage('sepia')}
+            onPress={handleVintage}
             color="#8D6E63"
           />
 
@@ -990,7 +1045,7 @@ export default function EnhancePhotoScreen({ route, navigation }) {
             icon="moon"
             title="Black & White"
             description="Professional B&W conversion"
-            onPress={() => handleBlackWhite('classic')}
+            onPress={handleBlackWhite}
             color="#616161"
           />
         </View>
@@ -1281,6 +1336,514 @@ export default function EnhancePhotoScreen({ route, navigation }) {
               </TouchableOpacity>
             </View>
           </View>
+        </View>
+      </Modal>
+
+      {/* Cartoon Effect Modal */}
+      <Modal
+        visible={showCartoonControls}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setShowCartoonControls(false)}
+      >
+        <View style={styles.fullScreenModal}>
+          <View style={styles.fullScreenHeader}>
+            <TouchableOpacity 
+              onPress={() => setShowCartoonControls(false)} 
+              style={styles.closeButton}
+            >
+              <Ionicons name="close" size={28} color="#333" />
+            </TouchableOpacity>
+            <Text style={styles.fullScreenTitle}>Cartoon Effect</Text>
+            <TouchableOpacity onPress={applyCartoon} style={styles.doneButton}>
+              <Text style={styles.doneButtonText}>Apply</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.fullScreenBody}>
+            {/* Preview Section */}
+            <View style={styles.previewSection}>
+              <Text style={styles.sectionLabel}>Preview</Text>
+              <View style={styles.previewContainer}>
+                <Text style={styles.previewLoadingText}>Preview coming soon</Text>
+              </View>
+            </View>
+
+            {/* Quality Presets */}
+            <View style={styles.presetsSection}>
+              <Text style={styles.sectionLabel}>Quality Presets</Text>
+              <View style={styles.presetsGrid}>
+                <TouchableOpacity
+                  style={[
+                    styles.presetCard,
+                    cartoonQuality === 'balanced' && styles.presetCardActive
+                  ]}
+                  onPress={() => { setCartoonQuality('balanced'); setCartoonEdgeThickness(5); }}
+                >
+                  <Ionicons name="aperture" size={32} color="#FF9800" />
+                  <Text style={styles.presetCardTitle}>Balanced</Text>
+                  <Text style={styles.presetCardDescription}>Medium edges</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.presetCard,
+                    cartoonQuality === 'strong' && styles.presetCardActive
+                  ]}
+                  onPress={() => { setCartoonQuality('strong'); setCartoonEdgeThickness(8); }}
+                >
+                  <Ionicons name="contrast" size={32} color="#FF9800" />
+                  <Text style={styles.presetCardTitle}>Strong</Text>
+                  <Text style={styles.presetCardDescription}>Bold edges</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.presetCard,
+                    cartoonQuality === 'subtle' && styles.presetCardActive
+                  ]}
+                  onPress={() => { setCartoonQuality('subtle'); setCartoonEdgeThickness(3); }}
+                >
+                  <Ionicons name="radio-button-off" size={32} color="#FF9800" />
+                  <Text style={styles.presetCardTitle}>Subtle</Text>
+                  <Text style={styles.presetCardDescription}>Light edges</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Fine-Tune Controls */}
+            <View style={styles.manualSection}>
+              <Text style={styles.sectionLabel}>Fine-Tune</Text>
+              
+              <View style={styles.controlGroup}>
+                <View style={styles.controlHeader}>
+                  <Text style={styles.controlLabel}>
+                    <Ionicons name="resize" size={16} /> Edge Thickness
+                  </Text>
+                  <Text style={styles.controlValue}>{cartoonEdgeThickness}</Text>
+                </View>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={1}
+                  maximumValue={10}
+                  step={1}
+                  value={cartoonEdgeThickness}
+                  onValueChange={setCartoonEdgeThickness}
+                  minimumTrackTintColor="#FF9800"
+                  maximumTrackTintColor="#ddd"
+                  thumbTintColor="#FF9800"
+                />
+                <Text style={styles.controlDescription}>
+                  Controls the boldness of cartoon edges
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.infoBox}>
+              <Ionicons name="information-circle" size={20} color="#FF9800" />
+              <Text style={styles.infoText}>
+                Creates comic-style effects with bold edges. Adjust quality and edge thickness for different artistic styles.
+              </Text>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Sketch Effect Modal */}
+      <Modal
+        visible={showSketchControls}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setShowSketchControls(false)}
+      >
+        <View style={styles.fullScreenModal}>
+          <View style={styles.fullScreenHeader}>
+            <TouchableOpacity 
+              onPress={() => setShowSketchControls(false)} 
+              style={styles.closeButton}
+            >
+              <Ionicons name="close" size={28} color="#333" />
+            </TouchableOpacity>
+            <Text style={styles.fullScreenTitle}>Sketch Effect</Text>
+            <TouchableOpacity onPress={applySketch} style={styles.doneButton}>
+              <Text style={styles.doneButtonText}>Apply</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.fullScreenBody}>
+            {/* Preview Section */}
+            <View style={styles.previewSection}>
+              <Text style={styles.sectionLabel}>Preview</Text>
+              <View style={styles.previewContainer}>
+                <Text style={styles.previewLoadingText}>Preview coming soon</Text>
+              </View>
+            </View>
+
+            {/* Style Selector */}
+            <View style={styles.presetsSection}>
+              <Text style={styles.sectionLabel}>Sketch Style</Text>
+              <View style={styles.presetsGrid}>
+                <TouchableOpacity
+                  style={[
+                    styles.presetCard,
+                    sketchStyle === 'pencil' && styles.presetCardActive
+                  ]}
+                  onPress={() => setSketchStyle('pencil')}
+                >
+                  <Ionicons name="pencil" size={32} color="#FF9800" />
+                  <Text style={styles.presetCardTitle}>Pencil</Text>
+                  <Text style={styles.presetCardDescription}>Soft sketch</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.presetCard,
+                    sketchStyle === 'pen' && styles.presetCardActive
+                  ]}
+                  onPress={() => setSketchStyle('pen')}
+                >
+                  <Ionicons name="create" size={32} color="#FF9800" />
+                  <Text style={styles.presetCardTitle}>Pen</Text>
+                  <Text style={styles.presetCardDescription}>Sharp lines</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Fine-Tune Controls */}
+            <View style={styles.manualSection}>
+              <Text style={styles.sectionLabel}>Fine-Tune</Text>
+              
+              <View style={styles.controlGroup}>
+                <View style={styles.controlHeader}>
+                  <Text style={styles.controlLabel}>
+                    <Ionicons name="contrast" size={16} /> Intensity
+                  </Text>
+                  <Text style={styles.controlValue}>{sketchIntensity.toFixed(1)}</Text>
+                </View>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={0.1}
+                  maximumValue={1.0}
+                  step={0.1}
+                  value={sketchIntensity}
+                  onValueChange={setSketchIntensity}
+                  minimumTrackTintColor="#FF9800"
+                  maximumTrackTintColor="#ddd"
+                  thumbTintColor="#FF9800"
+                />
+                <Text style={styles.controlDescription}>
+                  Controls the darkness of sketch lines
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.infoBox}>
+              <Ionicons name="information-circle" size={20} color="#FF9800" />
+              <Text style={styles.infoText}>
+                Converts to pencil or pen drawing. Control intensity for lighter or darker sketch lines.
+              </Text>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Oil Painting Modal */}
+      <Modal
+        visible={showOilPaintingControls}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setShowOilPaintingControls(false)}
+      >
+        <View style={styles.fullScreenModal}>
+          <View style={styles.fullScreenHeader}>
+            <TouchableOpacity 
+              onPress={() => setShowOilPaintingControls(false)} 
+              style={styles.closeButton}
+            >
+              <Ionicons name="close" size={28} color="#333" />
+            </TouchableOpacity>
+            <Text style={styles.fullScreenTitle}>Oil Painting</Text>
+            <TouchableOpacity onPress={applyOilPainting} style={styles.doneButton}>
+              <Text style={styles.doneButtonText}>Apply</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.fullScreenBody}>
+            {/* Preview Section */}
+            <View style={styles.previewSection}>
+              <Text style={styles.sectionLabel}>Preview</Text>
+              <View style={styles.previewContainer}>
+                <Text style={styles.previewLoadingText}>Preview coming soon</Text>
+              </View>
+            </View>
+
+            {/* Fine-Tune Controls */}
+            <View style={styles.manualSection}>
+              <Text style={styles.sectionLabel}>Fine-Tune</Text>
+              
+              <View style={styles.controlGroup}>
+                <View style={styles.controlHeader}>
+                  <Text style={styles.controlLabel}>
+                    <Ionicons name="brush" size={16} /> Brush Size
+                  </Text>
+                  <Text style={styles.controlValue}>{oilBrushSize}</Text>
+                </View>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={1}
+                  maximumValue={15}
+                  step={1}
+                  value={oilBrushSize}
+                  onValueChange={setOilBrushSize}
+                  minimumTrackTintColor="#FF9800"
+                  maximumTrackTintColor="#ddd"
+                  thumbTintColor="#FF9800"
+                />
+                <Text style={styles.controlDescription}>
+                  Larger values create bolder brush strokes
+                </Text>
+              </View>
+
+              <View style={styles.controlGroup}>
+                <View style={styles.controlHeader}>
+                  <Text style={styles.controlLabel}>
+                    <Ionicons name="options" size={16} /> Detail Level
+                  </Text>
+                  <Text style={styles.controlValue}>{oilDetailLevel}</Text>
+                </View>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={1}
+                  maximumValue={5}
+                  step={1}
+                  value={oilDetailLevel}
+                  onValueChange={setOilDetailLevel}
+                  minimumTrackTintColor="#FF9800"
+                  maximumTrackTintColor="#ddd"
+                  thumbTintColor="#FF9800"
+                />
+                <Text style={styles.controlDescription}>
+                  Higher values preserve more fine details
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.infoBox}>
+              <Ionicons name="information-circle" size={20} color="#FF9800" />
+              <Text style={styles.infoText}>
+                Simulates oil painting with brush strokes. Increase brush size for bolder strokes, detail for finer features.
+              </Text>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Vintage Effect Modal */}
+      <Modal
+        visible={showVintageControls}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setShowVintageControls(false)}
+      >
+        <View style={styles.fullScreenModal}>
+          <View style={styles.fullScreenHeader}>
+            <TouchableOpacity 
+              onPress={() => setShowVintageControls(false)} 
+              style={styles.closeButton}
+            >
+              <Ionicons name="close" size={28} color="#333" />
+            </TouchableOpacity>
+            <Text style={styles.fullScreenTitle}>Vintage Effect</Text>
+            <TouchableOpacity onPress={applyVintage} style={styles.doneButton}>
+              <Text style={styles.doneButtonText}>Apply</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.fullScreenBody}>
+            {/* Preview Section */}
+            <View style={styles.previewSection}>
+              <Text style={styles.sectionLabel}>Preview</Text>
+              <View style={styles.previewContainer}>
+                <Text style={styles.previewLoadingText}>Preview coming soon</Text>
+              </View>
+            </View>
+
+            {/* Era Presets */}
+            <View style={styles.presetsSection}>
+              <Text style={styles.sectionLabel}>Era Presets</Text>
+              <View style={styles.presetsGrid}>
+                <TouchableOpacity
+                  style={[
+                    styles.presetCard,
+                    vintageEra === 'sepia' && styles.presetCardActive
+                  ]}
+                  onPress={() => setVintageEra('sepia')}
+                >
+                  <Ionicons name="time" size={32} color="#FF9800" />
+                  <Text style={styles.presetCardTitle}>1920s Sepia</Text>
+                  <Text style={styles.presetCardDescription}>Classic brown</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.presetCard,
+                    vintageEra === '1950s' && styles.presetCardActive
+                  ]}
+                  onPress={() => setVintageEra('1950s')}
+                >
+                  <Ionicons name="albums" size={32} color="#FF9800" />
+                  <Text style={styles.presetCardTitle}>1950s Faded</Text>
+                  <Text style={styles.presetCardDescription}>Washed out</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.presetCard,
+                    vintageEra === '1970s' && styles.presetCardActive
+                  ]}
+                  onPress={() => setVintageEra('1970s')}
+                >
+                  <Ionicons name="sunny" size={32} color="#FF9800" />
+                  <Text style={styles.presetCardTitle}>1970s Warm</Text>
+                  <Text style={styles.presetCardDescription}>Golden tones</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Fine-Tune Controls */}
+            <View style={styles.manualSection}>
+              <Text style={styles.sectionLabel}>Fine-Tune</Text>
+              
+              <View style={styles.controlGroup}>
+                <View style={styles.controlHeader}>
+                  <Text style={styles.controlLabel}>
+                    <Ionicons name="contrast" size={16} /> Intensity
+                  </Text>
+                  <Text style={styles.controlValue}>{vintageIntensity.toFixed(1)}</Text>
+                </View>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={0.1}
+                  maximumValue={1.0}
+                  step={0.1}
+                  value={vintageIntensity}
+                  onValueChange={setVintageIntensity}
+                  minimumTrackTintColor="#FF9800"
+                  maximumTrackTintColor="#ddd"
+                  thumbTintColor="#FF9800"
+                />
+                <Text style={styles.controlDescription}>
+                  Controls the strength of the vintage effect
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.infoBox}>
+              <Ionicons name="information-circle" size={20} color="#FF9800" />
+              <Text style={styles.infoText}>
+                Adds nostalgic film tones from different eras. Adjust intensity to control the vintage effect strength.
+              </Text>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Black & White Modal */}
+      <Modal
+        visible={showBlackWhiteControls}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setShowBlackWhiteControls(false)}
+      >
+        <View style={styles.fullScreenModal}>
+          <View style={styles.fullScreenHeader}>
+            <TouchableOpacity 
+              onPress={() => setShowBlackWhiteControls(false)} 
+              style={styles.closeButton}
+            >
+              <Ionicons name="close" size={28} color="#333" />
+            </TouchableOpacity>
+            <Text style={styles.fullScreenTitle}>Black & White</Text>
+            <TouchableOpacity onPress={applyBlackWhite} style={styles.doneButton}>
+              <Text style={styles.doneButtonText}>Apply</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.fullScreenBody}>
+            {/* Preview Section */}
+            <View style={styles.previewSection}>
+              <Text style={styles.sectionLabel}>Preview</Text>
+              <View style={styles.previewContainer}>
+                <Text style={styles.previewLoadingText}>Preview coming soon</Text>
+              </View>
+            </View>
+
+            {/* Toning Style Buttons */}
+            <View style={styles.presetsSection}>
+              <Text style={styles.sectionLabel}>Toning Styles</Text>
+              <View style={styles.bwStylesGrid}>
+                {[
+                  { key: 'classic', icon: 'moon', title: 'Classic' },
+                  { key: 'high_contrast', icon: 'contrast', title: 'High Contrast' },
+                  { key: 'soft', icon: 'radio-button-off', title: 'Soft' },
+                  { key: 'film_noir', icon: 'film', title: 'Film Noir' },
+                  { key: 'selenium', icon: 'color-filter', title: 'Selenium' },
+                ].map((style) => (
+                  <TouchableOpacity
+                    key={style.key}
+                    style={[
+                      styles.bwStyleButton,
+                      bwStyle === style.key && styles.bwStyleButtonActive
+                    ]}
+                    onPress={() => setBwStyle(style.key)}
+                  >
+                    <Ionicons name={style.icon} size={24} color={bwStyle === style.key ? '#FF9800' : '#666'} />
+                    <Text style={[
+                      styles.bwStyleButtonText,
+                      bwStyle === style.key && styles.bwStyleButtonTextActive
+                    ]}>
+                      {style.title}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Fine-Tune Controls */}
+            <View style={styles.manualSection}>
+              <Text style={styles.sectionLabel}>Fine-Tune</Text>
+              
+              <View style={styles.controlGroup}>
+                <View style={styles.controlHeader}>
+                  <Text style={styles.controlLabel}>
+                    <Ionicons name="contrast" size={16} /> Contrast
+                  </Text>
+                  <Text style={styles.controlValue}>{bwContrast > 0 ? '+' : ''}{bwContrast}</Text>
+                </View>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={-50}
+                  maximumValue={50}
+                  step={5}
+                  value={bwContrast}
+                  onValueChange={setBwContrast}
+                  minimumTrackTintColor="#FF9800"
+                  maximumTrackTintColor="#ddd"
+                  thumbTintColor="#FF9800"
+                />
+                <Text style={styles.controlDescription}>
+                  Adjust contrast from -50 (softer) to +50 (harder)
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.infoBox}>
+              <Ionicons name="information-circle" size={20} color="#FF9800" />
+              <Text style={styles.infoText}>
+                Professional B&W conversion with toning styles. Use contrast slider to fine-tune the look.
+              </Text>
+            </View>
+          </ScrollView>
         </View>
       </Modal>
     </View>
@@ -1792,5 +2355,36 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 8,
     fontWeight: '600',
+  },
+  // Black & White modal styles
+  bwStylesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  bwStyleButton: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: '#f8f8f8',
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    borderRadius: 12,
+    padding: 15,
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  bwStyleButtonActive: {
+    backgroundColor: '#FFF5F7',
+    borderColor: '#FF9800',
+  },
+  bwStyleButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  bwStyleButtonTextActive: {
+    color: '#FF9800',
+    fontWeight: 'bold',
   },
 });
