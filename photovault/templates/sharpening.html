@@ -388,8 +388,8 @@ document.getElementById('applySharpening').addEventListener('click', async funct
             document.getElementById('sharpenedPlaceholder').style.display = 'none';
             document.getElementById('sharpenedImage').style.display = 'block';
             
-            // Show success message
-            showMessage('Sharpening applied successfully!', 'success');
+            // Auto-redirect to gallery to show updated photo
+            window.location.href = '/gallery/photos';
         } else {
             showMessage('Sharpening failed: ' + (data.error || 'Unknown error'), 'error');
         }

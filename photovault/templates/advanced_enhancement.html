@@ -659,13 +659,8 @@ function applyEnhancement() {
             document.getElementById('enhancedImage').src = data.enhanced_url + '?t=' + timestamp;
             document.getElementById('enhancedImageSide').src = data.enhanced_url + '?t=' + timestamp;
             
-            // Switch to enhanced view
-            switchView('enhanced');
-            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            document.querySelector('[data-view="enhanced"]').classList.add('active');
-            
-            // Show success message
-            showMessage('Enhancement applied successfully!', 'success');
+            // Auto-redirect to gallery to show updated photo
+            window.location.href = '/gallery/photos';
         } else {
             showMessage('Enhancement failed: ' + (data.error || 'Unknown error'), 'error');
         }
@@ -725,13 +720,8 @@ function sharpenPhoto() {
             document.getElementById('enhancedImage').src = data.enhanced_url + '?t=' + timestamp;
             document.getElementById('enhancedImageSide').src = data.enhanced_url + '?t=' + timestamp;
             
-            // Switch to enhanced view
-            switchView('enhanced');
-            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            document.querySelector('[data-view="enhanced"]').classList.add('active');
-            
-            // Show success message
-            showMessage('Photo sharpened successfully!', 'success');
+            // Auto-redirect to gallery to show updated photo
+            window.location.href = '/gallery/photos';
         } else {
             showMessage('Sharpening failed: ' + (data.error || 'Unknown error'), 'error');
         }

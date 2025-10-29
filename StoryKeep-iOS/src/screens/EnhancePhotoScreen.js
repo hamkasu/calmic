@@ -442,14 +442,8 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       setProcessingProgress(100);
       setProcessingMessage('Complete!');
 
-      Alert.alert('Success', 'Cartoon effect created successfully!', [
-        {
-          text: 'View',
-          onPress: () => {
-            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
-          },
-        },
-      ]);
+      // Auto-navigate to Gallery to show updated photo
+      navigation.navigate('Gallery', { refresh: true });
     } catch (error) {
       Alert.alert('Error', 'Failed to create cartoon: ' + error.message);
       console.error('Cartoon error:', error);
@@ -482,14 +476,8 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       setProcessingProgress(100);
       setProcessingMessage('Complete!');
 
-      Alert.alert('Success', 'Sketch created successfully!', [
-        {
-          text: 'View',
-          onPress: () => {
-            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
-          },
-        },
-      ]);
+      // Auto-navigate to Gallery to show updated photo
+      navigation.navigate('Gallery', { refresh: true });
     } catch (error) {
       Alert.alert('Error', 'Failed to create sketch: ' + error.message);
       console.error('Sketch error:', error);
@@ -522,14 +510,8 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       setProcessingProgress(100);
       setProcessingMessage('Complete!');
 
-      Alert.alert('Success', 'Oil painting created successfully!', [
-        {
-          text: 'View',
-          onPress: () => {
-            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
-          },
-        },
-      ]);
+      // Auto-navigate to Gallery to show updated photo
+      navigation.navigate('Gallery', { refresh: true });
     } catch (error) {
       Alert.alert('Error', 'Failed to create oil painting: ' + error.message);
       console.error('Oil painting error:', error);
@@ -562,14 +544,8 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       setProcessingProgress(100);
       setProcessingMessage('Complete!');
 
-      Alert.alert('Success', `Vintage ${vintageEra} created successfully!`, [
-        {
-          text: 'View',
-          onPress: () => {
-            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
-          },
-        },
-      ]);
+      // Auto-navigate to Gallery to show updated photo
+      navigation.navigate('Gallery', { refresh: true });
     } catch (error) {
       Alert.alert('Error', 'Failed to create vintage effect: ' + error.message);
       console.error('Vintage error:', error);
@@ -602,14 +578,8 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       setProcessingProgress(100);
       setProcessingMessage('Complete!');
 
-      Alert.alert('Success', 'Black & white created successfully!', [
-        {
-          text: 'View',
-          onPress: () => {
-            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
-          },
-        },
-      ]);
+      // Auto-navigate to Gallery to show updated photo
+      navigation.navigate('Gallery', { refresh: true });
     } catch (error) {
       Alert.alert('Error', 'Failed to create B&W: ' + error.message);
       console.error('B&W error:', error);
@@ -648,15 +618,8 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       setProcessingProgress(100);
       setProcessingMessage('Complete!');
 
-      Alert.alert('Success', `Photo colorized successfully using ${useAI ? 'AI' : 'DNN'}!`, [
-        {
-          text: 'View',
-          onPress: () => {
-            // Navigate back and replace the photo data
-            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
-          },
-        },
-      ]);
+      // Auto-navigate to Gallery to show updated photo
+      navigation.navigate('Gallery', { refresh: true });
     } catch (error) {
       const errorMsg = error.response?.data?.error || 'Failed to colorize photo';
       Alert.alert('Error', errorMsg);
@@ -699,14 +662,8 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       setProcessingProgress(100);
       setProcessingMessage('Complete!');
 
-      Alert.alert('Success', `Watercolor created successfully!`, [
-        {
-          text: 'View',
-          onPress: () => {
-            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
-          },
-        },
-      ]);
+      // Auto-navigate to Gallery to show updated photo
+      navigation.navigate('Gallery', { refresh: true });
     } catch (error) {
       const errorMsg = error.response?.data?.error || 'Failed to create watercolor';
       Alert.alert('Error', errorMsg);
@@ -741,14 +698,8 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       setProcessingProgress(100);
       setProcessingMessage('Complete!');
 
-      Alert.alert('Success', `Pop art created successfully!`, [
-        {
-          text: 'View',
-          onPress: () => {
-            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
-          },
-        },
-      ]);
+      // Auto-navigate to Gallery to show updated photo
+      navigation.navigate('Gallery', { refresh: true });
     } catch (error) {
       const errorMsg = error.response?.data?.error || 'Failed to create pop art';
       Alert.alert('Error', errorMsg);
@@ -779,14 +730,8 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       setProcessingProgress(100);
       setProcessingMessage('Complete!');
 
-      Alert.alert('Success', `HDR enhancement created successfully!`, [
-        {
-          text: 'View',
-          onPress: () => {
-            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
-          },
-        },
-      ]);
+      // Auto-navigate to Gallery to show updated photo
+      navigation.navigate('Gallery', { refresh: true });
     } catch (error) {
       const errorMsg = error.response?.data?.error || 'Failed to create HDR enhancement';
       Alert.alert('Error', errorMsg);
@@ -836,15 +781,8 @@ export default function EnhancePhotoScreen({ route, navigation }) {
       setProcessingProgress(100);
       setProcessingMessage('Restoration complete!');
 
-      Alert.alert('Success', `Photo restored successfully using ${aiModel.toUpperCase()}!`, [
-        {
-          text: 'View',
-          onPress: () => {
-            // Navigate back and replace the photo data
-            navigation.navigate('PhotoDetail', { photo: updatedPhoto, refresh: true });
-          },
-        },
-      ]);
+      // Auto-navigate to Gallery to show updated photo
+      navigation.navigate('Gallery', { refresh: true });
     } catch (error) {
       const errorMsg = error.response?.data?.error || 'Failed to restore photo with AI';
       Alert.alert('Error', errorMsg);

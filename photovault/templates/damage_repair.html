@@ -560,7 +560,8 @@ document.getElementById('applyRepair').addEventListener('click', async function(
             document.getElementById('repairedPlaceholder').style.display = 'none';
             document.getElementById('repairedImage').style.display = 'block';
             
-            showMessage(data.message || 'Repair completed successfully!', 'success');
+            // Auto-redirect to gallery to show updated photo
+            window.location.href = '/gallery/photos';
         } else {
             showMessage('Repair failed: ' + (data.error || 'Unknown error'), 'error');
         }
