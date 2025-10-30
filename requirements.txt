@@ -103,3 +103,12 @@ SQLAlchemy==2.0.25
 stripe==11.1.1
 Werkzeug==3.0.3
 WTForms==3.1.1
+flask
+flask-login
+flask-sqlalchemy
+numpy
+opencv-python
+pillow
+pyjwt
+python-dotenv
+werkzeug
