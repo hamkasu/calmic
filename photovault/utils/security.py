@@ -15,8 +15,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Password Policy Constants
-MIN_PASSWORD_LENGTH = 12
+# Password Policy Constants (Simplified for better UX)
+MIN_PASSWORD_LENGTH = 8
 PASSWORD_MUST_HAVE = {
     'uppercase': True,
     'lowercase': True,

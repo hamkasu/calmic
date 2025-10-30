@@ -107,47 +107,59 @@ def mobile_login():
 @mobile_api_bp.route('/auth/register', methods=['POST'])
 @csrf.exempt
 def mobile_register():
-    """Mobile app registration endpoint"""
+    """Mobile app registration endpoint with improved validation and error messages"""
     try:
         data = request.get_json()
         if not data:
-            return jsonify({'error': 'No data provided'}), 400
+            return jsonify({'error': 'No data provided', 'field': 'general'}), 400
         
         username = data.get('username', '').strip()
         email = data.get('email', '').strip()
         password = data.get('password', '')
         terms_accepted = data.get('terms_accepted', False)
         
-        # Validation
-        if not username or not email or not password:
-            return jsonify({'error': 'Username, email, and password are required'}), 400
+        # Field-specific validation with helpful error messages
+        if not username:
+            return jsonify({'error': 'Username is required', 'field': 'username'}), 400
         
         if len(username) < 3:
-            return jsonify({'error': 'Username must be at least 3 characters long'}), 400
+            return jsonify({'error': 'Username must be at least 3 characters', 'field': 'username'}), 400
+        
+        if len(username) > 20:
+            return jsonify({'error': 'Username must be 20 characters or less', 'field': 'username'}), 400
+        
+        # Check username format (alphanumeric and underscores only)
+        if not re.match(r'^[a-zA-Z0-9_]+$', username):
+            return jsonify({'error': 'Username can only contain letters, numbers, and underscores', 'field': 'username'}), 400
+        
+        if not email:
+            return jsonify({'error': 'Email is required', 'field': 'email'}), 400
         
         if not validate_email(email):
-            return jsonify({'error': 'Invalid email format'}), 400
+            return jsonify({'error': 'Please enter a valid email address', 'field': 'email'}), 400
+        
+        if not password:
+            return jsonify({'error': 'Password is required', 'field': 'password'}), 400
         
         # Validate password strength using centralized security function
         from photovault.utils.security import validate_password_strength
         is_valid, message = validate_password_strength(password)
         if not is_valid:
-            return jsonify({'error': message}), 400
+            return jsonify({'error': message, 'field': 'password'}), 400
         
-        # Validate terms acceptance - must be explicitly True (boolean)
+        # Validate terms acceptance
         if terms_accepted is not True:
-            return jsonify({'error': 'You must accept the Terms and Conditions to register'}), 400
+            return jsonify({'error': 'Please accept the Terms and Conditions', 'field': 'terms'}), 400
         
-        # Check if user already exists
-        existing_user = User.query.filter(
-            (User.username == username) | (User.email == email)
-        ).first()
-        
+        # Check if username already exists
+        existing_user = User.query.filter_by(username=username).first()
         if existing_user:
-            if existing_user.username == username:
-                return jsonify({'error': 'Username already exists'}), 400
-            else:
-                return jsonify({'error': 'Email already registered'}), 400
+            return jsonify({'error': 'This username is already taken', 'field': 'username'}), 400
+        
+        # Check if email already exists
+        existing_email = User.query.filter_by(email=email).first()
+        if existing_email:
+            return jsonify({'error': 'This email is already registered', 'field': 'email'}), 400
         
         # Create new user
         new_user = User()
@@ -182,7 +194,7 @@ def mobile_register():
     except Exception as e:
         db.session.rollback()
         logger.error(f"Mobile registration error: {str(e)}")
-        return jsonify({'error': 'An error occurred during registration'}), 500
+        return jsonify({'error': 'An error occurred during registration', 'field': 'general'}), 500
 
 @mobile_api_bp.route('/dashboard', methods=['GET'])
 @csrf.exempt
