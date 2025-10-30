@@ -1,8 +1,8 @@
 """Add AI enhancement quotas and update subscription plans
 
-Revision ID: $(date +%Y%m%d_%H%M%S)
+Revision ID: 20251024_015608_ai_quotas
 Revises: e4254a8d276f
-Create Date: $(date +"%Y-%m-%d %H:%M:%S")
+Create Date: 2025-10-24 01:56:08.000000
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from decimal import Decimal
 
 # revision identifiers, used by Alembic.
-revision = '$(date +%Y%m%d_%H%M%S)'
+revision = '20251024_015608_ai_quotas'
 down_revision = 'e4254a8d276f'
 branch_labels = None
 depends_on = None

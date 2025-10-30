@@ -1,7 +1,7 @@
 """Add grid_thumbnail_path and blurhash columns to photo table
 
 Revision ID: 20251030_add_grid_thumbnail_and_blurhash
-Revises: 4d9b1047e585
+Revises: 20251024_015608_ai_quotas
 Create Date: 2025-10-30 04:00:00.000000
 
 This migration adds the grid_thumbnail_path and blurhash columns to support
@@ -14,7 +14,7 @@ from sqlalchemy import inspect
 
 # revision identifiers, used by Alembic.
 revision = '20251030_add_grid_thumbnail_and_blurhash'
-down_revision = 'e4254a8d276f'
+down_revision = '20251024_015608_ai_quotas'
 branch_labels = None
 depends_on = None
 

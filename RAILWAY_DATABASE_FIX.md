@@ -21,59 +21,74 @@ Apply the database migration to add the missing columns. The migration is safe a
 
 ---
 
-## Method 1: Automatic Migration (Recommended ✅)
+## Method 1: Direct SQL (Recommended ✅)
 
-**Step 1: Push to GitHub**
-```bash
-git add migrations/versions/20251030_add_grid_thumbnail_and_blurhash.py
-git add RAILWAY_DATABASE_FIX.md
-git commit -m "Add missing grid_thumbnail_path and blurhash columns"
-git push origin main
+**Why this method?**  
+The migration chain has broken links, so the direct SQL approach is the most reliable solution.
+
+**1. Access Railway PostgreSQL**
+- Go to Railway Dashboard → Your StoryKeep Project
+- Click on the PostgreSQL database service
+- Click "Connect" tab → Select "PostgreSQL (psql)"
+- Copy the connection command
+
+**2. Run the SQL Commands**
+
+In your Railway PostgreSQL console, run:
+
+```sql
+-- Add missing columns (safe - won't error if they exist)
+ALTER TABLE photo 
+ADD COLUMN IF NOT EXISTS grid_thumbnail_path VARCHAR(500);
+
+ALTER TABLE photo 
+ADD COLUMN IF NOT EXISTS blurhash VARCHAR(100);
+
+-- Verify columns were added
+SELECT column_name, data_type, character_maximum_length
+FROM information_schema.columns 
+WHERE table_name = 'photo' 
+AND column_name IN ('grid_thumbnail_path', 'blurhash')
+ORDER BY column_name;
 ```
 
-**Step 2: Railway Auto-Deploy**
-- Railway detects the push and deploys automatically
-- The migration runs during `python release.py`
-- Safe column checks prevent errors if columns already exist
+**3. Expected Output**
+```
+     column_name      | data_type | character_maximum_length
+----------------------+-----------+-------------------------
+ blurhash            | varchar   |                      100
+ grid_thumbnail_path | varchar   |                      500
+(2 rows)
+```
 
-**Step 3: Verify Fix**
-- Web dashboard should show your 5 photos
-- iOS app should load without 502 errors
-- Check Railway logs for "Added grid_thumbnail_path column"
+**4. Verify Fix Immediately**
+- Refresh your web dashboard - should show 5 photos
+- Test iOS app - should load without 502 errors
 
 ---
 
-## Method 2: Manual Migration via Railway Shell
+## Method 2: Automatic Fallback (No Action Needed)
 
-If auto-deploy isn't working:
+Your app has a built-in fallback mechanism that automatically adds missing columns on startup.
 
-**1. Connect to Railway**
-```bash
-railway link  # Select your StoryKeep project
-railway run bash
+**What happens:**
+1. Railway deployment runs `python release.py`
+2. App detects missing columns
+3. Fallback adds them automatically
+4. Server starts normally
+
+**Check Railway logs for:**
+```
+✅ Database schema updated successfully
 ```
 
-**2. Run Migration**
-```bash
-flask db upgrade
-```
-
-**3. Verify Columns**
-```bash
-flask shell
->>> from photovault.extensions import db
->>> from sqlalchemy import inspect
->>> inspector = inspect(db.engine)
->>> columns = [col['name'] for col in inspector.get_columns('photo')]
->>> 'grid_thumbnail_path' in columns
-True
->>> 'blurhash' in columns
-True
-```
+**Note:** The columns will be added automatically on the next Railway deployment, even without pushing changes.
 
 ---
 
-## Method 3: Direct SQL (If Migrations Fail)
+## Method 3: Manual Migration (If You Prefer)
+
+**Note:** The migration chain has some broken links, so this may fail. Use Method 1 (Direct SQL) if issues occur.
 
 **1. Access Railway PostgreSQL**
 - Railway Dashboard → Your Database → Connect → PostgreSQL
