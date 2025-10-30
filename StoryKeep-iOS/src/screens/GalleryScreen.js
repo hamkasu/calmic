@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { photoAPI, vaultAPI } from '../services/api';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -53,9 +54,14 @@ export default function GalleryScreen({ navigation }) {
   const [loadingVaults, setLoadingVaults] = useState(false);
   const [sharingToVault, setSharingToVault] = useState(false);
 
-  useEffect(() => {
-    loadPhotos();
-  }, []);
+  // Auto-refresh gallery when screen gains focus (e.g., after uploading)
+  useFocusEffect(
+    useCallback(() => {
+      // Refresh photos from server to show newest uploads
+      setCurrentPage(1);
+      loadPhotos(1, false);
+    }, [filter])
+  );
 
   useEffect(() => {
     // When filter changes, reload from server
