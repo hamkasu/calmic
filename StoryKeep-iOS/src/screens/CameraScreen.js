@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,8 +16,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { photoAPI } from '../services/api';
 import ProgressBar from '../components/ProgressBar';
+import NetworkService from '../services/NetworkService';
+import QueueService from '../services/QueueService';
+
+const AUTO_ENHANCE_KEY = '@auto_enhance';
+const OFFLINE_MODE_KEY = '@offline_mode';
 
 export default function CameraScreen({ navigation }) {
   const [batchMode, setBatchMode] = useState(false);
@@ -25,6 +31,67 @@ export default function CameraScreen({ navigation }) {
   const [processing, setProcessing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadMessage, setUploadMessage] = useState('');
+  const [autoEnhance, setAutoEnhance] = useState(false);
+  const [offlineMode, setOfflineMode] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [queueCount, setQueueCount] = useState(0);
+
+  useEffect(() => {
+    loadSettings();
+    NetworkService.initialize();
+    QueueService.initialize();
+
+    const unsubscribeNetwork = NetworkService.addListener((connected) => {
+      setIsOnline(connected);
+      if (connected && !offlineMode) {
+        processQueuedPhotos();
+      }
+    });
+
+    const unsubscribeQueue = QueueService.addListener((count) => {
+      setQueueCount(count);
+    });
+
+    setIsOnline(NetworkService.getConnectionStatus());
+    setQueueCount(QueueService.getQueueCount());
+
+    return () => {
+      unsubscribeNetwork();
+      unsubscribeQueue();
+      NetworkService.cleanup();
+    };
+  }, [offlineMode]);
+
+  const loadSettings = async () => {
+    try {
+      const autoEnhanceValue = await AsyncStorage.getItem(AUTO_ENHANCE_KEY);
+      const offlineModeValue = await AsyncStorage.getItem(OFFLINE_MODE_KEY);
+
+      if (autoEnhanceValue !== null) {
+        setAutoEnhance(autoEnhanceValue === 'true');
+      }
+
+      if (offlineModeValue !== null) {
+        setOfflineMode(offlineModeValue === 'true');
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
+  };
+
+  const processQueuedPhotos = async () => {
+    try {
+      const result = await QueueService.processQueue();
+      if (result.processed > 0) {
+        Alert.alert(
+          'Queue Synced',
+          `Successfully uploaded ${result.processed} photo(s)${result.failed > 0 ? `, ${result.failed} failed` : ''}`
+        );
+      }
+    } catch (error) {
+      console.error('Error processing queue:', error);
+    }
+  };
 
   const launchNativeCamera = async () => {
     try {
@@ -68,6 +135,36 @@ export default function CameraScreen({ navigation }) {
   };
 
   const processAndUpload = async (photoUri, showAlerts = true) => {
+    const shouldQueue = offlineMode || !isOnline;
+
+    if (shouldQueue) {
+      try {
+        setUploadMessage('Adding to queue...');
+        await QueueService.addToQueue(photoUri);
+        
+        if (showAlerts) {
+          Alert.alert(
+            'Queued',
+            `Photo added to queue. ${QueueService.getQueueCount()} photo(s) pending upload.`,
+            [
+              {
+                text: 'OK',
+              },
+            ]
+          );
+        }
+        
+        return { success: true, queued: true };
+      } catch (error) {
+        if (showAlerts) {
+          Alert.alert('Queue Failed', 'Could not add photo to queue');
+        }
+        throw error;
+      } finally {
+        setUploadMessage('');
+      }
+    }
+
     try {
       setUploadProgress(10);
       setUploadMessage('Preparing image...');
@@ -89,14 +186,36 @@ export default function CameraScreen({ navigation }) {
 
       await new Promise(resolve => setTimeout(resolve, 500));
 
+      if (autoEnhance && response.photo_id) {
+        setUploadProgress(80);
+        setUploadMessage('Auto-enhancing...');
+        
+        try {
+          await photoAPI.enhancePhoto(response.photo_id, {
+            intensity: 1.5,
+            radius: 1.0,
+            threshold: 0,
+          });
+          
+          setUploadProgress(90);
+          await new Promise(resolve => setTimeout(resolve, 300));
+        } catch (enhanceError) {
+          console.error('Auto-enhance failed:', enhanceError);
+        }
+      }
+
       setUploadProgress(100);
       setUploadMessage('Complete!');
 
       if (showAlerts) {
         if (response.success) {
+          const message = autoEnhance 
+            ? `Photo uploaded and enhanced! ${response.photos_extracted || 0} photo(s) extracted`
+            : `Photo uploaded! ${response.photos_extracted || 0} photo(s) extracted`;
+          
           Alert.alert(
             'Success',
-            `Photo uploaded! ${response.photos_extracted || 0} photo(s) extracted`,
+            message,
             [
               {
                 text: 'OK',
@@ -221,7 +340,35 @@ export default function CameraScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={28} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Digitizer</Text>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>Digitizer</Text>
+          <View style={styles.statusRow}>
+            {!isOnline && (
+              <View style={styles.statusBadge}>
+                <Ionicons name="cloud-offline" size={12} color="#FF9800" />
+                <Text style={styles.statusText}>Offline</Text>
+              </View>
+            )}
+            {offlineMode && (
+              <View style={styles.statusBadge}>
+                <Ionicons name="albums" size={12} color="#4CAF50" />
+                <Text style={styles.statusText}>Queue Mode</Text>
+              </View>
+            )}
+            {queueCount > 0 && (
+              <View style={styles.statusBadge}>
+                <Ionicons name="hourglass" size={12} color="#2196F3" />
+                <Text style={styles.statusText}>{queueCount} pending</Text>
+              </View>
+            )}
+            {autoEnhance && (
+              <View style={styles.statusBadge}>
+                <Ionicons name="sparkles" size={12} color="#9C27B0" />
+                <Text style={styles.statusText}>Auto-Enhance</Text>
+              </View>
+            )}
+          </View>
+        </View>
         <TouchableOpacity
           onPress={() => setBatchMode(!batchMode)}
           style={styles.batchButton}
@@ -354,10 +501,36 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 8,
   },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  statusRow: {
+    flexDirection: 'row',
+    marginTop: 4,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    marginHorizontal: 2,
+    marginVertical: 2,
+  },
+  statusText: {
+    color: '#fff',
+    fontSize: 10,
+    marginLeft: 4,
+    fontWeight: '500',
   },
   batchButton: {
     padding: 8,
