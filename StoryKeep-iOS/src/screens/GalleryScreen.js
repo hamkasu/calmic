@@ -8,7 +8,6 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  Image,
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
@@ -17,6 +16,7 @@ import {
   Modal,
   ScrollView,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { photoAPI, vaultAPI } from '../services/api';
@@ -391,8 +391,8 @@ export default function GalleryScreen({ navigation }) {
   };
 
   const renderPhoto = ({ item, index }) => {
-    // Get the image URL - prefer thumbnail, fallback to url or original_url
-    const imageUrl = item.thumbnail_url || item.url || item.original_url;
+    // Use grid thumbnail for faster loading (200x200), fallback to regular thumbnail
+    const imageUrl = item.grid_thumbnail_url || item.thumbnail_url || item.url || item.original_url;
     
     // Construct full URL if it's a relative path
     const fullImageUrl = imageUrl?.startsWith('http') 
@@ -423,7 +423,11 @@ export default function GalleryScreen({ navigation }) {
               }
             }}
             style={styles.photoImage}
-            resizeMode="cover"
+            contentFit="cover"
+            placeholder={item.blurhash}
+            transition={200}
+            cachePolicy="memory-disk"
+            priority="high"
           />
         ) : (
           <View style={styles.photoImagePlaceholder}>
@@ -611,11 +615,17 @@ export default function GalleryScreen({ navigation }) {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
           onEndReached={loadMorePhotos}
-          onEndReachedThreshold={0.5}
-          initialNumToRender={PAGE_SIZE}
-          maxToRenderPerBatch={PAGE_SIZE}
-          windowSize={5}
+          onEndReachedThreshold={0.8}
+          initialNumToRender={45}
+          maxToRenderPerBatch={20}
+          windowSize={3}
           removeClippedSubviews={true}
+          updateCellsBatchingPeriod={50}
+          getItemLayout={(data, index) => ({
+            length: ITEM_WIDTH,
+            offset: ITEM_WIDTH * index,
+            index,
+          })}
           ListFooterComponent={() => 
             loadingMore ? (
               <View style={{ padding: 20, alignItems: 'center' }}>

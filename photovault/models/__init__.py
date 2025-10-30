@@ -95,6 +95,8 @@ class Photo(db.Model):
     original_name = db.Column(db.String(255), nullable=False)
     file_path = db.Column(db.String(500), nullable=False)
     thumbnail_path = db.Column(db.String(500))
+    grid_thumbnail_path = db.Column(db.String(500))  # Small 200x200 thumbnail for gallery grid
+    blurhash = db.Column(db.String(100))  # Blurhash for instant placeholder preview
     file_size = db.Column(db.Integer)
     width = db.Column(db.Integer)
     height = db.Column(db.Integer)

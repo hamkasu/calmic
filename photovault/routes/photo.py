@@ -387,6 +387,10 @@ def list_photos():
         
         photo_list = []
         for photo in photos_paginated.items:
+            grid_thumb_url = None
+            if photo.grid_thumbnail_path:
+                grid_thumb_url = url_for('gallery.uploaded_file', user_id=current_user.id, filename=os.path.basename(photo.grid_thumbnail_path), _external=True)
+            
             photo_data = {
                 'id': photo.id,
                 'filename': photo.filename,
@@ -397,7 +401,9 @@ def list_photos():
                 'upload_source': photo.upload_source,
                 'created_at': photo.created_at.isoformat(),
                 'url': url_for('gallery.uploaded_file', user_id=current_user.id, filename=photo.filename, _external=True),
-                'thumbnail_url': url_for('gallery.uploaded_file', user_id=current_user.id, filename=os.path.basename(photo.thumbnail_path), _external=True) if photo.thumbnail_path else None
+                'thumbnail_url': url_for('gallery.uploaded_file', user_id=current_user.id, filename=os.path.basename(photo.thumbnail_path), _external=True) if photo.thumbnail_path else None,
+                'grid_thumbnail_url': grid_thumb_url,
+                'blurhash': photo.blurhash
             }
             photo_list.append(photo_data)
         

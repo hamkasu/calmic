@@ -849,6 +849,10 @@ def upload_photo(current_user):
             logger.error(f"Thumbnail creation failed: {e}")
             thumbnail_path = filepath
         
+        # Generate blurhash and grid thumbnail for fast gallery loading
+        from photovault.utils.image_optimization import process_image_for_gallery
+        optimization_result = process_image_for_gallery(filepath, current_user.id, unique_filename)
+        
         # Create photo record
         photo = Photo()
         photo.user_id = current_user.id
@@ -856,6 +860,8 @@ def upload_photo(current_user):
         photo.original_name = file.filename
         photo.file_path = filepath
         photo.thumbnail_path = thumbnail_path
+        photo.grid_thumbnail_path = optimization_result.get('grid_thumbnail_path')
+        photo.blurhash = optimization_result.get('blurhash')
         photo.file_size = file_size
         photo.upload_source = 'mobile_camera'
         
