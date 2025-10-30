@@ -112,3 +112,16 @@ pillow
 pyjwt
 python-dotenv
 werkzeug
+bcrypt
+flask
+flask-login
+flask-migrate
+flask-sqlalchemy
+flask-wtf
+gunicorn
+numpy
+opencv-python
+pillow
+python-dotenv
+werkzeug
+wtforms
