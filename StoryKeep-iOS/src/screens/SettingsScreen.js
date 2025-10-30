@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,10 +16,52 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 
+const AUTO_ENHANCE_KEY = '@auto_enhance';
+const OFFLINE_MODE_KEY = '@offline_mode';
+
 export default function SettingsScreen({ navigation }) {
   const [autoEnhance, setAutoEnhance] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [offlineMode, setOfflineMode] = useState(true);
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      const autoEnhanceValue = await AsyncStorage.getItem(AUTO_ENHANCE_KEY);
+      const offlineModeValue = await AsyncStorage.getItem(OFFLINE_MODE_KEY);
+
+      if (autoEnhanceValue !== null) {
+        setAutoEnhance(autoEnhanceValue === 'true');
+      }
+
+      if (offlineModeValue !== null) {
+        setOfflineMode(offlineModeValue === 'true');
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
+  };
+
+  const handleAutoEnhanceChange = async (value) => {
+    try {
+      setAutoEnhance(value);
+      await AsyncStorage.setItem(AUTO_ENHANCE_KEY, value.toString());
+    } catch (error) {
+      console.error('Error saving auto-enhance setting:', error);
+    }
+  };
+
+  const handleOfflineModeChange = async (value) => {
+    try {
+      setOfflineMode(value);
+      await AsyncStorage.setItem(OFFLINE_MODE_KEY, value.toString());
+    } catch (error) {
+      console.error('Error saving offline mode setting:', error);
+    }
+  };
 
   const handleLogout = async () => {
     Alert.alert(
@@ -91,7 +133,7 @@ export default function SettingsScreen({ navigation }) {
           rightElement={
             <Switch
               value={autoEnhance}
-              onValueChange={setAutoEnhance}
+              onValueChange={handleAutoEnhanceChange}
               trackColor={{ false: '#ccc', true: '#E85D75' }}
             />
           }
@@ -103,7 +145,7 @@ export default function SettingsScreen({ navigation }) {
           rightElement={
             <Switch
               value={offlineMode}
-              onValueChange={setOfflineMode}
+              onValueChange={handleOfflineModeChange}
               trackColor={{ false: '#ccc', true: '#E85D75' }}
             />
           }
