@@ -163,6 +163,12 @@ def process_uploaded_file(file, upload_source='file'):
         if thumbnail_created:
             photo.thumbnail_path = thumbnail_path
         
+        # Generate blurhash and grid thumbnail for fast gallery loading
+        from photovault.utils.image_optimization import process_image_for_gallery
+        optimization_result = process_image_for_gallery(file_path, current_user.id, safe_filename)
+        photo.blurhash = optimization_result.get('blurhash')
+        photo.grid_thumbnail_path = optimization_result.get('grid_thumbnail_path')
+        
         # Prepare file metadata (must be after commit to have photo.id)
         file_metadata = {
             'id': unique_id,
