@@ -1,0 +1,54 @@
+                                                             ^
+[SQL: SELECT count(*) AS count_1 
+FROM (SELECT photo.id AS photo_id, photo.filename AS photo_filename, photo.original_name AS photo_original_name, photo.file_path AS photo_file_path, photo.thumbnail_path AS photo_thumbnail_path, photo.grid_thumbnail_path AS photo_grid_thumbnail_path, photo.blurhash AS photo_blurhash, photo.file_size AS photo_file_size, photo.width AS photo_width, photo.height AS photo_height, photo.mime_type AS photo_mime_type, photo.upload_source AS photo_upload_source, photo.created_at AS photo_created_at, photo.updated_at AS photo_updated_at, photo.user_id AS photo_user_id, photo.album_id AS photo_album_id, photo.photo_date AS photo_photo_date, photo.date_text AS photo_date_text, photo.date_circa AS photo_date_circa, photo.location_text AS photo_location_text, photo.occasion AS photo_occasion, photo.condition AS photo_condition, photo.photo_source AS photo_photo_source, photo.back_text AS photo_back_text, photo.needs_restoration AS photo_needs_restoration, photo.auto_enhanced AS photo_auto_enhanced, photo.processing_notes AS photo_processing_notes, photo.edited_filename AS photo_edited_filename, photo.edited_path AS photo_edited_path, photo.enhancement_metadata AS photo_enhancement_metadata, photo.paired_photo_id AS photo_paired_photo_id, photo.is_back_side AS photo_is_back_side, photo.original_photo_id AS photo_original_photo_id, photo.is_enhanced_version AS photo_is_enhanced_version, photo.enhancement_type AS photo_enhancement_type 
+Traceback (most recent call last):
+FROM photo 
+  File "/app/photovault/routes/main.py", line 102, in dashboard
+WHERE photo.user_id = %(user_id_1)s) AS anon_1]
+    total_photos = Photo.query.filter_by(user_id=current_user.id).count()
+[parameters: {'user_id_1': 2}]
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/query.py", line 3132, in count
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1969, in _exec_single_context
+    self._legacy_from_self(col).enable_eagerloads(False).scalar()
+    self.dialect.do_execute(
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 922, in do_execute
+    cursor.execute(statement, parameters)
+psycopg2.errors.UndefinedColumn: column photo.grid_thumbnail_path does not exist
+LINE 2: ...th, photo.thumbnail_path AS photo_thumbnail_path, photo.grid...
+                                                             ^
+The above exception was the direct cause of the following exception:
+    result = conn.execute(
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/query.py", line 2825, in scalar
+             ^^^^^^^^^^^^^
+    return self._execute_internal(
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1416, in execute
+    ret = self.one()
+    return meth(
+          ^^^^^^^^^^
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/query.py", line 2798, in one
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2190, in _execute_internal
+    return self._iter().one()  # type: ignore
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+           ^^^^^^^^^^^^
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/query.py", line 2847, in _iter
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/context.py", line 293, in orm_execute_statement
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2308, in execute
+           ^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/sql/elements.py", line 517, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1639, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1848, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1988, in _exec_single_context
+LINE 2: ...th, photo.thumbnail_path AS photo_thumbnail_path, photo.grid...
