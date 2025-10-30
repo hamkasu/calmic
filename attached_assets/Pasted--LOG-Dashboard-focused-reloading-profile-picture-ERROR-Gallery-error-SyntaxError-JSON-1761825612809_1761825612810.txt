@@ -1,0 +1,37 @@
+ LOG  📱 Dashboard focused - reloading profile picture...
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ LOG  👤 Fresh profile data from database: {"hasToken": true, "profile_picture": null, "username": "MQA"}
+ LOG  ⚠️ No profile picture in database or no token
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ LOG  📊 Dashboard data loaded: {"profile_picture": null, "total_photos": 2, "username": "MQA"}
+ LOG  ⚠️ No profile picture or token
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ ERROR  Gallery error: [SyntaxError: JSON Parse error: Unexpected character: <]
+ WARN  Method makeDirectoryAsync imported from "expo-file-system" is deprecated.
