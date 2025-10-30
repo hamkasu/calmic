@@ -8,8 +8,8 @@
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "resizeMode": "cover",
+      "backgroundColor": "#FF8A80"
     },
     "ios": {
       "supportsTablet": true,
@@ -40,8 +40,8 @@
       "userInterfaceStyle": "light",
       "splash": {
         "image": "./assets/splash.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#ffffff"
+        "resizeMode": "cover",
+        "backgroundColor": "#FF8A80"
       }
     },
     "web": {
