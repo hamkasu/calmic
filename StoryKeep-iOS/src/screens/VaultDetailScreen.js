@@ -8,7 +8,6 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  Image,
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
@@ -22,6 +21,7 @@ import {
   TouchableWithoutFeedback,
   Dimensions,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
@@ -529,6 +529,16 @@ export default function VaultDetailScreen({ route, navigation }) {
     const isOwned = currentUserId && item.shared_by_user_id === currentUserId;
     const isAdmin = vault?.is_creator || vault?.member_role === 'admin';
     
+    // Use grid thumbnail for faster loading (200x200), fallback to regular thumbnail
+    const imageUrl = item.grid_thumbnail_url || item.thumbnail_url || item.url || item.original_url;
+    
+    // Construct full URL if it's a relative path
+    const fullImageUrl = imageUrl?.startsWith('http') 
+      ? imageUrl 
+      : imageUrl?.startsWith('/') 
+        ? `${BASE_URL}${imageUrl}`
+        : imageUrl;
+    
     return (
       <TouchableOpacity
         style={styles.photoCard}
@@ -546,16 +556,26 @@ export default function VaultDetailScreen({ route, navigation }) {
           }
         }}
       >
-        <Image
-          source={{ 
-            uri: `${BASE_URL}${item.thumbnail_url || item.original_url}`,
-            headers: {
-              'Authorization': `Bearer ${authToken}`
-            }
-          }}
-          style={styles.photoImage}
-          resizeMode="cover"
-        />
+        {fullImageUrl && authToken ? (
+          <Image
+            source={{ 
+              uri: fullImageUrl,
+              headers: {
+                Authorization: `Bearer ${authToken}`
+              }
+            }}
+            style={styles.photoImage}
+            contentFit="cover"
+            placeholder={item.blurhash}
+            transition={200}
+            cachePolicy="memory-disk"
+            priority="high"
+          />
+        ) : (
+          <View style={styles.photoImagePlaceholder}>
+            <ActivityIndicator size="small" color="#E85D75" />
+          </View>
+        )}
         
         {/* Bottom gradient overlay */}
         <View style={styles.bottomOverlay}>
@@ -811,6 +831,11 @@ export default function VaultDetailScreen({ route, navigation }) {
               refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
               }
+              initialNumToRender={45}
+              maxToRenderPerBatch={20}
+              windowSize={3}
+              removeClippedSubviews={true}
+              updateCellsBatchingPeriod={50}
             />
           )}
           
@@ -1210,6 +1235,13 @@ const styles = StyleSheet.create({
   photoImage: {
     width: '100%',
     height: '100%',
+  },
+  photoImagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a',
   },
   bottomOverlay: {
     position: 'absolute',
