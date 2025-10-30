@@ -376,60 +376,6 @@ def get_thumbnail(file_id):
         logger.error(f"Error serving thumbnail {file_id}: {str(e)}")
         return jsonify({'error': 'Failed to serve thumbnail'}), 500
 
-@photo_bp.route('/api/photos', methods=['GET'])
-@login_required
-def list_photos():
-    """List uploaded photos for the current user"""
-    try:
-        from photovault.models import Photo
-        from flask import url_for
-        
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 20, type=int)
-        
-        # Query photos for current user
-        photos_query = Photo.query.filter_by(user_id=current_user.id).order_by(Photo.created_at.desc())
-        photos_paginated = photos_query.paginate(page=page, per_page=per_page, error_out=False)
-        
-        photo_list = []
-        for photo in photos_paginated.items:
-            grid_thumb_url = None
-            if photo.grid_thumbnail_path:
-                grid_thumb_url = url_for('gallery.uploaded_file', user_id=current_user.id, filename=os.path.basename(photo.grid_thumbnail_path), _external=True)
-            
-            photo_data = {
-                'id': photo.id,
-                'filename': photo.filename,
-                'original_name': photo.original_name,
-                'file_size': photo.file_size,
-                'width': photo.width,
-                'height': photo.height,
-                'upload_source': photo.upload_source,
-                'created_at': photo.created_at.isoformat(),
-                'url': url_for('gallery.uploaded_file', user_id=current_user.id, filename=photo.filename, _external=True),
-                'thumbnail_url': url_for('gallery.uploaded_file', user_id=current_user.id, filename=os.path.basename(photo.thumbnail_path), _external=True) if photo.thumbnail_path else None,
-                'grid_thumbnail_url': grid_thumb_url,
-                'blurhash': photo.blurhash
-            }
-            photo_list.append(photo_data)
-        
-        return jsonify({
-            'success': True,
-            'photos': photo_list,
-            'total': photos_paginated.total,
-            'pages': photos_paginated.pages,
-            'current_page': page,
-            'has_more': photos_paginated.has_next,
-            'per_page': per_page
-        })
-        
-    except Exception as e:
-        logger.error(f"Error listing photos: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': 'Failed to list photos'
-        }), 500
-
 @photo_bp.route('/api/photos/<int:photo_id>/annotate', methods=['POST'])
 @login_required
 @csrf.exempt
