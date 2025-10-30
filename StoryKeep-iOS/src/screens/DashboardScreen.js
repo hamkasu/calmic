@@ -22,6 +22,8 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { dashboardAPI, photoAPI, authAPI } from '../services/api';
 import api from '../services/api';
 import { useLoading } from '../contexts/LoadingContext';
+import NetworkService from '../services/NetworkService';
+import QueueService from '../services/QueueService';
 
 export default function DashboardScreen({ navigation }) {
   const [stats, setStats] = useState(null);
@@ -31,11 +33,25 @@ export default function DashboardScreen({ navigation }) {
   const [profileImageUri, setProfileImageUri] = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [dailyQuote, setDailyQuote] = useState(null);
+  const [queueCount, setQueueCount] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
   const { startLoading, stopLoading } = useLoading();
   const BASE_URL = 'https://storykeep.calmic.com.my';
 
   useEffect(() => {
     loadDashboardData();
+    NetworkService.initialize();
+    QueueService.initialize();
+
+    const unsubscribeQueue = QueueService.addListener((count) => {
+      setQueueCount(count);
+    });
+
+    setQueueCount(QueueService.getQueueCount());
+
+    return () => {
+      unsubscribeQueue();
+    };
   }, []);
 
   // ALWAYS reload profile picture when screen comes into focus
