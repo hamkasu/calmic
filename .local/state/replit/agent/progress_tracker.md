@@ -1051,3 +1051,18 @@ Fixed web sharpening failing with "Authorization token is missing" error:
     - Expo Server: Metro bundler running with QR code ready for testing
     - All 295 tasks in progress tracker marked as completed
     - Project import migration fully completed
+
+[x] 296. Fix iOS gallery JSON parse error - COMPLETED: Added robust error handling to /api/photos endpoint
+    - Problem: iOS app receiving "Unexpected character: <" error from Railway /api/photos endpoint
+    - Root cause: Corrupted photo filenames in database (e.g., "2/(f,"'int' object is not iterable")")
+    - Solution: Added precise corruption detection using specific error signatures
+    - Created FILENAME_CORRUPTION_SIGNATURES module constant with known error patterns
+    - Validates both filename and edited_filename fields before JSON serialization
+    - Per-photo try-catch prevents one bad record from breaking entire API response
+    - Safe type conversion for all JSON fields (enhancement_metadata, file_size, etc.)
+    - IMPORTANT: Uses specific signatures ('object is not iterable', 'TypeError', etc.) NOT broad patterns
+    - Legitimate filenames like "IMG_1234 (1).jpg" are preserved
+    - Architect approved the implementation
+    - Created FIX_GALLERY_JSON_ERROR.md with deployment guide and SQL cleanup scripts
+    - PhotoVault Server restarted successfully
+    - NOTE: Fix is local only - must be deployed to Railway for iOS app to benefit
