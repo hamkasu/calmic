@@ -145,7 +145,7 @@ label, .form-text {
     padding-top: 1rem;
     padding-bottom: 1rem;
     position: relative;
-    z-index: 1030;
+    z-index: 9999 !important;
 }
 
 .navbar-dark .navbar-nav .nav-link {
@@ -225,9 +225,20 @@ label, .form-text {
     background-color: var(--lighter-bg);
     padding: 0.5rem;
     animation: dropdownSlide 0.3s ease;
-    z-index: 1040;
+    z-index: 10000 !important;
     min-width: 200px;
     max-height: none !important;
+}
+
+/* Ensure dropdown appears above all page content */
+.dropdown-menu.show {
+    z-index: 10000 !important;
+}
+
+/* Fix for dashboard container - prevent stacking context issues */
+.container-fluid {
+    position: relative;
+    z-index: 1;
 }
 
 /* Ensure navbar and containers don't clip dropdowns */
