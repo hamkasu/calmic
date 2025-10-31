@@ -246,7 +246,7 @@ CALMIC SDN BHD - "Committed to Excellence"
                         <ul class="pagination justify-content-center">
                             <!-- Previous Button -->
                             <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-                                <a class="page-link" href="{% if pagination.has_prev %}{{ url_for('main.dashboard', page=pagination.prev_num) }}{% else %}#{% endif %}" aria-label="Previous">
+                                <a class="page-link" href="{% if pagination.has_prev %}{{ url_for('gallery.dashboard', page=pagination.prev_num) }}{% else %}#{% endif %}" aria-label="Previous">
                                     <span aria-hidden="true">&laquo;</span>
                                 </a>
                             </li>
@@ -256,7 +256,7 @@ CALMIC SDN BHD - "Committed to Excellence"
                                 {% if page_num == pagination.page %}
                                     <li class="page-item active"><a class="page-link" href="#">{{ page_num }}</a></li>
                                 {% elif page_num <= 3 or page_num > pagination.total_pages - 3 or (page_num >= pagination.page - 1 and page_num <= pagination.page + 1) %}
-                                    <li class="page-item"><a class="page-link" href="{{ url_for('main.dashboard', page=page_num) }}">{{ page_num }}</a></li>
+                                    <li class="page-item"><a class="page-link" href="{{ url_for('gallery.dashboard', page=page_num) }}">{{ page_num }}</a></li>
                                 {% elif page_num == 4 or page_num == pagination.total_pages - 3 %}
                                     <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
                                 {% endif %}
@@ -264,7 +264,7 @@ CALMIC SDN BHD - "Committed to Excellence"
                             
                             <!-- Next Button -->
                             <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-                                <a class="page-link" href="{% if pagination.has_next %}{{ url_for('main.dashboard', page=pagination.next_num) }}{% else %}#{% endif %}" aria-label="Next">
+                                <a class="page-link" href="{% if pagination.has_next %}{{ url_for('gallery.dashboard', page=pagination.next_num) }}{% else %}#{% endif %}" aria-label="Next">
                                     <span aria-hidden="true">&raquo;</span>
                                 </a>
                             </li>

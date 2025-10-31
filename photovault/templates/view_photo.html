@@ -256,7 +256,7 @@ CALMIC SDN BHD - "Committed to Excellence"
                         <a href="/people" class="btn btn-outline-success">
                             <i class="bi bi-people"></i> Manage People
                         </a>
-                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-primary">
+                        <a href="{{ url_for('gallery.dashboard') }}" class="btn btn-outline-primary">
                             <i class="bi bi-house"></i> Back to Dashboard
                         </a>
                         <a href="/gallery" class="btn btn-outline-secondary">
@@ -431,7 +431,7 @@ function confirmDeletePhoto() {
     .then(data => {
         if (data.success) {
             showUserFeedback(data.message || 'Photo deleted successfully!', 'success');
-            window.location.href = '{{ url_for("main.dashboard") }}';
+            window.location.href = '{{ url_for("gallery.dashboard") }}';
         } else {
             showUserFeedback('Error deleting photo: ' + (data.error || 'Unknown error'), 'error');
         }

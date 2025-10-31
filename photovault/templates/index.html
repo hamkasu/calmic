@@ -281,7 +281,7 @@ CALMIC SDN BHD - "Committed to Excellence"
                     </li>
                     {% if current_user.is_authenticated %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.dashboard') }}">Dashboard</a>
+                        <a class="nav-link" href="{{ url_for('gallery.dashboard') }}">Dashboard</a>
                     </li>
                     {% else %}
                     <li class="nav-item">
@@ -316,7 +316,7 @@ CALMIC SDN BHD - "Committed to Excellence"
                 </div>
                 {% else %}
                 <div class="cta-buttons">
-                    <a href="{{ url_for('main.dashboard') }}" class="btn-hero btn-primary-hero">
+                    <a href="{{ url_for('gallery.dashboard') }}" class="btn-hero btn-primary-hero">
                         <i class="fas fa-th-large"></i>
                         Go to Dashboard
                     </a>

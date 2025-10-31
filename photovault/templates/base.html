@@ -83,8 +83,8 @@ CALMIC SDN BHD - "Committed to Excellence"
                 {% if current_user.is_authenticated %}
                 <!-- Main Navigation for authenticated users -->
                 <div class="navbar-nav me-auto">
-                    <a class="nav-link {{ 'active' if request.endpoint == 'main.dashboard' }}" 
-                       href="{{ url_for('main.dashboard') }}" aria-current="{% if request.endpoint == 'main.dashboard' %}page{% endif %}">
+                    <a class="nav-link {{ 'active' if request.endpoint == 'gallery.dashboard' }}" 
+                       href="{{ url_for('gallery.dashboard') }}" aria-current="{% if request.endpoint == 'gallery.dashboard' %}page{% endif %}">
                         Dashboard
                     </a>
                     <a class="nav-link {{ 'active' if request.endpoint and (request.endpoint == 'upload.upload_page' or request.endpoint.startswith('upload.')) }}" 
@@ -191,7 +191,7 @@ CALMIC SDN BHD - "Committed to Excellence"
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                             <li><h6 class="dropdown-header">Welcome, {{ current_user.username }}</h6></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('main.dashboard') }}">
+                            <li><a class="dropdown-item" href="{{ url_for('gallery.dashboard') }}">
                                 <i class="bi bi-house" aria-hidden="true"></i> Dashboard
                             </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('gallery.photos') }}">
