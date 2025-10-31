@@ -151,11 +151,11 @@ CALMIC SDN BHD - "Committed to Excellence"
                         {% set display_filename = photo.edited_filename if photo.edited_filename else photo.filename %}
                         <img src="{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=display_filename) }}" 
                              class="card-img-top" 
-                             alt="{{ photo.original_filename }}"
+                             alt="{{ photo.original_name }}"
                              style="height: 150px; object-fit: cover;">
                         <div class="card-body p-2">
                             <p class="card-text small mb-1">
-                                {{ photo.original_filename[:20] }}{% if photo.original_filename|length > 20 %}...{% endif %}
+                                {{ photo.original_name[:20] }}{% if photo.original_name|length > 20 %}...{% endif %}
                             </p>
                             <div class="d-flex justify-content-between align-items-center">
                                 <small class="text-muted">{{ photo.uploaded_at.strftime('%m/%d/%y') }}</small>
