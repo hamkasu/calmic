@@ -52,6 +52,46 @@ CALMIC SDN BHD - "Committed to Excellence"
 
 {% block content %}
 <div class="container mt-4">
+    <!-- Compact Stats Header - Sticky -->
+    <div class="row mb-3 stats-header" style="position: sticky; top: 56px; z-index: 100; background: #f8f9fa; padding: 15px 0; margin: -15px -15px 15px -15px; padding-left: 15px; padding-right: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div class="col-12">
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <div class="card border-0 bg-primary text-white h-100">
+                        <div class="card-body p-2 text-center">
+                            <h3 class="mb-0" style="font-size: 1.5rem; font-weight: 700;">{{ stats.total_photos|default(0) }}</h3>
+                            <small style="font-weight: 600;">Total Photos</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 bg-success text-white h-100">
+                        <div class="card-body p-2 text-center">
+                            <h3 class="mb-0" style="font-size: 1.5rem; font-weight: 700;">{{ stats.edited_photos|default(0) }}</h3>
+                            <small style="font-weight: 600;">Edited</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 bg-info text-white h-100">
+                        <div class="card-body p-2 text-center">
+                            <h3 class="mb-0" style="font-size: 1.5rem; font-weight: 700;">{{ stats.enhanced_photos|default(0) }}</h3>
+                            <small style="font-weight: 600;">Enhanced</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 bg-warning text-dark h-100">
+                        <div class="card-body p-2 text-center">
+                            <h3 class="mb-0" style="font-size: 1.5rem; font-weight: 700;">{{ stats.storage_used_mb|default(0.0) }} MB</h3>
+                            <small style="font-weight: 600;">Storage Used</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row mb-4">
         <div class="col">
             <h2>My Photos</h2>

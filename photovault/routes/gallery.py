@@ -100,13 +100,49 @@ def dashboard():
 @gallery_bp.route('/photos')
 @login_required
 def photos():
-    """All photos page with optional colorization filter"""
+    """All photos page with optional colorization filter and dashboard stats"""
     try:
-        from photovault.models import Photo
+        from photovault.models import Photo, UserSubscription
+        from sqlalchemy import func
+        
         page = request.args.get('page', 1, type=int)
         filter_type = request.args.get('filter', 'all')
         
-        # Start with base query
+        # Calculate dashboard stats
+        total_photos = Photo.query.filter_by(user_id=current_user.id).count()
+        edited_photos = Photo.query.filter_by(user_id=current_user.id).filter(Photo.edited_filename.isnot(None)).count()
+        
+        # Count enhanced photos (photos with any enhancement_metadata)
+        enhanced_photos = Photo.query.filter_by(user_id=current_user.id).filter(Photo.enhancement_metadata.isnot(None)).count()
+        
+        # Calculate total storage used in MB
+        total_storage_bytes = db.session.query(func.sum(Photo.file_size)).filter_by(user_id=current_user.id).scalar() or 0
+        storage_used_mb = round(total_storage_bytes / (1024 * 1024), 2)
+        
+        # Get storage limit from user's active subscription
+        active_subscription = UserSubscription.query.filter_by(
+            user_id=current_user.id,
+            status='active'
+        ).first()
+        
+        if active_subscription and active_subscription.plan:
+            storage_limit_mb = active_subscription.plan.storage_gb * 1024
+        else:
+            storage_limit_mb = 100  # Default 100 MB for users without subscription
+        
+        storage_percent = (storage_used_mb / storage_limit_mb * 100) if storage_limit_mb > 0 else 0
+        
+        # Create stats dictionary
+        stats = {
+            'total_photos': total_photos,
+            'edited_photos': edited_photos,
+            'enhanced_photos': enhanced_photos,
+            'storage_used_mb': storage_used_mb,
+            'storage_limit_mb': storage_limit_mb,
+            'storage_percent': storage_percent
+        }
+        
+        # Start with base query for pagination
         query = Photo.query.filter_by(user_id=current_user.id)
         
         # Apply colorization filter
@@ -125,10 +161,18 @@ def photos():
                      .paginate(page=page, per_page=20, error_out=False)
     except Exception as e:
         photos = None
+        stats = {
+            'total_photos': 0,
+            'edited_photos': 0,
+            'enhanced_photos': 0,
+            'storage_used_mb': 0.0,
+            'storage_limit_mb': 100,
+            'storage_percent': 0.0
+        }
         flash('Photo database not ready yet.', 'info')
         filter_type = 'all'
     
-    return render_template('gallery/photos.html', photos=photos, current_filter=filter_type)
+    return render_template('gallery/photos.html', photos=photos, current_filter=filter_type, stats=stats)
 
 @gallery_bp.route('/albums')
 @login_required
