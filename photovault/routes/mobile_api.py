@@ -556,47 +556,62 @@ def get_photos(current_user):
         # Build photo list with all required metadata
         photos_list = []
         for photo in photos:
-            # Build photo URL based on storage type (object storage vs local)
-            if photo.filename:
-                if photo.filename.startswith('uploads/'):
-                    # Object storage with uploads/ prefix - just add leading slash
-                    photo_url = f'/{photo.filename}'
-                elif photo.filename.startswith('users/'):
-                    # Object storage with users/ prefix - add /uploads/ prefix
-                    photo_url = f'/uploads/{photo.filename}'
+            try:
+                # Skip photos with corrupted data
+                if not photo.filename or '(' in str(photo.filename) or 'object is not iterable' in str(photo.filename):
+                    logger.warning(f"⚠️ Skipping photo {photo.id} with corrupted filename: {photo.filename}")
+                    continue
+                
+                # Build photo URL based on storage type (object storage vs local)
+                if photo.filename:
+                    if photo.filename.startswith('uploads/'):
+                        # Object storage with uploads/ prefix - just add leading slash
+                        photo_url = f'/{photo.filename}'
+                    elif photo.filename.startswith('users/'):
+                        # Object storage with users/ prefix - add /uploads/ prefix
+                        photo_url = f'/uploads/{photo.filename}'
+                    else:
+                        # Local storage - use user_id path
+                        photo_url = f'/uploads/{current_user.id}/{photo.filename}'
                 else:
-                    # Local storage - use user_id path
-                    photo_url = f'/uploads/{current_user.id}/{photo.filename}'
-            else:
-                photo_url = None
-            
-            photo_dict = {
-                'id': photo.id,
-                'filename': photo.filename,
-                'original_url': photo_url,
-                'url': photo_url,
-                'thumbnail_url': photo_url,
-                'created_at': photo.created_at.isoformat() if photo.created_at else None,
-                'file_size': photo.file_size or 0,
-                'has_edited': bool(photo.edited_filename),
-                'enhancement_metadata': photo.enhancement_metadata,
-                'voice_memo_count': getattr(photo, 'voice_memo_count', 0),
-                'comment_count': getattr(photo, 'comment_count', 0)
-            }
-            
-            # Add edited URL if it exists
-            if photo.edited_filename:
-                if photo.edited_filename.startswith('uploads/'):
-                    # Object storage with uploads/ prefix - just add leading slash
-                    photo_dict['edited_url'] = f'/{photo.edited_filename}'
-                elif photo.edited_filename.startswith('users/'):
-                    # Object storage with users/ prefix - add /uploads/ prefix
-                    photo_dict['edited_url'] = f'/uploads/{photo.edited_filename}'
-                else:
-                    # Local storage - use user_id path
-                    photo_dict['edited_url'] = f'/uploads/{current_user.id}/{photo.edited_filename}'
-            
-            photos_list.append(photo_dict)
+                    photo_url = None
+                
+                # Safely serialize enhancement_metadata
+                enhancement_meta = photo.enhancement_metadata
+                if enhancement_meta and not isinstance(enhancement_meta, (dict, list, str, int, float, bool, type(None))):
+                    enhancement_meta = str(enhancement_meta)
+                
+                photo_dict = {
+                    'id': photo.id,
+                    'filename': str(photo.filename) if photo.filename else '',
+                    'original_url': photo_url,
+                    'url': photo_url,
+                    'thumbnail_url': photo_url,
+                    'created_at': photo.created_at.isoformat() if photo.created_at else None,
+                    'file_size': int(photo.file_size) if photo.file_size else 0,
+                    'has_edited': bool(photo.edited_filename),
+                    'enhancement_metadata': enhancement_meta,
+                    'voice_memo_count': int(getattr(photo, 'voice_memo_count', 0)),
+                    'comment_count': int(getattr(photo, 'comment_count', 0))
+                }
+                
+                # Add edited URL if it exists
+                if photo.edited_filename and '(' not in str(photo.edited_filename):
+                    if photo.edited_filename.startswith('uploads/'):
+                        # Object storage with uploads/ prefix - just add leading slash
+                        photo_dict['edited_url'] = f'/{photo.edited_filename}'
+                    elif photo.edited_filename.startswith('users/'):
+                        # Object storage with users/ prefix - add /uploads/ prefix
+                        photo_dict['edited_url'] = f'/uploads/{photo.edited_filename}'
+                    else:
+                        # Local storage - use user_id path
+                        photo_dict['edited_url'] = f'/uploads/{current_user.id}/{photo.edited_filename}'
+                
+                photos_list.append(photo_dict)
+            except Exception as photo_err:
+                logger.error(f"⚠️ Error serializing photo {photo.id}: {str(photo_err)}")
+                # Skip this photo and continue with the rest
+                continue
         
         # Return paginated response with metadata
         response = {
