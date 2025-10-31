@@ -1,0 +1,137 @@
+Recommended Approach: Tiered Subscription with Malaysian Market Fit
+Primary: Freemium Subscription Tiers (RM)
+Free Tier (RM 0)
+
+50 photos/month (reduced for Malaysian market)
+
+Basic enhancement
+
+1GB storage
+
+Perfect for: Casual users testing the platform
+
+Basic Tier (RM 29.90/month or RM 299/year)
+
+300 photos/month
+
+Auto-enhancement
+
+25GB storage
+
+Offline queue
+
+Perfect for: Individual digitization projects
+
+Premium Tier (RM 59.90/month or RM 599/year)
+
+1,000 photos/month
+
+Advanced AI restoration
+
+100GB storage
+
+Family vaults (up to 8 members)
+
+Voice memos
+
+Priority processing
+
+Perfect for: Families preserving collections
+
+Family Tier (RM 89.90/month or RM 899/year)
+
+Unlimited photos
+
+All premium features
+
+Family vaults (up to 15 members)
+
+250GB storage
+
+Perfect for: Large families, genealogy projects
+
+Secondary: Pay-Per-Use Options (RM)
+Top-up Packs (when users exceed limits):
+
+RM 9.90 for 100 additional photos
+
+RM 19.90 for 250 additional photos
+
+RM 34.90 for 500 additional photos
+
+One-Time Project Packs:
+
+RM 39.90 for "500 Photo Project" (30-day access)
+
+RM 69.90 for "1,000 Photo Project" (30-day access)
+
+Professional Restoration Credits:
+
+RM 4.90 per professional-grade restoration
+
+RM 19.90 for 5-restoration pack
+
+Why This RM Pricing Structure Works:
+✅ Malaysian Market Considerations:
+Price sensitivity - Lower entry points than USD conversion
+
+Family-focused - Emphasize family tiers for multi-generational households
+
+Mobile-first market - Affordable entry points drive adoption
+
+Proven pricing psychology - RM X9.90 endings perform well
+
+✅ Competitive Positioning in Malaysia:
+vs. Printing shops (RM 1-2 per scan): Much cheaper at scale
+
+vs. Buying scanner (RM 300-800): Better value with AI features
+
+vs. International services: Local pricing, no currency fees
+
+Special Malaysian Market Offers:
+Launch Promotions:
+
+"Keluarga Malaysia" special: RM 49.90/month for Premium (first 3 months)
+
+Student pricing: RM 19.90/month for Basic tier
+
+Senior citizen discount: 20% off all tiers for users 60+
+
+Bundled Packages:
+
+"Warisan Keluarga" package: RM 199 one-time + 3 months Premium
+
+"Memory Preservation" bundle with local cloud storage partners
+
+Payment Methods for Malaysia:
+Credit/Debit cards
+
+FPX online banking
+
+Touch 'n Go eWallet
+
+Boost
+
+GrabPay
+
+Monthly telco billing (digi, Maxis, Celcom)
+
+Recommended Implementation:
+text
+Pricing Page Structure:
+┌─ PERCUMA (Free) - 50 foto/bulan
+├─ Asas: RM29.90/bulan - 300 foto
+├─ Premium: RM59.90/bulan - 1,000 foto ← MAIN RECOMMENDATION
+└─ Keluarga: RM89.90/bulan - Tidak terhad
+
+Additional Options:
+• "Tambah foto": RM9.90 untuk 100 foto tambahan
+• "Projek sekali": RM39.90 untuk 500 foto
+Expected Malaysian User Behavior:
+Higher conversion from free to Basic tier
+
+Strong family appeal with multi-user accounts
+
+Seasonal spikes during holidays, family gatherings
+
+Good response to annual discounts for cost savings
