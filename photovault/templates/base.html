@@ -95,8 +95,8 @@ CALMIC SDN BHD - "Committed to Excellence"
                        href="{{ url_for('photo_detection.photo_detection_page') }}" aria-current="{% if request.endpoint and request.endpoint.startswith('photo_detection.') %}page{% endif %}">
                         Detection
                     </a>
-                    <a class="nav-link {{ 'active' if request.endpoint and (request.endpoint == 'gallery.photos' or request.endpoint.startswith('gallery.')) }}" 
-                       href="{{ url_for('gallery.photos') }}" aria-current="{% if request.endpoint and request.endpoint.startswith('gallery.') %}page{% endif %}">
+                    <a class="nav-link {{ 'active' if request.endpoint and request.endpoint.startswith('gallery.') and request.endpoint != 'gallery.dashboard' }}" 
+                       href="{{ url_for('gallery.photos') }}" aria-current="{% if request.endpoint and request.endpoint.startswith('gallery.') and request.endpoint != 'gallery.dashboard' %}page{% endif %}">
                         Gallery
                     </a>
                     <div class="nav-item dropdown">
@@ -151,7 +151,7 @@ CALMIC SDN BHD - "Committed to Excellence"
                     <!-- Admin/Superuser Dropdown -->
                     {% if current_user.is_admin or current_user.is_superuser %}
                     <div class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" 
+                        <a class="nav-link dropdown-toggle {{ 'active' if request.endpoint and (request.endpoint.startswith('admin.') or request.endpoint.startswith('superuser.')) }}" href="#" id="adminDropdown" role="button" 
                            data-bs-toggle="dropdown" aria-expanded="false" aria-label="Admin menu">
                             <i class="bi bi-gear-fill" aria-hidden="true"></i> Admin
                             {% if current_user.is_superuser %}
