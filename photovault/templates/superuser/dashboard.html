@@ -49,12 +49,14 @@ CALMIC SDN BHD - "Committed to Excellence"
                     <td>
                         {% if user.id != current_user.id %} <!-- Prevent actions on self -->
                         <form method="post" action="{{ url_for('superuser.toggle_superuser', user_id=user.id) }}" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <button type="submit" class="btn btn-sm btn-warning" 
                                     onclick="return confirm('Are you sure you want to {% if user.is_superuser %}revoke superuser{% else %}grant superuser{% endif %} for {{ user.username }}?')">
                                 {% if user.is_superuser %}Revoke Superuser{% else %}Make Superuser{% endif %}
                             </button>
                         </form>
                         <form method="post" action="{{ url_for('superuser.delete_user', user_id=user.id) }}" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <button type="submit" class="btn btn-sm btn-danger" 
                                     onclick="return confirm('Are you sure you want to delete user {{ user.username }}? This will also delete all their photos.')">
                                 Delete
