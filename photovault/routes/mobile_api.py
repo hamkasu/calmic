@@ -23,6 +23,18 @@ mobile_api_bp = Blueprint('mobile_api', __name__, url_prefix='/api')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'}
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
 
+# Corruption signatures for detecting database records with error messages embedded in filenames
+# Added after Oct 2025 incident where photo uploads stored Python error messages instead of filenames
+# Example corrupted data: "2/(f,"'int' object is not iterable")"
+FILENAME_CORRUPTION_SIGNATURES = [
+    'object is not iterable',
+    'TypeError',
+    'ValueError',
+    'AttributeError',
+    '(f,"',  # Python tuple repr pattern from corrupted data
+    'Traceback'
+]
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -564,16 +576,7 @@ def get_photos(current_user):
                 
                 # Check for specific corruption signatures (error messages embedded in filename)
                 filename_str = str(photo.filename)
-                corruption_signatures = [
-                    'object is not iterable',
-                    'TypeError',
-                    'ValueError',
-                    'AttributeError',
-                    '(f,"',  # Python tuple repr pattern from corrupted data
-                    'Traceback'
-                ]
-                
-                is_corrupted = any(sig in filename_str for sig in corruption_signatures)
+                is_corrupted = any(sig in filename_str for sig in FILENAME_CORRUPTION_SIGNATURES)
                 if is_corrupted:
                     logger.warning(f"⚠️ Skipping photo {photo.id} with corrupted filename: {photo.filename}")
                     continue
@@ -614,7 +617,7 @@ def get_photos(current_user):
                 # Add edited URL if it exists and is not corrupted
                 if photo.edited_filename:
                     edited_filename_str = str(photo.edited_filename)
-                    edited_is_corrupted = any(sig in edited_filename_str for sig in corruption_signatures)
+                    edited_is_corrupted = any(sig in edited_filename_str for sig in FILENAME_CORRUPTION_SIGNATURES)
                     
                     if not edited_is_corrupted:
                         if photo.edited_filename.startswith('uploads/'):

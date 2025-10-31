@@ -14,43 +14,71 @@ This means the `/api/photos` endpoint on Railway is returning HTML instead of JS
 ### Part 1: Update Mobile API Code (Already Fixed Locally)
 
 The `/api/photos` endpoint in `photovault/routes/mobile_api.py` has been updated with:
-- ✅ Skip photos with corrupted filenames containing `(` or error messages
+- ✅ Precise corruption detection using specific error signatures (not broad patterns that would exclude legitimate files)
+- ✅ Module-level FILENAME_CORRUPTION_SIGNATURES constant for maintainability
+- ✅ Validates both filename and edited_filename fields
 - ✅ Safe type conversion for all JSON fields
 - ✅ Per-photo try-catch to prevent one bad photo from breaking the entire response
 - ✅ Proper logging of skipped/corrupted photos
+
+**Key Improvement:** The corruption check uses specific error signatures (`'object is not iterable'`, `'TypeError'`, `'(f,"'`, etc.) rather than checking for any parentheses, so legitimate filenames like "IMG_1234 (1).jpg" are NOT filtered out.
 
 ### Part 2: Clean Up Corrupted Photos in Railway Database
 
 **Option A: Delete Corrupted Photos (Recommended)**
 ```sql
--- Find corrupted photos
+-- Find corrupted photos (using same signatures as code)
 SELECT id, user_id, filename, edited_filename 
 FROM photo 
-WHERE filename LIKE '%(%' 
-   OR filename LIKE '%object is not iterable%'
-   OR edited_filename LIKE '%(%'
-   OR edited_filename LIKE '%object is not iterable%';
+WHERE filename LIKE '%object is not iterable%'
+   OR filename LIKE '%TypeError%'
+   OR filename LIKE '%ValueError%'
+   OR filename LIKE '%AttributeError%'
+   OR filename LIKE '%(f,"%'
+   OR filename LIKE '%Traceback%'
+   OR edited_filename LIKE '%object is not iterable%'
+   OR edited_filename LIKE '%TypeError%'
+   OR edited_filename LIKE '%ValueError%'
+   OR edited_filename LIKE '%AttributeError%'
+   OR edited_filename LIKE '%(f,"%'
+   OR edited_filename LIKE '%Traceback%';
 
 -- Delete them (BACKUP FIRST!)
 DELETE FROM photo 
-WHERE filename LIKE '%(%' 
-   OR filename LIKE '%object is not iterable%'
-   OR edited_filename LIKE '%(%'
-   OR edited_filename LIKE '%object is not iterable%';
+WHERE filename LIKE '%object is not iterable%'
+   OR filename LIKE '%TypeError%'
+   OR filename LIKE '%ValueError%'
+   OR filename LIKE '%AttributeError%'
+   OR filename LIKE '%(f,"%'
+   OR filename LIKE '%Traceback%'
+   OR edited_filename LIKE '%object is not iterable%'
+   OR edited_filename LIKE '%TypeError%'
+   OR edited_filename LIKE '%ValueError%'
+   OR edited_filename LIKE '%AttributeError%'
+   OR edited_filename LIKE '%(f,"%'
+   OR edited_filename LIKE '%Traceback%';
 ```
 
 **Option B: Fix Corrupted Filenames**
 ```sql
--- Update corrupted filenames to NULL
+-- Update corrupted filenames to NULL (preserves photo records)
 UPDATE photo 
 SET filename = NULL 
-WHERE filename LIKE '%(%' 
-   OR filename LIKE '%object is not iterable%';
+WHERE filename LIKE '%object is not iterable%'
+   OR filename LIKE '%TypeError%'
+   OR filename LIKE '%ValueError%'
+   OR filename LIKE '%AttributeError%'
+   OR filename LIKE '%(f,"%'
+   OR filename LIKE '%Traceback%';
 
 UPDATE photo 
 SET edited_filename = NULL 
-WHERE edited_filename LIKE '%(%' 
-   OR edited_filename LIKE '%object is not iterable%';
+WHERE edited_filename LIKE '%object is not iterable%'
+   OR edited_filename LIKE '%TypeError%'
+   OR edited_filename LIKE '%ValueError%'
+   OR edited_filename LIKE '%AttributeError%'
+   OR edited_filename LIKE '%(f,"%'
+   OR edited_filename LIKE '%Traceback%';
 ```
 
 ### Part 3: Deploy Fix to Railway
