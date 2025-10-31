@@ -300,9 +300,32 @@ def delete_user(user_id):
                 except OSError as e:
                     print(f"Error deleting edited file {edited_filepath}: {e}")
     
-    db.session.delete(user)
-    db.session.commit()
-    flash(f"User {username} and all their photos deleted successfully.", "success")
+    # Delete user with error handling for missing security tables
+    try:
+        # Manually delete related security records if tables exist
+        try:
+            from photovault.models import AccountLockout, LoginAttempt, SecurityLog
+            
+            # Delete account lockouts
+            AccountLockout.query.filter_by(user_id=user_id).delete()
+            
+            # Delete login attempts
+            LoginAttempt.query.filter_by(user_id=user_id).delete()
+            
+            # Delete security logs
+            SecurityLog.query.filter_by(user_id=user_id).delete()
+        except Exception as e:
+            # Tables might not exist, continue with user deletion
+            print(f"Note: Could not delete security records (tables may not exist): {e}")
+        
+        db.session.delete(user)
+        db.session.commit()
+        flash(f"User {username} and all their photos deleted successfully.", "success")
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting user: {e}")
+        flash(f"Error deleting user: {str(e)}", "danger")
+    
     return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/photo/<int:photo_id>/delete', methods=['POST'])
