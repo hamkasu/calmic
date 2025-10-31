@@ -14,6 +14,7 @@ CALMIC SDN BHD - "Committed to Excellence"
 # photovault/routes/superuser.py
 from flask import Blueprint, render_template, redirect, url_for, flash, request, abort
 from flask_login import login_required, current_user
+from sqlalchemy.exc import ProgrammingError
 from photovault import db
 from photovault.models import User
 from datetime import datetime
@@ -70,7 +71,31 @@ def delete_user(user_id):
         return redirect(url_for('superuser.dashboard'))
 
     username = user.username
-    db.session.delete(user)
-    db.session.commit()
+    
+    # Use raw SQL to delete user to avoid ORM relationship loading issues
+    # when security tables don't exist
+    from sqlalchemy import inspect, text
+    inspector = inspect(db.engine)
+    
+    try:
+        # Delete from each security table if it exists (check each one individually)
+        security_tables = ['account_lockout', 'refresh_token', 'security_log', 'mfa_secret', 'oauth_provider']
+        for table_name in security_tables:
+            if inspector.has_table(table_name):
+                try:
+                    db.session.execute(text(f'DELETE FROM {table_name} WHERE user_id = :user_id'), {'user_id': user_id})
+                except ProgrammingError as e:
+                    # Table might not have user_id column or other issues - skip and continue
+                    db.session.rollback()
+                    print(f"Note: Could not delete from {table_name}: {e}")
+        
+        # Delete user - this will cascade delete photos, vaults, etc. via ON DELETE CASCADE in DB
+        db.session.execute(text('DELETE FROM "user" WHERE id = :user_id'), {'user_id': user_id})
+        db.session.commit()
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error deleting user: {str(e)}", "danger")
+        return redirect(url_for('superuser.dashboard'))
     flash(f"User {username} deleted successfully.", "success")
     return redirect(url_for('superuser.dashboard'))
