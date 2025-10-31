@@ -1,0 +1,103 @@
+LINE 2: FROM account_lockout 
+             ^
+             ^
+The above exception was the direct cause of the following exception:
+    response = self.full_dispatch_request()
+[SQL: SELECT account_lockout.id AS account_lockout_id, account_lockout.user_id AS account_lockout_user_id, account_lockout.locked_at AS account_lockout_locked_at, account_lockout.unlock_at AS account_lockout_unlock_at, account_lockout.reason AS account_lockout_reason, account_lockout.is_active AS account_lockout_is_active, account_lockout.unlocked_at AS account_lockout_unlocked_at 
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FROM account_lockout 
+Traceback (most recent call last):
+  File "/opt/venv/lib/python3.11/site-packages/flask/app.py", line 882, in full_dispatch_request
+WHERE %(param_1)s = account_lockout.user_id]
+  File "/opt/venv/lib/python3.11/site-packages/flask/app.py", line 1473, in wsgi_app
+    rv = self.handle_user_exception(e)
+[parameters: {'param_1': 3}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+  File "/opt/venv/lib/python3.11/site-packages/flask/app.py", line 880, in full_dispatch_request
+  File "<string>", line 2, in commit
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/flask/app.py", line 865, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/photovault/routes/superuser.py", line 29, in wrap
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/app/photovault/routes/superuser.py", line 74, in delete_user
+    db.session.commit()
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/scoping.py", line 598, in commit
+    return self._proxied.commit()
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 1969, in commit
+    trans.commit(_to_root=True)
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/state_changes.py", line 139, in _go
+    ret_value = fn(self, *arg, **kw)
+                ^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 1256, in commit
+    self._prepare_impl()
+  File "<string>", line 2, in _prepare_impl
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/state_changes.py", line 139, in _go
+    ret_value = fn(self, *arg, **kw)
+                ^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 1231, in _prepare_impl
+    self.session.flush()
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4312, in flush
+    self._flush(objects)
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4447, in _flush
+    with util.safe_reraise():
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4408, in _flush
+    flush_context.execute()
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/unitofwork.py", line 442, in execute
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/attributes.py", line 1086, in get
+    value = self._fire_loader_callables(state, key, passive)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    postsort_actions = self._generate_actions()
+                       ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/unitofwork.py", line 400, in _generate_actions
+    if action.execute(self):
+       ^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/unitofwork.py", line 532, in execute
+    self.dependency_processor.presort_deletes(uow, delete_states)
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/dependency.py", line 448, in presort_deletes
+    history = uowcommit.get_attribute_history(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/unitofwork.py", line 283, in get_attribute_history
+    history = impl.get_history(
+              ^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/attributes.py", line 1683, in get_history
+    current = self.get(state, dict_, passive=passive)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/attributes.py", line 1121, in _fire_loader_callables
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/context.py", line 293, in orm_execute_statement
+    return self.callable_(state, passive)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    result = conn.execute(
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/strategies.py", line 967, in _load_for_state
+             ^^^^^^^^^^^^^
+    return self._emit_lazyload(
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1416, in execute
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/strategies.py", line 1130, in _emit_lazyload
+    return meth(
+    result = session.execute(
+             ^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2308, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2190, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+           ^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/sql/elements.py", line 517, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1639, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1848, in _execute_context
+    return self._exec_single_context(
