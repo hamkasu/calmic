@@ -121,6 +121,7 @@ export default function SettingsScreen({ navigation }) {
           icon="shield-checkmark"
           title="Subscription"
           subtitle="View your plan and billing"
+          onPress={() => navigation.navigate('SubscriptionPlans')}
         />
       </View>
 

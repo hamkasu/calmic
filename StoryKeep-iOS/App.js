@@ -27,6 +27,7 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import EnhancePhotoScreen from './src/screens/EnhancePhotoScreen';
 import EnhancedGalleryScreen from './src/screens/EnhancedGalleryScreen';
+import SubscriptionPlansScreen from './src/screens/SubscriptionPlansScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -171,6 +172,7 @@ export default function App() {
                 <Stack.Screen name="VaultDetail" component={VaultDetailScreen} />
                 <Stack.Screen name="Profile" component={ProfileScreen} />
                 <Stack.Screen name="EnhancePhoto" component={EnhancePhotoScreen} />
+                <Stack.Screen name="SubscriptionPlans" component={SubscriptionPlansScreen} />
               </>
             )}
           </Stack.Navigator>

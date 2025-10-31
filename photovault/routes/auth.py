@@ -14,7 +14,7 @@ CALMIC SDN BHD - "Committed to Excellence"
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session, current_app, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
-from photovault.models import User, PasswordResetToken, db
+from photovault.models import User, PasswordResetToken, db, SubscriptionPlan, UserSubscription
 from photovault.utils import safe_db_query, retry_db_operation, TransientDBError
 from photovault.extensions import csrf
 import re
@@ -271,6 +271,28 @@ def register():
         
         try:
             user = create_user()
+            
+            # Create Free plan subscription for new user
+            try:
+                free_plan = SubscriptionPlan.query.filter_by(name='Free').first()
+                if free_plan:
+                    user_subscription = UserSubscription(
+                        user_id=user.id,
+                        plan_id=free_plan.id,
+                        status='active',
+                        start_date=datetime.utcnow(),
+                        current_period_start=datetime.utcnow(),
+                        current_period_end=datetime.utcnow() + timedelta(days=365),
+                        next_billing_date=None
+                    )
+                    db.session.add(user_subscription)
+                    db.session.commit()
+                    current_app.logger.info(f"Created Free plan subscription for user {user.id}")
+                else:
+                    current_app.logger.warning(f"Free plan not found in database for user {user.id}")
+            except Exception as sub_error:
+                current_app.logger.error(f"Failed to create Free subscription for user {user.id}: {str(sub_error)}")
+                db.session.rollback()
             
             if is_api_request:
                 # Generate JWT token for immediate login

@@ -3,7 +3,7 @@ Mobile API Routes for StoryKeep iOS/Android App
 Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
 """
 from flask import Blueprint, jsonify, request, current_app, url_for
-from photovault.models import Photo, UserSubscription, FamilyVault, FamilyMember, User, VaultPhoto, VaultInvitation, PhotoComment
+from photovault.models import Photo, UserSubscription, FamilyVault, FamilyMember, User, VaultPhoto, VaultInvitation, PhotoComment, SubscriptionPlan
 from photovault.extensions import db, csrf
 from photovault.utils.jwt_auth import token_required
 from werkzeug.utils import secure_filename
@@ -181,6 +181,30 @@ def mobile_register():
         
         db.session.add(new_user)
         db.session.commit()
+        
+        # Create Free plan subscription for new user
+        try:
+            free_plan = SubscriptionPlan.query.filter_by(name='Free').first()
+            if free_plan:
+                user_subscription = UserSubscription(
+                    user_id=new_user.id,
+                    plan_id=free_plan.id,
+                    status='active',
+                    start_date=datetime.utcnow(),
+                    current_period_start=datetime.utcnow(),
+                    current_period_end=datetime.utcnow() + timedelta(days=365),  # Free plan lasts 1 year
+                    next_billing_date=None  # Free plan has no billing
+                )
+                db.session.add(user_subscription)
+                db.session.commit()
+                logger.info(f"Created Free plan subscription for user {new_user.id}")
+            else:
+                logger.warning(f"Free plan not found in database for user {new_user.id}")
+        except Exception as sub_error:
+            logger.error(f"Failed to create Free subscription for user {new_user.id}: {str(sub_error)}")
+            # Don't fail registration if subscription creation fails
+            db.session.rollback()
+            db.session.commit()  # Commit the user anyway
         
         # Generate JWT token (default to remember_me=True for new registrations)
         remember_me = data.get('remember_me', True)
@@ -3907,3 +3931,254 @@ def repair_damage_mobile(current_user, photo_id):
         logger.error(f"Damage repair failed for photo {photo_id}: {str(e)}")
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@mobile_api_bp.route('/subscription/plans', methods=['GET'])
+@csrf.exempt
+@token_required
+def get_subscription_plans(current_user):
+    """Get all active subscription plans for mobile app"""
+    try:
+        plans = SubscriptionPlan.query.filter_by(is_active=True).order_by(SubscriptionPlan.sort_order).all()
+        
+        # Get user's current subscription
+        current_subscription = UserSubscription.query.filter_by(
+            user_id=current_user.id,
+            status='active'
+        ).first()
+        
+        current_plan_id = current_subscription.plan_id if current_subscription else None
+        
+        plans_data = []
+        for plan in plans:
+            plans_data.append({
+                'id': plan.id,
+                'name': plan.name,
+                'display_name': plan.display_name,
+                'description': plan.description,
+                'price_myr': float(plan.price_myr) if plan.price_myr else 0.0,
+                'storage_gb': plan.storage_gb,
+                'ai_enhancements_per_month': plan.ai_enhancements_per_month,
+                'family_vaults_limit': plan.family_vaults_limit,
+                'is_featured': plan.is_featured,
+                'is_current': plan.id == current_plan_id,
+                'features': [
+                    f"{plan.storage_gb}GB Storage" if plan.storage_gb else "500MB Storage",
+                    f"{plan.ai_enhancements_per_month} AI Enhancements/month" if plan.ai_enhancements_per_month else "5 AI Enhancements/month",
+                    f"{plan.family_vaults_limit} Family Vaults" if plan.family_vaults_limit else "1 Family Vault"
+                ]
+            })
+        
+        return jsonify({
+            'success': True,
+            'plans': plans_data
+        })
+        
+    except Exception as e:
+        logger.error(f"Error fetching subscription plans: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to load subscription plans'}), 500
+
+
+@mobile_api_bp.route('/subscription/current', methods=['GET'])
+@csrf.exempt
+@token_required
+def get_current_subscription(current_user):
+    """Get user's current subscription details for mobile app"""
+    try:
+        subscription = UserSubscription.query.filter_by(
+            user_id=current_user.id,
+            status='active'
+        ).first()
+        
+        if not subscription:
+            # No active subscription, return Free plan info
+            free_plan = SubscriptionPlan.query.filter_by(name='Free').first()
+            return jsonify({
+                'success': True,
+                'subscription': {
+                    'plan_name': 'Free',
+                    'plan_display_name': free_plan.display_name if free_plan else 'Free Plan',
+                    'status': 'active',
+                    'is_free': True,
+                    'storage_gb': 0.5,
+                    'ai_enhancements_per_month': 5,
+                    'family_vaults_limit': 1
+                }
+            })
+        
+        plan = subscription.plan
+        
+        return jsonify({
+            'success': True,
+            'subscription': {
+                'id': subscription.id,
+                'plan_name': plan.name,
+                'plan_display_name': plan.display_name,
+                'status': subscription.status,
+                'is_free': plan.price_myr == 0,
+                'price_myr': float(plan.price_myr) if plan.price_myr else 0.0,
+                'storage_gb': plan.storage_gb,
+                'ai_enhancements_per_month': plan.ai_enhancements_per_month,
+                'family_vaults_limit': plan.family_vaults_limit,
+                'current_period_start': subscription.current_period_start.isoformat() if subscription.current_period_start else None,
+                'current_period_end': subscription.current_period_end.isoformat() if subscription.current_period_end else None,
+                'next_billing_date': subscription.next_billing_date.isoformat() if subscription.next_billing_date else None,
+                'cancel_at_period_end': subscription.cancel_at_period_end
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error fetching current subscription: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to load subscription details'}), 500
+
+
+@mobile_api_bp.route('/subscription/upgrade', methods=['POST'])
+@csrf.exempt
+@token_required
+def upgrade_subscription(current_user):
+    """Initiate subscription upgrade for mobile app - returns Stripe checkout URL"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        plan_id = data.get('plan_id')
+        if not plan_id:
+            return jsonify({'error': 'plan_id is required'}), 400
+        
+        # Get the new plan
+        new_plan = SubscriptionPlan.query.get(plan_id)
+        if not new_plan:
+            return jsonify({'error': 'Invalid plan'}), 404
+        
+        # Check if user already has an active subscription
+        existing_sub = UserSubscription.query.filter_by(
+            user_id=current_user.id,
+            status='active'
+        ).first()
+        
+        # Check if Stripe is configured
+        import stripe
+        stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+        stripe_configured = bool(os.getenv('STRIPE_SECRET_KEY'))
+        
+        if not stripe_configured:
+            # Development mode: create subscription directly without Stripe
+            try:
+                if existing_sub:
+                    # Update existing subscription
+                    existing_sub.plan_id = plan_id
+                    existing_sub.current_period_start = datetime.utcnow()
+                    existing_sub.current_period_end = datetime.utcnow() + timedelta(days=30)
+                    existing_sub.next_billing_date = datetime.utcnow() + timedelta(days=30)
+                else:
+                    # Create new subscription
+                    user_sub = UserSubscription(
+                        user_id=current_user.id,
+                        plan_id=plan_id,
+                        status='active',
+                        start_date=datetime.utcnow(),
+                        current_period_start=datetime.utcnow(),
+                        current_period_end=datetime.utcnow() + timedelta(days=30),
+                        next_billing_date=datetime.utcnow() + timedelta(days=30)
+                    )
+                    db.session.add(user_sub)
+                
+                db.session.commit()
+                
+                logger.info(f"Development mode: User {current_user.id} upgraded to {new_plan.name}")
+                return jsonify({
+                    'success': True,
+                    'message': f'Successfully upgraded to {new_plan.display_name}! (Development mode)',
+                    'dev_mode': True
+                })
+                
+            except Exception as e:
+                db.session.rollback()
+                logger.error(f"Error upgrading subscription in development mode: {str(e)}")
+                return jsonify({'error': f'Failed to upgrade subscription: {str(e)}'}), 500
+        
+        # Production mode: use Stripe
+        try:
+            # Create or get Stripe customer
+            if not current_user.stripe_customer_id:
+                customer = stripe.Customer.create(
+                    email=current_user.email,
+                    name=current_user.username,
+                    metadata={'user_id': current_user.id}
+                )
+                customer_id = customer.id
+                current_user.stripe_customer_id = customer_id
+                db.session.commit()
+            else:
+                customer_id = current_user.stripe_customer_id
+            
+            # If upgrading existing subscription
+            if existing_sub and existing_sub.stripe_subscription_id:
+                current_plan = existing_sub.plan
+                is_upgrade = new_plan.price_myr > current_plan.price_myr
+                
+                if is_upgrade:
+                    # Immediate upgrade with proration
+                    stripe_sub = stripe.Subscription.retrieve(existing_sub.stripe_subscription_id)
+                    updated_sub = stripe.Subscription.modify(
+                        existing_sub.stripe_subscription_id,
+                        items=[{
+                            'id': stripe_sub['items']['data'][0].id,
+                            'price': new_plan.stripe_price_id,
+                        }],
+                        proration_behavior='create_prorations',
+                        payment_behavior='error_if_incomplete'
+                    )
+                    
+                    if updated_sub.status == 'active':
+                        existing_sub.plan_id = plan_id
+                        existing_sub.current_period_start = datetime.fromtimestamp(updated_sub.current_period_start)
+                        existing_sub.current_period_end = datetime.fromtimestamp(updated_sub.current_period_end)
+                        db.session.commit()
+                        
+                        return jsonify({
+                            'success': True,
+                            'message': f'Successfully upgraded to {new_plan.display_name}!'
+                        })
+                else:
+                    return jsonify({
+                        'error': 'Plan downgrades require contacting support'
+                    }), 400
+            
+            # Create new Stripe checkout session for new subscription
+            # Get the base URL for success/cancel redirects
+            base_url = os.getenv('REPLIT_DEPLOYMENT_URL', request.host_url.rstrip('/'))
+            
+            checkout_session = stripe.checkout.Session.create(
+                customer=customer_id,
+                payment_method_types=['card'],
+                line_items=[{
+                    'price': new_plan.stripe_price_id,
+                    'quantity': 1,
+                }],
+                mode='subscription',
+                success_url=f'{base_url}/billing/success?session_id={{CHECKOUT_SESSION_ID}}',
+                cancel_url=f'{base_url}/billing/plans',
+                metadata={
+                    'user_id': current_user.id,
+                    'plan_id': plan_id
+                }
+            )
+            
+            return jsonify({
+                'success': True,
+                'checkout_url': checkout_session.url,
+                'session_id': checkout_session.id
+            })
+            
+        except stripe.error.StripeError as e:
+            logger.error(f"Stripe error during upgrade: {str(e)}")
+            return jsonify({'error': f'Payment error: {str(e)}'}), 500
+        except Exception as e:
+            logger.error(f"Error creating checkout session: {str(e)}")
+            return jsonify({'error': 'Failed to initiate upgrade'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error upgrading subscription: {str(e)}")
+        return jsonify({'error': 'Failed to upgrade subscription'}), 500

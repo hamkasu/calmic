@@ -386,3 +386,22 @@ export const commentAPI = {
 };
 
 export default api;
+
+export const subscriptionAPI = {
+  getPlans: async () => {
+    const response = await api.get('/api/subscription/plans');
+    return response.data;
+  },
+  
+  getCurrentSubscription: async () => {
+    const response = await api.get('/api/subscription/current');
+    return response.data;
+  },
+  
+  upgradeSubscription: async (planId) => {
+    const response = await api.post('/api/subscription/upgrade', {
+      plan_id: planId,
+    });
+    return response.data;
+  },
+};
