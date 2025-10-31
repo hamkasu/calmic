@@ -15,7 +15,7 @@ main_bp = Blueprint('main', __name__)
 def index():
     """Home page"""
     if current_user.is_authenticated:
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('gallery.dashboard'))
     
     # Get actual stats from database
     try:
@@ -57,13 +57,6 @@ def privacy():
 def terms():
     """Terms of service page"""
     return render_template('terms.html')
-
-@main_bp.route('/dashboard')
-@login_required
-def dashboard():
-    """User dashboard - Redirects to unified photos page"""
-    # Redirect to the unified photos page which now includes dashboard stats
-    return redirect(url_for('gallery.photos'))
 
 @main_bp.route('/upload')
 @login_required
@@ -186,12 +179,12 @@ def edit_photo(photo_id):
         # Get the photo and verify ownership
         photo = Photo.query.get_or_404(photo_id)
         if photo.user_id != current_user.id:
-            return redirect(url_for('main.dashboard'))
+            return redirect(url_for('gallery.dashboard'))
             
         return render_template('editor.html', photo=photo)
     except Exception as e:
         print(f"Edit photo error: {str(e)}")
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('gallery.dashboard'))
 
 @main_bp.route('/photos/<int:photo_id>/rename', methods=['POST'])
 @login_required
@@ -205,14 +198,14 @@ def rename_photo(photo_id):
         photo = Photo.query.get_or_404(photo_id)
         if photo.user_id != current_user.id:
             flash('Access denied.', 'error')
-            return redirect(url_for('main.dashboard'))
+            return redirect(url_for('gallery.dashboard'))
         
         # Get new name from form
         new_name = request.form.get('new_name', '').strip()
         
         if not new_name:
             flash('Photo name cannot be empty.', 'error')
-            return redirect(request.referrer or url_for('main.dashboard'))
+            return redirect(request.referrer or url_for('gallery.dashboard'))
         
         # Update the photo name
         old_name = photo.original_name
@@ -228,7 +221,7 @@ def rename_photo(photo_id):
         db.session.rollback()
         print(f"Rename photo error: {str(e)}")
         flash('Error renaming photo.', 'error')
-        return redirect(request.referrer or url_for('main.dashboard'))
+        return redirect(request.referrer or url_for('gallery.dashboard'))
 
 @main_bp.route('/advanced-enhancement')
 @login_required
@@ -254,7 +247,7 @@ def advanced_enhancement():
     except Exception as e:
         print(f"Advanced enhancement error: {str(e)}")
         flash('Error accessing advanced enhancement features.', 'error')
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('gallery.dashboard'))
 
 @main_bp.route('/photos/<int:photo_id>/enhance')
 @login_required
@@ -267,14 +260,14 @@ def enhance_photo(photo_id):
         # Get the photo and verify ownership
         photo = Photo.query.get_or_404(photo_id)
         if photo.user_id != current_user.id:
-            return redirect(url_for('main.dashboard'))
+            return redirect(url_for('gallery.dashboard'))
             
         return render_template('advanced_enhancement.html', 
                              photo=photo,
                              opencv_available=OPENCV_AVAILABLE)
     except Exception as e:
         print(f"Enhanced photo error: {str(e)}")
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('gallery.dashboard'))
 
 @main_bp.route('/people')
 @login_required
@@ -313,7 +306,7 @@ def montage():
         return render_template('montage.html', photos=photos)
     except Exception as e:
         flash('Error loading montage page.', 'error')
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('gallery.dashboard'))
 
 @main_bp.route('/sharpening')
 @login_required
@@ -327,7 +320,7 @@ def sharpening():
     except Exception as e:
         print(f"Sharpening page error: {str(e)}")
         flash('Error loading sharpening page.', 'error')
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('gallery.dashboard'))
 
 @main_bp.route('/damage-repair')
 @login_required
@@ -341,7 +334,7 @@ def damage_repair():
     except Exception as e:
         print(f"Damage repair page error: {str(e)}")
         flash('Error loading damage repair page.', 'error')
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('gallery.dashboard'))
 
 @main_bp.route('/people/add', methods=['POST'])
 @login_required
@@ -568,7 +561,7 @@ def test_recording():
     except Exception as e:
         print(f"Test recording error: {str(e)}")
         flash('Error loading test recording page.', 'error')
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('gallery.dashboard'))
 
 @main_bp.route('/test-recording/<int:photo_id>/upload', methods=['POST'])
 @login_required
@@ -657,7 +650,7 @@ def download_all():
         
         if not photos:
             flash('No photos to download', 'warning')
-            return redirect(url_for('main.dashboard'))
+            return redirect(url_for('gallery.dashboard'))
         
         # Create a temporary ZIP file
         temp_zip = tempfile.NamedTemporaryFile(delete=False, suffix='.zip')
@@ -722,4 +715,4 @@ def download_all():
         import traceback
         traceback.print_exc()
         flash(f'Error creating download: {str(e)}', 'error')
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('gallery.dashboard'))

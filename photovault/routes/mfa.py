@@ -181,7 +181,7 @@ def verify():
                 )
                 
                 flash('Login successful!', 'success')
-                return redirect(url_for('main.dashboard'))
+                return redirect(url_for('gallery.dashboard'))
         else:
             flash(f'Invalid code: {message}', 'error')
             log_security_event(

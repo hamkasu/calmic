@@ -17,7 +17,7 @@ oauth_bp = Blueprint('oauth', __name__, url_prefix='/oauth')
 def login(provider):
     """Initiate OAuth login with provider (google or apple)"""
     if current_user.is_authenticated:
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('gallery.dashboard'))
     
     if provider not in ['google', 'apple']:
         flash('Invalid OAuth provider', 'error')
@@ -25,7 +25,7 @@ def login(provider):
     
     try:
         # Store return URL in session
-        session['oauth_return_to'] = request.args.get('next') or url_for('main.dashboard')
+        session['oauth_return_to'] = request.args.get('next') or url_for('gallery.dashboard')
         
         # Generate callback URL
         redirect_uri = url_for('oauth.callback', provider=provider, _external=True)
@@ -105,7 +105,7 @@ def callback(provider):
             flash(f'Welcome back! Logged in with {provider.title()}.', 'success')
         
         # Redirect to original destination or dashboard
-        return_to = session.pop('oauth_return_to', url_for('main.dashboard'))
+        return_to = session.pop('oauth_return_to', url_for('gallery.dashboard'))
         return redirect(return_to)
         
     except Exception as e:

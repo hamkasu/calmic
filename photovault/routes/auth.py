@@ -41,7 +41,7 @@ def login():
     is_api_request = request.is_json
     
     if current_user.is_authenticated and not is_api_request:
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('gallery.dashboard'))
     
     if request.method == 'POST':
         # Get data from JSON or form
@@ -144,7 +144,7 @@ def login():
                 return redirect(next_page)
             else:
                 flash(f'Welcome back, {user.username}!', 'success')
-                return redirect(url_for('main.dashboard'))
+                return redirect(url_for('gallery.dashboard'))
     
     # Get actual stats from database for login page
     try:
@@ -170,7 +170,7 @@ def register():
     is_api_request = request.is_json
     
     if current_user.is_authenticated and not is_api_request:
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('gallery.dashboard'))
     
     if request.method == 'POST':
         # Get data from JSON or form
@@ -406,7 +406,7 @@ def logout():
 def forgot_password():
     """Request password reset"""
     if current_user.is_authenticated:
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('gallery.dashboard'))
     
     if request.method == 'POST':
         email = request.form.get('email', '').strip().lower()
@@ -470,7 +470,7 @@ def forgot_password():
 def reset_password(token):
     """Reset password with token"""
     if current_user.is_authenticated:
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('gallery.dashboard'))
     
     # Find and validate token
     reset_token = PasswordResetToken.query.filter_by(token=token).first()
