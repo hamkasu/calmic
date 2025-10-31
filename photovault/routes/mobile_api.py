@@ -557,8 +557,24 @@ def get_photos(current_user):
         photos_list = []
         for photo in photos:
             try:
-                # Skip photos with corrupted data
-                if not photo.filename or '(' in str(photo.filename) or 'object is not iterable' in str(photo.filename):
+                # Skip photos with corrupted data (specific error signatures, not just any parentheses)
+                if not photo.filename:
+                    logger.warning(f"⚠️ Skipping photo {photo.id} with missing filename")
+                    continue
+                
+                # Check for specific corruption signatures (error messages embedded in filename)
+                filename_str = str(photo.filename)
+                corruption_signatures = [
+                    'object is not iterable',
+                    'TypeError',
+                    'ValueError',
+                    'AttributeError',
+                    '(f,"',  # Python tuple repr pattern from corrupted data
+                    'Traceback'
+                ]
+                
+                is_corrupted = any(sig in filename_str for sig in corruption_signatures)
+                if is_corrupted:
                     logger.warning(f"⚠️ Skipping photo {photo.id} with corrupted filename: {photo.filename}")
                     continue
                 
@@ -595,17 +611,23 @@ def get_photos(current_user):
                     'comment_count': int(getattr(photo, 'comment_count', 0))
                 }
                 
-                # Add edited URL if it exists
-                if photo.edited_filename and '(' not in str(photo.edited_filename):
-                    if photo.edited_filename.startswith('uploads/'):
-                        # Object storage with uploads/ prefix - just add leading slash
-                        photo_dict['edited_url'] = f'/{photo.edited_filename}'
-                    elif photo.edited_filename.startswith('users/'):
-                        # Object storage with users/ prefix - add /uploads/ prefix
-                        photo_dict['edited_url'] = f'/uploads/{photo.edited_filename}'
+                # Add edited URL if it exists and is not corrupted
+                if photo.edited_filename:
+                    edited_filename_str = str(photo.edited_filename)
+                    edited_is_corrupted = any(sig in edited_filename_str for sig in corruption_signatures)
+                    
+                    if not edited_is_corrupted:
+                        if photo.edited_filename.startswith('uploads/'):
+                            # Object storage with uploads/ prefix - just add leading slash
+                            photo_dict['edited_url'] = f'/{photo.edited_filename}'
+                        elif photo.edited_filename.startswith('users/'):
+                            # Object storage with users/ prefix - add /uploads/ prefix
+                            photo_dict['edited_url'] = f'/uploads/{photo.edited_filename}'
+                        else:
+                            # Local storage - use user_id path
+                            photo_dict['edited_url'] = f'/uploads/{current_user.id}/{photo.edited_filename}'
                     else:
-                        # Local storage - use user_id path
-                        photo_dict['edited_url'] = f'/uploads/{current_user.id}/{photo.edited_filename}'
+                        logger.warning(f"⚠️ Photo {photo.id} has corrupted edited_filename: {photo.edited_filename}")
                 
                 photos_list.append(photo_dict)
             except Exception as photo_err:
