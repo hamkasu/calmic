@@ -55,12 +55,35 @@ class VoiceMemoRecorder {
             // Bind events
             this.bindEvents();
             
-            // Load existing voice memos
-            await this.loadVoiceMemos();
+            // Load existing voice memos (non-blocking to prevent UI freeze)
+            this.loadVoiceMemos().catch(error => {
+                console.warn('Failed to load voice memos:', error);
+            });
             
         } catch (error) {
             console.error('Error initializing voice memo recorder:', error);
             this.showError('Failed to initialize voice recorder');
+        }
+    }
+    
+    // Fetch with timeout wrapper
+    async fetchWithTimeout(url, options = {}, timeout = 5000) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        
+        try {
+            const response = await fetch(url, {
+                ...options,
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            return response;
+        } catch (error) {
+            clearTimeout(timeoutId);
+            if (error.name === 'AbortError') {
+                throw new Error('Request timeout');
+            }
+            throw error;
         }
     }
     
@@ -294,14 +317,18 @@ class VoiceMemoRecorder {
             // Show saving status
             this.showSavingStatus();
             
-            // Upload to server
-            const response = await fetch(`/api/photos/${this.photoId}/voice-memos`, {
+            // Upload to server with 30 second timeout for upload
+            const response = await this.fetchWithTimeout(`/api/photos/${this.photoId}/voice-memos`, {
                 method: 'POST',
                 body: formData,
                 headers: {
                     'X-CSRFToken': this.getCSRFToken()
                 }
-            });
+            }, 30000);
+            
+            if (!response.ok) {
+                throw new Error(`Upload failed with status: ${response.status}`);
+            }
             
             const result = await response.json();
             
@@ -315,7 +342,11 @@ class VoiceMemoRecorder {
             
         } catch (error) {
             console.error('Error saving voice memo:', error);
-            this.showError('Failed to save voice memo');
+            if (error.message === 'Request timeout') {
+                this.showError('Upload timed out - please try again with a shorter recording');
+            } else {
+                this.showError('Failed to save voice memo - please try again');
+            }
         } finally {
             this.hideSavingStatus();
         }
@@ -346,7 +377,16 @@ class VoiceMemoRecorder {
     
     async loadVoiceMemos() {
         try {
-            const response = await fetch(`/api/photos/${this.photoId}/voice-memos`);
+            const response = await this.fetchWithTimeout(`/api/photos/${this.photoId}/voice-memos`);
+            
+            if (!response.ok) {
+                if (response.status === 401 || response.status === 403) {
+                    console.log('User not authenticated - skipping voice memo load');
+                    return;
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const result = await response.json();
             
             if (result.success) {
@@ -356,7 +396,11 @@ class VoiceMemoRecorder {
             }
             
         } catch (error) {
-            console.error('Error loading voice memos:', error);
+            if (error.message === 'Request timeout') {
+                console.warn('Voice memo loading timed out - skipping');
+            } else {
+                console.error('Error loading voice memos:', error);
+            }
         }
     }
     
@@ -459,12 +503,16 @@ class VoiceMemoRecorder {
         }
         
         try {
-            const response = await fetch(`/api/voice-memos/${memoId}`, {
+            const response = await this.fetchWithTimeout(`/api/voice-memos/${memoId}`, {
                 method: 'DELETE',
                 headers: {
                     'X-CSRFToken': this.getCSRFToken()
                 }
-            });
+            }, 10000);
+            
+            if (!response.ok) {
+                throw new Error(`Delete failed with status: ${response.status}`);
+            }
             
             const result = await response.json();
             
@@ -477,7 +525,11 @@ class VoiceMemoRecorder {
             
         } catch (error) {
             console.error('Error deleting voice memo:', error);
-            this.showError('Failed to delete voice memo');
+            if (error.message === 'Request timeout') {
+                this.showError('Delete request timed out - please try again');
+            } else {
+                this.showError('Failed to delete voice memo - please try again');
+            }
         }
     }
     
