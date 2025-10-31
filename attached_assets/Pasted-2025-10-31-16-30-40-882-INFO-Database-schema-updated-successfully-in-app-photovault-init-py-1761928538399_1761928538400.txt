@@ -1,0 +1,110 @@
+2025-10-31 16:30:40,882 INFO: ✅ Database schema updated successfully [in /app/photovault/__init__.py:429]
+2025-10-31 16:30:40,882 INFO: ✅ Database schema updated successfully [in /app/photovault/__init__.py:429]
+INFO:photovault:✅ Database schema updated successfully
+[2025-10-31 16:30:40,883] INFO in __init__: Subscription plans: created 0, updated 4
+2025-10-31 16:30:40,883 INFO: Subscription plans: created 0, updated 4 [in /app/photovault/__init__.py:136]
+INFO:photovault:Subscription plans: created 0, updated 4
+PhotoVault Release: App created successfully with config: ProductionConfig
+PhotoVault Release: Could not log database details: Working outside of application context.
+This typically means that you attempted to use functionality that needed
+the current application. To solve this, set up an application context
+with app.app_context(). See the documentation for more information.
+PhotoVault Release: Database connectivity verified
+[2025-10-31 16:30:40,895] INFO in __init__: Subscription plans: created 0, updated 4
+2025-10-31 16:30:40,895 INFO: Subscription plans: created 0, updated 4 [in /app/photovault/__init__.py:136]
+2025-10-31 16:30:40,895 INFO: Subscription plans: created 0, updated 4 [in /app/photovault/__init__.py:136]
+INFO:photovault:Subscription plans: created 0, updated 4
+PhotoVault WSGI: Environment = production
+PhotoVault WSGI: Debug = False
+PhotoVault WSGI: Config = Config
+PhotoVault WSGI: Database URI set = Yes
+PhotoVault WSGI: App created successfully, ready to handle requests
+PhotoVault Release: All required tables and columns exist, skipping migration
+2025-10-31 16:30:40,903 INFO: PhotoVault startup [in /app/photovault/config.py:254]
+2025-10-31 16:30:40,903 INFO: PhotoVault startup [in /app/photovault/config.py:254]
+INFO:photovault:PhotoVault startup
+PhotoVault WSGI: Migrations completed successfully
+2025-10-31 16:30:40,903 INFO: ✅ Railway Volume detected and mounted at: /data
+   Files will be saved to: /data
+   Storage: Persistent (survives restarts) ✅ [in /app/photovault/config.py:201]
+[2025-10-31 16:30:40,903] INFO in config: ✅ Railway Volume detected and mounted at: /data
+   Files will be saved to: /data
+   Storage: Persistent (survives restarts) ✅
+INFO:photovault:✅ Railway Volume detected and mounted at: /data
+   Files will be saved to: /data
+   Storage: Persistent (survives restarts) ✅
+2025-10-31 16:30:40,903 INFO: Database: PostgreSQL [in /app/photovault/config.py:224]
+[2025-10-31 16:30:40,903] INFO in config: Database: PostgreSQL
+INFO:photovault:Database: PostgreSQL
+[2025-10-31 16:30:40,903] INFO in config: PhotoVault startup
+2025-10-31 16:30:40,992 INFO: Running database migrations automatically... [in /app/photovault/__init__.py:372]
+2025-10-31 16:30:40,992 INFO: Running database migrations automatically... [in /app/photovault/__init__.py:372]
+INFO:photovault:Running database migrations automatically...
+[2025-10-31 16:30:40,991] INFO in __init__: Database connection verified (production mode)
+2025-10-31 16:30:40,991 INFO: Database connection verified (production mode) [in /app/photovault/__init__.py:359]
+2025-10-31 16:30:40,991 INFO: Database connection verified (production mode) [in /app/photovault/__init__.py:359]
+INFO:photovault:Database connection verified (production mode)
+[2025-10-31 16:30:40,992] INFO in __init__: Running database migrations automatically...
+2025-10-31 16:30:40,993 INFO: Attempting direct column addition as fallback... [in /app/photovault/__init__.py:378]
+2025-10-31 16:30:40,993 INFO: Attempting direct column addition as fallback... [in /app/photovault/__init__.py:378]
+INFO:photovault:Attempting direct column addition as fallback...
+2025-10-31 16:30:40,993 WARNING: Auto-migration via Alembic failed: 'NoneType' object is not iterable [in /app/photovault/__init__.py:377]
+2025-10-31 16:30:40,993 WARNING: Auto-migration via Alembic failed: 'NoneType' object is not iterable [in /app/photovault/__init__.py:377]
+[2025-10-31 16:30:40,993] WARNING in __init__: Auto-migration via Alembic failed: 'NoneType' object is not iterable
+WARNING:photovault:Auto-migration via Alembic failed: 'NoneType' object is not iterable
+[2025-10-31 16:30:40,993] INFO in __init__: Attempting direct column addition as fallback...
+[2025-10-31 16:30:41,036] INFO in __init__: ✅ Database schema updated successfully
+2025-10-31 16:30:41,036 INFO: ✅ Database schema updated successfully [in /app/photovault/__init__.py:429]
+2025-10-31 16:30:41,036 INFO: ✅ Database schema updated successfully [in /app/photovault/__init__.py:429]
+INFO:photovault:✅ Database schema updated successfully
+2025-10-31 16:30:41,049 INFO: Subscription plans: created 0, updated 4 [in /app/photovault/__init__.py:136]
+2025-10-31 16:30:41,049 INFO: Subscription plans: created 0, updated 4 [in /app/photovault/__init__.py:136]
+[2025-10-31 16:30:41,049] INFO in __init__: Subscription plans: created 0, updated 4
+INFO:photovault:Subscription plans: created 0, updated 4
+PhotoVault WSGI: Environment = production
+PhotoVault WSGI: Debug = False
+PhotoVault WSGI: Config = Config
+PhotoVault WSGI: Database URI set = Yes
+PhotoVault WSGI: App created successfully, ready to handle requests
+Note: Could not delete security records (tables may not exist): (psycopg2.errors.UndefinedTable) relation "account_lockout" does not exist
+LINE 1: DELETE FROM account_lockout WHERE account_lockout.user_id = ...
+                    ^
+[SQL: DELETE FROM account_lockout WHERE account_lockout.user_id = %(user_id_1)s]
+[parameters: {'user_id_1': 4}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Error deleting user: (psycopg2.errors.UndefinedTable) relation "account_lockout" does not exist
+LINE 2: FROM account_lockout 
+             ^
+[SQL: SELECT account_lockout.id AS account_lockout_id, account_lockout.user_id AS account_lockout_user_id, account_lockout.locked_at AS account_lockout_locked_at, account_lockout.unlock_at AS account_lockout_unlock_at, account_lockout.reason AS account_lockout_reason, account_lockout.is_active AS account_lockout_is_active, account_lockout.unlocked_at AS account_lockout_unlocked_at 
+FROM account_lockout 
+WHERE %(param_1)s = account_lockout.user_id]
+[parameters: {'param_1': 4}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Note: Could not delete security records (tables may not exist): (psycopg2.errors.UndefinedTable) relation "account_lockout" does not exist
+LINE 1: DELETE FROM account_lockout WHERE account_lockout.user_id = ...
+                    ^
+[SQL: DELETE FROM account_lockout WHERE account_lockout.user_id = %(user_id_1)s]
+[parameters: {'user_id_1': 4}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Error deleting user: (psycopg2.errors.UndefinedTable) relation "account_lockout" does not exist
+LINE 2: FROM account_lockout 
+             ^
+[SQL: SELECT account_lockout.id AS account_lockout_id, account_lockout.user_id AS account_lockout_user_id, account_lockout.locked_at AS account_lockout_locked_at, account_lockout.unlock_at AS account_lockout_unlock_at, account_lockout.reason AS account_lockout_reason, account_lockout.is_active AS account_lockout_is_active, account_lockout.unlocked_at AS account_lockout_unlocked_at 
+FROM account_lockout 
+WHERE %(param_1)s = account_lockout.user_id]
+[parameters: {'param_1': 4}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Note: Could not delete security records (tables may not exist): (psycopg2.errors.UndefinedTable) relation "account_lockout" does not exist
+LINE 1: DELETE FROM account_lockout WHERE account_lockout.user_id = ...
+                    ^
+[SQL: DELETE FROM account_lockout WHERE account_lockout.user_id = %(user_id_1)s]
+[parameters: {'user_id_1': 4}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Error deleting user: (psycopg2.errors.UndefinedTable) relation "account_lockout" does not exist
+LINE 2: FROM account_lockout 
+             ^
+[SQL: SELECT account_lockout.id AS account_lockout_id, account_lockout.user_id AS account_lockout_user_id, account_lockout.locked_at AS account_lockout_locked_at, account_lockout.unlock_at AS account_lockout_unlock_at, account_lockout.reason AS account_lockout_reason, account_lockout.is_active AS account_lockout_is_active, account_lockout.unlocked_at AS account_lockout_unlocked_at 
+FROM account_lockout 
+WHERE %(param_1)s = account_lockout.user_id]
+[parameters: {'param_1': 4}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
