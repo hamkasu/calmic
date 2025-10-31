@@ -315,9 +315,11 @@ def delete_user(user_id):
             # Delete security logs
             SecurityLog.query.filter_by(user_id=user_id).delete()
         except Exception as e:
-            # Tables might not exist, continue with user deletion
+            # Tables might not exist, rollback and continue with user deletion
+            db.session.rollback()
             print(f"Note: Could not delete security records (tables may not exist): {e}")
         
+        # Now delete the user (SQLAlchemy will cascade to related records)
         db.session.delete(user)
         db.session.commit()
         flash(f"User {username} and all their photos deleted successfully.", "success")

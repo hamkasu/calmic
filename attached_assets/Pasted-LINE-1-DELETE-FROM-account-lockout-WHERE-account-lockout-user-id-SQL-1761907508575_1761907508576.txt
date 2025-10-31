@@ -1,0 +1,33 @@
+LINE 1: DELETE FROM account_lockout WHERE account_lockout.user_id = ...
+                    ^
+[SQL: DELETE FROM account_lockout WHERE account_lockout.user_id = %(user_id_1)s]
+[parameters: {'user_id_1': 3}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Error deleting user: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+[SQL: SELECT album.id AS album_id, album.name AS album_name, album.description AS album_description, album.created_at AS album_created_at, album.updated_at AS album_updated_at, album.user_id AS album_user_id, album.date_start AS album_date_start, album.date_end AS album_date_end, album.time_period AS album_time_period, album.location AS album_location, album.event_type AS album_event_type 
+FROM album 
+WHERE %(param_1)s = album.user_id]
+Note: Could not delete security records (tables may not exist): (psycopg2.errors.UndefinedTable) relation "account_lockout" does not exist
+LINE 1: DELETE FROM account_lockout WHERE account_lockout.user_id = ...
+                    ^
+[SQL: DELETE FROM account_lockout WHERE account_lockout.user_id = %(user_id_1)s]
+[parameters: {'user_id_1': 3}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Error deleting user: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+[SQL: SELECT album.id AS album_id, album.name AS album_name, album.description AS album_description, album.created_at AS album_created_at, album.updated_at AS album_updated_at, album.user_id AS album_user_id, album.date_start AS album_date_start, album.date_end AS album_date_end, album.time_period AS album_time_period, album.location AS album_location, album.event_type AS album_event_type 
+FROM album 
+WHERE %(param_1)s = album.user_id]
+[parameters: {'param_1': 3}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)
+Note: Could not delete security records (tables may not exist): (psycopg2.errors.UndefinedTable) relation "account_lockout" does not exist
+LINE 1: DELETE FROM account_lockout WHERE account_lockout.user_id = ...
+                    ^
+[SQL: DELETE FROM account_lockout WHERE account_lockout.user_id = %(user_id_1)s]
+[parameters: {'user_id_1': 3}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Error deleting user: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+[SQL: SELECT album.id AS album_id, album.name AS album_name, album.description AS album_description, album.created_at AS album_created_at, album.updated_at AS album_updated_at, album.user_id AS album_user_id, album.date_start AS album_date_start, album.date_end AS album_date_end, album.time_period AS album_time_period, album.location AS album_location, album.event_type AS album_event_type 
+FROM album 
+WHERE %(param_1)s = album.user_id]
+[parameters: {'param_1': 3}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)
