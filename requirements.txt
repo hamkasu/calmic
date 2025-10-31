@@ -125,3 +125,11 @@ pillow
 python-dotenv
 werkzeug
 wtforms
+flask
+flask-login
+flask-sqlalchemy
+numpy
+opencv-python-headless
+pillow
+pyjwt
+werkzeug
