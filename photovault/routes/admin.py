@@ -302,22 +302,35 @@ def delete_user(user_id):
     
     # Delete user with error handling for missing security tables
     try:
-        # Manually delete related security records if tables exist
+        # Try to delete security records if tables exist
+        # Import specific exceptions for database errors
+        from sqlalchemy.exc import ProgrammingError, OperationalError
+        
         try:
             from photovault.models import AccountLockout, LoginAttempt, SecurityLog
             
-            # Delete account lockouts
-            AccountLockout.query.filter_by(user_id=user_id).delete()
+            # Try each deletion individually to handle missing tables gracefully
+            try:
+                AccountLockout.query.filter_by(user_id=user_id).delete()
+            except (ProgrammingError, OperationalError):
+                db.session.rollback()
+                pass  # Table doesn't exist, skip
             
-            # Delete login attempts
-            LoginAttempt.query.filter_by(user_id=user_id).delete()
+            try:
+                LoginAttempt.query.filter_by(user_id=user_id).delete()
+            except (ProgrammingError, OperationalError):
+                db.session.rollback()
+                pass  # Table doesn't exist, skip
             
-            # Delete security logs
-            SecurityLog.query.filter_by(user_id=user_id).delete()
-        except Exception as e:
-            # Tables might not exist, rollback and continue with user deletion
-            db.session.rollback()
-            print(f"Note: Could not delete security records (tables may not exist): {e}")
+            try:
+                SecurityLog.query.filter_by(user_id=user_id).delete()
+            except (ProgrammingError, OperationalError):
+                db.session.rollback()
+                pass  # Table doesn't exist, skip
+                
+        except ImportError:
+            # Models don't exist, skip security cleanup
+            pass
         
         # Now delete the user (SQLAlchemy will cascade to related records)
         db.session.delete(user)
