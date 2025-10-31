@@ -5,6 +5,23 @@ StoryKeep is a subscription-based platform for photo management and enhancement.
 
 ## Recent Changes
 
+### iOS Subscription Upgrade System (October 31, 2025)
+Implemented complete subscription upgrade functionality for iOS mobile app:
+- [x] Auto-create Free plan subscription on registration (both web and mobile)
+- [x] Mobile API endpoints: GET /api/subscription/plans, GET /api/subscription/current, POST /api/subscription/upgrade
+- [x] iOS SubscriptionPlansScreen with plan cards, pricing, features, and upgrade flow
+- [x] Stripe Checkout integration for payment processing (production mode)
+- [x] Development mode with instant upgrades for testing
+- [x] Navigation integration from Settings screen
+- [x] Deployment guide for Railway production (SUBSCRIPTION_UPGRADE_DEPLOYMENT.md)
+
+Key features:
+- 4-tier pricing: Free (auto-assigned), Personal (RM12.90), Family (RM24.90), Pro (RM49.90)
+- Visual plan comparison with current plan indicator
+- Graceful handling of dev vs production environments
+- JWT authentication on all subscription endpoints
+- Edge case handling (prevent upgrade to current/Free plan, payment errors)
+
 ### Copyright Notice Addition (October 2025)
 Successfully added Calmic Sdn Bhd copyright notices to entire codebase:
 - [x] Core Python files (main.py, dev.py, config.py)
