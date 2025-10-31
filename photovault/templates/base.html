@@ -186,7 +186,7 @@ CALMIC SDN BHD - "Committed to Excellence"
                         <a class="nav-link" href="#" id="userDropdown" role="button" 
                            data-bs-toggle="dropdown" aria-expanded="false" aria-label="User menu for {{ current_user.username }}">
                             <i class="bi bi-person-circle" aria-hidden="true"></i> 
-                            <span class="d-none d-sm-inline">{{ current_user.username }}</span>
+                            {{ current_user.username }}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                             <li><h6 class="dropdown-header">Welcome, {{ current_user.username }}</h6></li>
