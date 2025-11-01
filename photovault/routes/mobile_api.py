@@ -4182,11 +4182,24 @@ def upgrade_subscription(current_user):
             # Get the base URL for success/cancel redirects
             base_url = os.getenv('REPLIT_DEPLOYMENT_URL', request.host_url.rstrip('/'))
             
+            # Calculate price in cents (Stripe uses smallest currency unit)
+            # For MYR: 1 MYR = 100 sen
+            total_price = new_plan.total_price_myr
+            price_in_sen = int(total_price * 100)
+            
             checkout_session = stripe.checkout.Session.create(
                 customer=customer_id,
                 payment_method_types=['card'],
                 line_items=[{
-                    'price': new_plan.stripe_price_id,
+                    'price_data': {
+                        'currency': 'myr',
+                        'product_data': {
+                            'name': new_plan.display_name,
+                            'description': new_plan.description,
+                        },
+                        'unit_amount': price_in_sen,
+                        'recurring': {'interval': 'month'}
+                    },
                     'quantity': 1,
                 }],
                 mode='subscription',
