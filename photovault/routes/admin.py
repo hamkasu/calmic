@@ -262,6 +262,36 @@ def toggle_superuser(user_id):
     flash(f"Superuser status {status} for user {user.username}.", "success")
     return redirect(url_for('admin.dashboard'))
 
+@admin_bp.route('/users/delete/<int:user_id>/confirm', methods=['GET'])
+@login_required
+@superuser_required
+def delete_user_confirm(user_id):
+    """Show confirmation page before deleting a user"""
+    user = User.query.get_or_404(user_id)
+    
+    # Prevent deleting superusers
+    if user.is_superuser:
+        flash("Superuser accounts cannot be deleted.", "danger")
+        return redirect(url_for('admin.dashboard'))
+    
+    # Prevent deleting yourself
+    if user.id == current_user.id:
+        flash("You cannot delete your own account.", "danger")
+        return redirect(url_for('admin.dashboard'))
+    
+    # Calculate user statistics
+    photos = Photo.query.filter_by(user_id=user.id).all()
+    total_photos = len(photos)
+    edited_photos = sum(1 for p in photos if p.edited_filename)
+    total_storage = sum(p.file_size or 0 for p in photos)
+    storage_mb = total_storage / 1024 / 1024 if total_storage else 0
+    
+    return render_template('admin/delete_user_confirm.html',
+                         user=user,
+                         total_photos=total_photos,
+                         edited_photos=edited_photos,
+                         storage_mb=storage_mb)
+
 @admin_bp.route('/users/delete/<int:user_id>', methods=['POST'])
 @login_required
 @superuser_required # Only superusers can delete users

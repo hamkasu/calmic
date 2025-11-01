@@ -180,14 +180,11 @@ CALMIC SDN BHD - "Committed to Excellence"
                                             <i class="bi bi-star"></i>
                                         </button>
                                     </form>
-                                    <form method="post" action="{{ url_for('admin.delete_user', user_id=user.id) }}" style="display: inline;">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                        <button type="submit" class="btn btn-outline-danger btn-sm" 
-                                                onclick="return confirm('Delete user {{ user.username }} and all their photos?')"
-                                                title="Delete User">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
+                                    <a href="{{ url_for('admin.delete_user_confirm', user_id=user.id) }}" 
+                                       class="btn btn-outline-danger btn-sm"
+                                       title="Delete User">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
                                     {% endif %}
                                     {% endif %}
                                 </div>

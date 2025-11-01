@@ -1,0 +1,129 @@
+<!--
+StoryKeep - Professional Photo Management Platform
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
+This software is proprietary and confidential. Unauthorized copying, distribution,
+modification, or use of this software is strictly prohibited.
+
+Website: https://www.calmic.com.my
+Email: support@calmic.com.my
+
+CALMIC SDN BHD - "Committed to Excellence"
+-->
+
+{% extends "base.html" %}
+{% block title %}Delete User Confirmation - StoryKeep{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        Confirm User Deletion
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger" role="alert">
+                        <h5 class="alert-heading">
+                            <i class="bi bi-exclamation-octagon"></i>
+                            Warning: This action cannot be undone!
+                        </h5>
+                        <p class="mb-0">
+                            You are about to permanently delete this user and all their associated data.
+                        </p>
+                    </div>
+
+                    <h5 class="mb-3">User Information</h5>
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th width="30%">Username</th>
+                                    <td><strong>{{ user.username }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Email</th>
+                                    <td>{{ user.email }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Account Created</th>
+                                    <td>{{ user.created_at.strftime('%B %d, %Y at %I:%M %p') if user.created_at else 'N/A' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Account Type</th>
+                                    <td>
+                                        {% if user.is_superuser %}
+                                            <span class="badge bg-danger">Superuser</span>
+                                        {% elif user.is_admin %}
+                                            <span class="badge bg-warning">Admin</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Regular User</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h5 class="mb-3">Data to be Deleted</h5>
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-images text-primary" style="font-size: 2rem;"></i>
+                                    <h3 class="mt-2 mb-0">{{ total_photos }}</h3>
+                                    <p class="text-muted mb-0">Total Photos</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-pencil-square text-success" style="font-size: 2rem;"></i>
+                                    <h3 class="mt-2 mb-0">{{ edited_photos }}</h3>
+                                    <p class="text-muted mb-0">Edited Photos</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-hdd text-info" style="font-size: 2rem;"></i>
+                                    <h3 class="mt-2 mb-0">{{ "%.2f"|format(storage_mb) }}</h3>
+                                    <p class="text-muted mb-0">Storage (MB)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <h6 class="mb-2"><i class="bi bi-info-circle"></i> The following will also be deleted:</h6>
+                        <ul class="mb-0">
+                            <li>All photo files (original and edited versions)</li>
+                            <li>All albums created by this user</li>
+                            <li>All people/face tags created by this user</li>
+                            <li>All family vault memberships</li>
+                            <li>All login history and security logs</li>
+                            <li>All subscription and billing information</li>
+                        </ul>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary btn-lg">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                        <form method="post" action="{{ url_for('admin.delete_user', user_id=user.id) }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-danger btn-lg">
+                                <i class="bi bi-trash-fill"></i> Delete User Permanently
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
