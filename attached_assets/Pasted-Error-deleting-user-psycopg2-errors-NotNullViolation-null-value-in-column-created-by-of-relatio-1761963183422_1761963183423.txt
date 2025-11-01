@@ -1,0 +1,50 @@
+Error deleting user: (psycopg2.errors.NotNullViolation) null value in column "created_by" of relation "family_vault" violates not-null constraint
+DETAIL:  Failing row contains (4, yet, yet, null, PV-CJYAOG, f, 2025-10-30 10:54:07.97335, 2025-11-01 02:00:15.889146).
+[SQL: UPDATE family_vault SET created_by=%(created_by)s, updated_at=%(updated_at)s WHERE family_vault.id = %(family_vault_id)s]
+[parameters: {'created_by': None, 'updated_at': datetime.datetime(2025, 11, 1, 2, 0, 15, 889146), 'family_vault_id': 4}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+Error deleting user: (psycopg2.errors.NotNullViolation) null value in column "created_by" of relation "family_vault" violates not-null constraint
+DETAIL:  Failing row contains (4, yet, yet, null, PV-CJYAOG, f, 2025-10-30 10:54:07.97335, 2025-11-01 02:00:20.8031).
+[SQL: UPDATE family_vault SET created_by=%(created_by)s, updated_at=%(updated_at)s WHERE family_vault.id = %(family_vault_id)s]
+[parameters: {'created_by': None, 'updated_at': datetime.datetime(2025, 11, 1, 2, 0, 20, 803100), 'family_vault_id': 4}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+Error deleting user: (psycopg2.errors.NotNullViolation) null value in column "created_by" of relation "family_vault" violates not-null constraint
+DETAIL:  Failing row contains (4, yet, yet, null, PV-CJYAOG, f, 2025-10-30 10:54:07.97335, 2025-11-01 02:00:24.888437).
+[SQL: UPDATE family_vault SET created_by=%(created_by)s, updated_at=%(updated_at)s WHERE family_vault.id = %(family_vault_id)s]
+[parameters: {'created_by': None, 'updated_at': datetime.datetime(2025, 11, 1, 2, 0, 24, 888437), 'family_vault_id': 4}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+Error deleting user: (psycopg2.errors.NotNullViolation) null value in column "created_by" of relation "family_vault" violates not-null constraint
+DETAIL:  Failing row contains (3, Coffee, Cups, null, PV-TPO0KG, f, 2025-10-30 10:34:47.956658, 2025-11-01 02:00:30.13549).
+[SQL: UPDATE family_vault SET created_by=%(created_by)s, updated_at=%(updated_at)s WHERE family_vault.id = %(family_vault_id)s]
+[parameters: {'created_by': None, 'updated_at': datetime.datetime(2025, 11, 1, 2, 0, 30, 135490), 'family_vault_id': 3}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+Error deleting user: (psycopg2.errors.NotNullViolation) null value in column "user_id" of relation "user_subscription" violates not-null constraint
+DETAIL:  Failing row contains (2, null, 9, active, sub_1SMOKuJXKR8sCXPAAXI9F1mx, cus_TJ0GDtG8eIWJ2Y, 2025-10-26 07:26:00.828324, 2025-10-26 07:25:56, 2025-11-26 07:25:56, null, null, null, null, 2025-11-26 07:25:56, f, null, 2025-10-26 07:26:00.830656, 2025-11-01 02:00:39.136627, 0, 2025-11-01 00:00:00).
+[SQL: UPDATE user_subscription SET user_id=%(user_id)s, updated_at=%(updated_at)s WHERE user_subscription.id = %(user_subscription_id)s]
+[parameters: {'user_id': None, 'updated_at': datetime.datetime(2025, 11, 1, 2, 0, 39, 136627), 'user_subscription_id': 2}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+Error deleting user: (psycopg2.errors.NotNullViolation) null value in column "created_by" of relation "family_vault" violates not-null constraint
+DETAIL:  Failing row contains (4, yet, yet, null, PV-CJYAOG, f, 2025-10-30 10:54:07.97335, 2025-11-01 02:07:31.794357).
+[SQL: UPDATE family_vault SET created_by=%(created_by)s, updated_at=%(updated_at)s WHERE family_vault.id = %(family_vault_id)s]
+[parameters: {'created_by': None, 'updated_at': datetime.datetime(2025, 11, 1, 2, 7, 31, 794357), 'family_vault_id': 4}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+Error deleting user: (psycopg2.errors.NotNullViolation) null value in column "created_by" of relation "family_vault" violates not-null constraint
+DETAIL:  Failing row contains (3, Coffee, Cups, null, PV-TPO0KG, f, 2025-10-30 10:34:47.956658, 2025-11-01 02:07:39.454077).
+[SQL: UPDATE family_vault SET created_by=%(created_by)s, updated_at=%(updated_at)s WHERE family_vault.id = %(family_vault_id)s]
+[parameters: {'created_by': None, 'updated_at': datetime.datetime(2025, 11, 1, 2, 7, 39, 454077), 'family_vault_id': 3}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+Error deleting user: (psycopg2.errors.NotNullViolation) null value in column "created_by" of relation "family_vault" violates not-null constraint
+DETAIL:  Failing row contains (4, yet, yet, null, PV-CJYAOG, f, 2025-10-30 10:54:07.97335, 2025-11-01 02:10:59.149643).
+[SQL: UPDATE family_vault SET created_by=%(created_by)s, updated_at=%(updated_at)s WHERE family_vault.id = %(family_vault_id)s]
+[parameters: {'created_by': None, 'updated_at': datetime.datetime(2025, 11, 1, 2, 10, 59, 149643), 'family_vault_id': 4}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[parameters: {'created_by': None, 'updated_at': datetime.datetime(2025, 11, 1, 2, 11, 36, 997599), 'family_vault_id': 4}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+Error deleting user: (psycopg2.errors.NotNullViolation) null value in column "created_by" of relation "family_vault" violates not-null constraint
+DETAIL:  Failing row contains (4, yet, yet, null, PV-CJYAOG, f, 2025-10-30 10:54:07.97335, 2025-11-01 02:11:32.479365).
+[SQL: UPDATE family_vault SET created_by=%(created_by)s, updated_at=%(updated_at)s WHERE family_vault.id = %(family_vault_id)s]
+[parameters: {'created_by': None, 'updated_at': datetime.datetime(2025, 11, 1, 2, 11, 32, 479365), 'family_vault_id': 4}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+Error deleting user: (psycopg2.errors.NotNullViolation) null value in column "created_by" of relation "family_vault" violates not-null constraint
+DETAIL:  Failing row contains (4, yet, yet, null, PV-CJYAOG, f, 2025-10-30 10:54:07.97335, 2025-11-01 02:11:36.997599).
+[SQL: UPDATE family_vault SET created_by=%(created_by)s, updated_at=%(updated_at)s WHERE family_vault.id = %(family_vault_id)s]
