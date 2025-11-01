@@ -174,7 +174,7 @@ export default function SubscriptionPlansScreen({ navigation }) {
               <ActivityIndicator size="small" color="#fff" />
             ) : (
               <Text style={styles.upgradeButtonText}>
-                {isFree ? 'Current Plan' : 'Upgrade'}
+                {isFree && isCurrentPlan ? 'Current Plan' : isFree ? 'Downgrade' : 'Upgrade'}
               </Text>
             )}
           </TouchableOpacity>

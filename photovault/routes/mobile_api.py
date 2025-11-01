@@ -269,7 +269,7 @@ def get_dashboard(current_user):
         
         # Get subscription info and storage limits
         user_subscription = UserSubscription.query.filter_by(user_id=current_user.id).first()
-        subscription_plan = user_subscription.plan.name if user_subscription and user_subscription.plan else 'Free'
+        subscription_plan = user_subscription.plan.display_name if user_subscription and user_subscription.plan else 'Free Plan'
         
         # Calculate storage limit based on subscription plan
         if user_subscription and user_subscription.plan and user_subscription.plan.storage_gb:
