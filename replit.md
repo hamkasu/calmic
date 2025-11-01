@@ -5,6 +5,22 @@ StoryKeep is a subscription-based platform for photo management and enhancement.
 
 ## Recent Changes
 
+### Subscription Enforcement Implementation (November 1, 2025)
+Implemented comprehensive subscription plan enforcement across all platforms:
+- [x] Created `subscription_enforcement.py` with decorators and utilities for plan limit enforcement
+- [x] Added `AIEnhancementLog` model to track AI enhancement usage for quota management
+- [x] Implemented storage limit checks on photo upload endpoints (mobile API)
+- [x] Implemented AI enhancement quota checks on colorization endpoints with usage logging
+- [x] Implemented family vault limit checks on vault creation endpoint
+- [x] All decorators return detailed JSON responses with current usage, limits, and upgrade flags
+- [x] Admin/superuser bypass implemented for all enforcement checks
+- [x] Architect review completed and passed
+
+Subscription limits enforced:
+- **Storage**: Free (500MB), Personal (5GB), Family (25GB), Pro (500GB)
+- **AI Enhancements**: Free (5/month), Personal (25/month), Family (75/month), Pro (500/month)
+- **Family Vaults**: Free (1), Personal (2), Family (5), Pro (20)
+
 ### Project Import Migration Completed (November 1, 2025)
 Successfully completed the migration of the StoryKeep project to the Replit environment:
 - [x] Reinstalled all Python dependencies (Flask, SQLAlchemy, Pillow, OpenCV, PyJWT, bcrypt, werkzeug)
