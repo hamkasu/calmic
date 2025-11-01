@@ -73,6 +73,74 @@ Copyright format used:
 - HTML files: HTML comment with copyright notice
 - JavaScript files: JSDoc comment block with copyright notice
 
+### AI Photo Restoration System (November 1, 2025)
+Verified and documented the active AI photo restoration features powered by Replicate API:
+
+**Active AI Services:**
+- ✅ **Replicate API** - Professional photo restoration with GFPGAN and CodeFormer models
+  - Configured with `REPLICATE_API_TOKEN` environment secret
+  - Service implementation: `photovault/utils/ai_restoration.py`
+  - Service wrapper: `photovault/services/ai_service.py`
+  
+**Available AI Restoration Models:**
+
+1. **GFPGAN** (Generative Facial Prior GAN)
+   - Purpose: Face restoration and enhancement for old/damaged photos
+   - Models: v1.3 (fast), v1.4 (high quality)
+   - Upscaling: 1x to 4x resolution enhancement
+   - Best for: Portrait photos, group photos, family photographs
+
+2. **CodeFormer** (Face Restoration)
+   - Purpose: Advanced face restoration with fidelity control
+   - Fidelity range: 0.0 (more restoration) to 1.0 (preserve original)
+   - Upscaling: 1x to 4x with background enhancement
+   - Face upsampling for detailed facial features
+   - Best for: Severely damaged portraits, balance between restoration and authenticity
+
+**Quality Presets:**
+- `fast`: Quick processing, 1x upscale, basic restoration (GFPGAN v1.3)
+- `balanced`: 2x upscale, good quality (GFPGAN v1.4, CodeFormer with face upsample)
+- `quality`: 2x upscale, background enhancement enabled (CodeFormer full features)
+- `maximum`: 4x upscale, all enhancements enabled (highest quality, slower)
+
+**API Endpoints:**
+
+Web API (Session Auth):
+```
+POST /api/photos/<photo_id>/repair/ai
+Body: {
+  "model": "gfpgan" | "codeformer",
+  "quality": "fast" | "balanced" | "quality" | "maximum",
+  "fidelity": 0.0-1.0  // CodeFormer only, default 0.5
+}
+```
+
+Mobile API (JWT Auth):
+```
+POST /photos/<photo_id>/repair
+Body: {
+  "type": "ai",
+  "model": "gfpgan" | "codeformer",
+  "quality": "fast" | "balanced" | "quality" | "maximum",
+  "fidelity": 0.0-1.0  // CodeFormer only, default 0.5
+}
+```
+
+**iOS App Integration:**
+- Ready to use via `photoAPI.repairDamage(photoId, options)`
+- Implemented in `StoryKeep-iOS/src/services/api.js`
+- UI screens: `EnhancePhotoScreen.js`
+- Supports all quality presets and model selection
+
+**Quota Management:**
+- AI restorations count against monthly AI enhancement quota
+- Tracked via `AIEnhancementLog` model
+- Quota limits: Free (5), Personal (25), Family (75), Pro (500) per month
+
+**Additional AI Services (Inactive - Require Configuration):**
+- ⚠️ Google Gemini API - Colorization and photo analysis (needs `GEMINI_API_KEY`)
+- ⚠️ OpenAI API - AI inpainting for damage repair (needs `OPENAI_API_KEY`)
+
 ## User Preferences
 None configured yet (will be added as needed)
 
