@@ -262,6 +262,8 @@ def create_app(config_class=None):
     app.register_blueprint(superuser_bp, url_prefix='/superuser')
     # Exempt entire mobile API blueprint from CSRF protection (uses JWT auth instead)
     csrf.exempt(mobile_api_bp)
+    # Exempt mobile API from rate limiting (JWT auth provides sufficient security)
+    limiter.exempt(mobile_api_bp)
     # Register mobile_api_bp - mobile uses /api/upload, web uses /api/web/upload
     app.register_blueprint(mobile_api_bp)
     app.register_blueprint(photo_bp)

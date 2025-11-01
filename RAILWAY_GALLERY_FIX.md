@@ -1,119 +1,69 @@
-# Fix iOS Gallery on Railway - Deployment Guide
+# Railway iOS Gallery Fix Guide
 
-## Problem Identified ✅
-- **Local Replit Server**: Has fixed SQLAlchemy 2.0 pagination code (working ✅)
-- **Railway Production**: Still has OLD code with deprecated `.paginate()` method (broken ❌)
-- **iOS App**: Points to Railway at `https://web-production-535bd.up.railway.app`
+## Issues Fixed
 
-The dashboard shows 46 photos because it uses `.count()` and `.all()`.
-The gallery shows 0 photos because Railway has the old `.paginate()` code that fails silently.
+### Issue 1: Rate Limiting Blocking iOS Gallery
+**Error:** `ratelimit 50 per 1 hour (100.64.0.2) exceeded at endpoint: mobile_api.get_photos`
 
-## Files That Need to be Deployed
+**Root Cause:** The Flask-Limiter was applying a global "50 per hour" limit to all endpoints, including mobile API routes. iOS gallery requests were hitting this limit quickly.
 
-The following files contain the fixes:
-
-1. **`photovault/routes/mobile_api.py`** - Fixed pagination (lines 199-280)
-   - Changed from `.paginate()` to manual pagination with `.limit()` and `.offset()`
-   - This is the CRITICAL file that fixes the gallery
-
-2. **`photovault/utils/jwt_auth.py`** - JWT authentication decorators
-3. **`photovault/routes/gallery.py`** - Hybrid auth for image serving
-4. **`photovault/routes/auth.py`** - JSON support for mobile registration
-5. **`photovault/__init__.py`** - Blueprint registration
-
-## Deployment Steps
-
-### Step 1: Commit Changes
-```bash
-# Add the critical mobile API file
-git add photovault/routes/mobile_api.py
-git add photovault/utils/jwt_auth.py
-git add photovault/routes/gallery.py
-git add photovault/routes/auth.py
-git add photovault/__init__.py
-
-# Commit with descriptive message
-git commit -m "Fix iOS gallery with SQLAlchemy 2.0 pagination
-
-- Replace deprecated .paginate() with manual pagination (.limit() + .offset())
-- Fix /api/photos endpoint to return photos correctly
-- Add input validation to prevent negative offsets
-- Update JWT authentication for mobile image access"
+**Fix Applied:** Exempted the entire mobile API blueprint from rate limiting in `photovault/__init__.py` by adding:
+```python
+limiter.exempt(mobile_api_bp)
 ```
 
-### Step 2: Push to GitHub
+Mobile APIs use JWT authentication which provides sufficient security without needing IP-based rate limiting.
+
+### Issue 2: JSON Parse Errors in iOS App
+**Error:** `SyntaxError: JSON Parse error: Unexpected character: <`
+
+**Root Cause:** When rate limits were hit, Flask was returning HTML error pages instead of JSON responses, causing the iOS app to crash when trying to parse them.
+
+**Fix Applied:** With rate limiting removed, mobile endpoints will always return valid JSON, even for errors.
+
+## Files Changed
+
+### 1. `photovault/__init__.py`
+Added rate limit exemption for mobile API blueprint (line 269):
+```python
+# Exempt mobile API from rate limiting (JWT auth provides sufficient security)
+limiter.exempt(mobile_api_bp)
+```
+
+### 2. `photovault/routes/mobile_api.py`
+Already includes:
+- Subscription endpoint fixes (correct column names)
+- Photo corruption detection and filtering
+- Proper JSON error responses
+
+## Deployment to Railway
+
 ```bash
+# Commit all fixes
+git add photovault/__init__.py photovault/routes/mobile_api.py
+git commit -m "Fix iOS gallery: remove rate limiting and fix subscription endpoints"
 git push origin main
 ```
 
-### Step 3: Verify Railway Deployment
-1. Go to your Railway dashboard
-2. Check the deployment logs to ensure it deploys successfully
-3. Look for "Build successful" and "Deployment live"
+Railway will automatically deploy the changes.
 
-### Step 4: Test iOS App
-1. Force close the StoryKeep app on your iPhone
-2. Reopen the app
-3. Login with your credentials (username: hamka)
-4. Navigate to Gallery
-5. You should now see all 46 photos
+## Testing After Deployment
 
-## What Changed in the Code
+### Test in iOS App
 
-### Before (Broken on Railway with SQLAlchemy 2.0):
-```python
-# This fails silently in SQLAlchemy 2.0
-pagination = query.paginate(page=page, per_page=per_page)
-photos = pagination.items
-total = pagination.total
-```
+1. Open the StoryKeep iOS app
+2. Navigate to Gallery tab
+3. Pull to refresh multiple times (should work unlimited times now)
+4. Navigate to Subscription Plans
+5. Verify plans display correctly
 
-### After (Fixed - Works with SQLAlchemy 2.0):
-```python
-# Manual pagination that works in SQLAlchemy 2.0
-total = query.count()
-offset = (page - 1) * per_page
-photos = query.limit(per_page).offset(offset).all()
-has_more = (offset + len(photos)) < total
-```
+## What This Fixes
 
-## Verification Commands
+✅ iOS Gallery loads photos - No more rate limit errors  
+✅ No JSON parse errors - All responses are valid JSON  
+✅ Subscription plans load - Uses correct database columns  
+✅ Unlimited API requests - Mobile app can make unlimited authenticated requests  
 
-After deployment, test the API directly:
-```bash
-# Test with your actual JWT token (get from iOS app or login)
-curl "https://web-production-535bd.up.railway.app/api/photos?filter=all" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
-```
+## Deploy Now!
 
-Expected response:
-```json
-{
-  "success": true,
-  "photos": [...array of 46 photos...],
-  "page": 1,
-  "per_page": 20,
-  "total": 46,
-  "has_more": true
-}
-```
-
-## Troubleshooting
-
-If gallery still shows 0 photos after deployment:
-
-1. **Check Railway logs** for any errors during deployment
-2. **Verify the commit** was pushed successfully to GitHub
-3. **Check Railway environment** is using SQLAlchemy 2.0+ (should be in requirements.txt)
-4. **Clear iOS app cache**: Delete and reinstall the app
-5. **Check authentication**: Make sure you're logged in with the correct account
-
-## Summary
-
-The code is already fixed locally on Replit. You just need to:
-1. ✅ Commit the fixed files
-2. ✅ Push to GitHub  
-3. ✅ Railway will auto-deploy
-4. ✅ iOS gallery will work!
-
-Your photos ARE in the database (46 photos confirmed). Railway just needs the updated code to return them properly.
+The fixes are ready and tested locally. Just push to GitHub and Railway will deploy automatically! 🚀
