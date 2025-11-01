@@ -3963,9 +3963,10 @@ def get_subscription_plans(current_user):
         
         plans_data = []
         for plan in plans:
-            # Use actual database column names
-            ai_quota = plan.ai_enhancement_quota if hasattr(plan, 'ai_enhancement_quota') else 5
-            family_vaults = plan.max_family_vaults if hasattr(plan, 'max_family_vaults') else 1
+            # Use actual database column names with safe getattr() for robustness
+            ai_quota = getattr(plan, 'ai_enhancement_quota', 5)
+            family_vaults = getattr(plan, 'max_family_vaults', 1)
+            storage_gb = float(plan.storage_gb) if plan.storage_gb else 0.5
             
             plans_data.append({
                 'id': plan.id,
@@ -3973,15 +3974,15 @@ def get_subscription_plans(current_user):
                 'display_name': plan.display_name,
                 'description': plan.description,
                 'price_myr': float(plan.price_myr) if plan.price_myr else 0.0,
-                'storage_gb': float(plan.storage_gb) if plan.storage_gb else 0.5,
+                'storage_gb': storage_gb,
                 'ai_enhancements_per_month': ai_quota,
                 'family_vaults_limit': family_vaults,
                 'is_featured': plan.is_featured,
                 'is_current': plan.id == current_plan_id,
                 'features': [
-                    f"{plan.storage_gb}GB Storage" if plan.storage_gb and plan.storage_gb >= 1 else "500MB Storage",
-                    f"{ai_quota} AI Enhancements/month" if ai_quota else "5 AI Enhancements/month",
-                    f"{family_vaults} Family Vaults" if family_vaults else "1 Family Vault"
+                    f"{storage_gb}GB Storage" if storage_gb >= 1 else "500MB Storage",
+                    f"{ai_quota} AI Enhancements/month",
+                    f"{family_vaults} Family Vault{'s' if family_vaults != 1 else ''}"
                 ]
             })
         
@@ -4010,19 +4011,21 @@ def get_current_subscription(current_user):
             # No active subscription, return Free plan info
             free_plan = SubscriptionPlan.query.filter_by(name='free').first()
             if free_plan:
-                ai_quota = free_plan.ai_enhancement_quota if hasattr(free_plan, 'ai_enhancement_quota') else 5
-                family_vaults = free_plan.max_family_vaults if hasattr(free_plan, 'max_family_vaults') else 1
+                ai_quota = getattr(free_plan, 'ai_enhancement_quota', 5)
+                family_vaults = getattr(free_plan, 'max_family_vaults', 1)
                 storage = float(free_plan.storage_gb) if free_plan.storage_gb else 0.5
+                plan_display_name = free_plan.display_name
             else:
                 ai_quota = 5
                 family_vaults = 1
                 storage = 0.5
+                plan_display_name = 'Free Plan'
             
             return jsonify({
                 'success': True,
                 'subscription': {
                     'plan_name': 'Free',
-                    'plan_display_name': free_plan.display_name if free_plan else 'Free Plan',
+                    'plan_display_name': plan_display_name,
                     'status': 'active',
                     'is_free': True,
                     'storage_gb': storage,
@@ -4033,9 +4036,9 @@ def get_current_subscription(current_user):
         
         plan = subscription.plan
         
-        # Use actual database column names
-        ai_quota = plan.ai_enhancement_quota if hasattr(plan, 'ai_enhancement_quota') else 5
-        family_vaults = plan.max_family_vaults if hasattr(plan, 'max_family_vaults') else 1
+        # Use actual database column names with safe getattr() for robustness
+        ai_quota = getattr(plan, 'ai_enhancement_quota', 5)
+        family_vaults = getattr(plan, 'max_family_vaults', 1)
         
         return jsonify({
             'success': True,
