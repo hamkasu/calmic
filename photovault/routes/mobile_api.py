@@ -3963,21 +3963,25 @@ def get_subscription_plans(current_user):
         
         plans_data = []
         for plan in plans:
+            # Use actual database column names
+            ai_quota = plan.ai_enhancement_quota if hasattr(plan, 'ai_enhancement_quota') else 5
+            family_vaults = plan.max_family_vaults if hasattr(plan, 'max_family_vaults') else 1
+            
             plans_data.append({
                 'id': plan.id,
                 'name': plan.name,
                 'display_name': plan.display_name,
                 'description': plan.description,
                 'price_myr': float(plan.price_myr) if plan.price_myr else 0.0,
-                'storage_gb': plan.storage_gb,
-                'ai_enhancements_per_month': plan.ai_enhancements_per_month,
-                'family_vaults_limit': plan.family_vaults_limit,
+                'storage_gb': float(plan.storage_gb) if plan.storage_gb else 0.5,
+                'ai_enhancements_per_month': ai_quota,
+                'family_vaults_limit': family_vaults,
                 'is_featured': plan.is_featured,
                 'is_current': plan.id == current_plan_id,
                 'features': [
-                    f"{plan.storage_gb}GB Storage" if plan.storage_gb else "500MB Storage",
-                    f"{plan.ai_enhancements_per_month} AI Enhancements/month" if plan.ai_enhancements_per_month else "5 AI Enhancements/month",
-                    f"{plan.family_vaults_limit} Family Vaults" if plan.family_vaults_limit else "1 Family Vault"
+                    f"{plan.storage_gb}GB Storage" if plan.storage_gb and plan.storage_gb >= 1 else "500MB Storage",
+                    f"{ai_quota} AI Enhancements/month" if ai_quota else "5 AI Enhancements/month",
+                    f"{family_vaults} Family Vaults" if family_vaults else "1 Family Vault"
                 ]
             })
         
@@ -4004,7 +4008,16 @@ def get_current_subscription(current_user):
         
         if not subscription:
             # No active subscription, return Free plan info
-            free_plan = SubscriptionPlan.query.filter_by(name='Free').first()
+            free_plan = SubscriptionPlan.query.filter_by(name='free').first()
+            if free_plan:
+                ai_quota = free_plan.ai_enhancement_quota if hasattr(free_plan, 'ai_enhancement_quota') else 5
+                family_vaults = free_plan.max_family_vaults if hasattr(free_plan, 'max_family_vaults') else 1
+                storage = float(free_plan.storage_gb) if free_plan.storage_gb else 0.5
+            else:
+                ai_quota = 5
+                family_vaults = 1
+                storage = 0.5
+            
             return jsonify({
                 'success': True,
                 'subscription': {
@@ -4012,13 +4025,17 @@ def get_current_subscription(current_user):
                     'plan_display_name': free_plan.display_name if free_plan else 'Free Plan',
                     'status': 'active',
                     'is_free': True,
-                    'storage_gb': 0.5,
-                    'ai_enhancements_per_month': 5,
-                    'family_vaults_limit': 1
+                    'storage_gb': storage,
+                    'ai_enhancements_per_month': ai_quota,
+                    'family_vaults_limit': family_vaults
                 }
             })
         
         plan = subscription.plan
+        
+        # Use actual database column names
+        ai_quota = plan.ai_enhancement_quota if hasattr(plan, 'ai_enhancement_quota') else 5
+        family_vaults = plan.max_family_vaults if hasattr(plan, 'max_family_vaults') else 1
         
         return jsonify({
             'success': True,
@@ -4029,9 +4046,9 @@ def get_current_subscription(current_user):
                 'status': subscription.status,
                 'is_free': plan.price_myr == 0,
                 'price_myr': float(plan.price_myr) if plan.price_myr else 0.0,
-                'storage_gb': plan.storage_gb,
-                'ai_enhancements_per_month': plan.ai_enhancements_per_month,
-                'family_vaults_limit': plan.family_vaults_limit,
+                'storage_gb': float(plan.storage_gb) if plan.storage_gb else 0.5,
+                'ai_enhancements_per_month': ai_quota,
+                'family_vaults_limit': family_vaults,
                 'current_period_start': subscription.current_period_start.isoformat() if subscription.current_period_start else None,
                 'current_period_end': subscription.current_period_end.isoformat() if subscription.current_period_end else None,
                 'next_billing_date': subscription.next_billing_date.isoformat() if subscription.next_billing_date else None,
