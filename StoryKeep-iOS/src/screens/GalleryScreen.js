@@ -46,6 +46,7 @@ export default function GalleryScreen({ navigation }) {
   const [initialLoading, setInitialLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [totalPhotos, setTotalPhotos] = useState(0);
+  const [hasMorePhotos, setHasMorePhotos] = useState(true);
   const { startLoading, stopLoading } = useLoading();
   
   // Vault sharing states
@@ -59,6 +60,7 @@ export default function GalleryScreen({ navigation }) {
     useCallback(() => {
       // Refresh photos from server to show newest uploads
       setCurrentPage(1);
+      setHasMorePhotos(true);
       loadPhotos(1, false);
     }, [filter])
   );
@@ -67,6 +69,7 @@ export default function GalleryScreen({ navigation }) {
     // When filter changes, reload from server
     if (!initialLoading) {
       setCurrentPage(1);
+      setHasMorePhotos(true);
       loadPhotos(1, false);
     }
   }, [filter]);
@@ -109,15 +112,17 @@ export default function GalleryScreen({ navigation }) {
         if (data.pagination) {
           setCurrentPage(data.pagination.current_page);
           setTotalPhotos(data.pagination.total_count);
-          // Store if there are more pages to load
-          if (!data.pagination.has_more) {
-            setLoadingMore(false);
-          }
+          // Update hasMorePhotos based on API response
+          setHasMorePhotos(data.pagination.has_more === true);
+        } else {
+          // No pagination data means no more pages
+          setHasMorePhotos(false);
         }
       } else {
         if (!append) {
           setAllPhotos([]);
         }
+        setHasMorePhotos(false);
       }
       
       if (!append) setLoadingProgress(100);
@@ -135,7 +140,7 @@ export default function GalleryScreen({ navigation }) {
   };
 
   const loadMorePhotos = () => {
-    if (!loadingMore && !initialLoading) {
+    if (!loadingMore && !initialLoading && hasMorePhotos) {
       setLoadingMore(true);
       // Load next page from server
       loadPhotos(currentPage + 1, true);
@@ -145,6 +150,7 @@ export default function GalleryScreen({ navigation }) {
   const onRefresh = () => {
     setRefreshing(true);
     setCurrentPage(1);
+    setHasMorePhotos(true);
     loadPhotos(1, false);
   };
 
