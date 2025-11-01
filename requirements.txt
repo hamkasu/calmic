@@ -24,6 +24,7 @@ opencv-python-headless==4.12.0.88
 opencv-contrib-python-headless==4.12.0.88
 numpy>=2.0
 scikit-image>=0.24.0
+blurhash==1.1.4
 
 # Security and Forms
 WTForms==3.1.1
