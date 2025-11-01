@@ -1,0 +1,17 @@
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Error deleting user: (psycopg2.errors.UndefinedTable) relation "oauth_provider" does not exist
+LINE 2: FROM oauth_provider 
+             ^
+[SQL: SELECT oauth_provider.id AS oauth_provider_id, oauth_provider.user_id AS oauth_provider_user_id, oauth_provider.provider AS oauth_provider_provider, oauth_provider.provider_user_id AS oauth_provider_provider_user_id, oauth_provider.email AS oauth_provider_email, oauth_provider.display_name AS oauth_provider_display_name, oauth_provider.profile_picture_url AS oauth_provider_profile_picture_url, oauth_provider.access_token AS oauth_provider_access_token, oauth_provider.refresh_token AS oauth_provider_refresh_token, oauth_provider.token_expires_at AS oauth_provider_token_expires_at, oauth_provider.created_at AS oauth_provider_created_at, oauth_provider.updated_at AS oauth_provider_updated_at, oauth_provider.last_login_at AS oauth_provider_last_login_at 
+FROM oauth_provider 
+WHERE %(param_1)s = oauth_provider.user_id]
+[parameters: {'param_1': 3}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Error deleting user: (psycopg2.errors.UndefinedTable) relation "oauth_provider" does not exist
+LINE 2: FROM oauth_provider 
+             ^
+[SQL: SELECT oauth_provider.id AS oauth_provider_id, oauth_provider.user_id AS oauth_provider_user_id, oauth_provider.provider AS oauth_provider_provider, oauth_provider.provider_user_id AS oauth_provider_provider_user_id, oauth_provider.email AS oauth_provider_email, oauth_provider.display_name AS oauth_provider_display_name, oauth_provider.profile_picture_url AS oauth_provider_profile_picture_url, oauth_provider.access_token AS oauth_provider_access_token, oauth_provider.refresh_token AS oauth_provider_refresh_token, oauth_provider.token_expires_at AS oauth_provider_token_expires_at, oauth_provider.created_at AS oauth_provider_created_at, oauth_provider.updated_at AS oauth_provider_updated_at, oauth_provider.last_login_at AS oauth_provider_last_login_at 
+FROM oauth_provider 
+WHERE %(param_1)s = oauth_provider.user_id]
+[parameters: {'param_1': 4}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
