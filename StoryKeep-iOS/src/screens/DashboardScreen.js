@@ -298,7 +298,7 @@ export default function DashboardScreen({ navigation }) {
           <View style={styles.subscriptionHeader}>
             <Ionicons name="shield-checkmark" size={24} color="#E85D75" />
             <Text style={styles.subscriptionText}>
-              {stats.subscription_plan} Plan
+              {stats.subscription_plan}
             </Text>
           </View>
           

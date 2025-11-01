@@ -89,7 +89,7 @@ def _seed_subscription_plans(app):
         {
             'name': 'pro',
             'display_name': 'Pro Plan',
-            'description': 'Unlimited storage and all premium features',
+            'description': 'Professional storage and premium features',
             'price_myr': Decimal('49.90'),
             'sst_rate': Decimal('6.00'),
             'storage_gb': 500,
@@ -106,6 +106,27 @@ def _seed_subscription_plans(app):
             'is_active': True,
             'is_featured': False,
             'sort_order': 4
+        },
+        {
+            'name': 'business',
+            'display_name': 'Business Plan',
+            'description': 'Enterprise-grade storage and unlimited AI enhancements',
+            'price_myr': Decimal('99.90'),
+            'sst_rate': Decimal('6.00'),
+            'storage_gb': 500,
+            'max_photos': None,
+            'max_family_vaults': 999,
+            'ai_enhancement_quota': 1000,
+            'face_detection': True,
+            'photo_enhancement': True,
+            'smart_tagging': True,
+            'social_media_integration': True,
+            'api_access': True,
+            'priority_support': True,
+            'billing_period': 'monthly',
+            'is_active': True,
+            'is_featured': True,
+            'sort_order': 5
         }
     ]
     
