@@ -317,7 +317,15 @@ def delete_user(user_id):
                 pass  # Table doesn't exist, skip
             
             try:
-                LoginAttempt.query.filter_by(user_id=user_id).delete()
+                # LoginAttempt doesn't have user_id, only username_or_email
+                # Delete attempts matching both username and email
+                from sqlalchemy import or_
+                LoginAttempt.query.filter(
+                    or_(
+                        LoginAttempt.username_or_email == user.username,
+                        LoginAttempt.username_or_email == user.email
+                    )
+                ).delete(synchronize_session=False)
             except (ProgrammingError, OperationalError):
                 db.session.rollback()
                 pass  # Table doesn't exist, skip
