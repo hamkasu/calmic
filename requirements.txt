@@ -173,3 +173,14 @@ SQLAlchemy==2.0.25
 stripe==11.1.1
 Werkzeug==3.0.3
 WTForms==3.1.1
+Flask
+Flask-Login
+Flask-SQLAlchemy
+gunicorn
+numpy
+opencv-python-headless
+Pillow
+python-dotenv
+requests
+scikit-image
+Werkzeug
