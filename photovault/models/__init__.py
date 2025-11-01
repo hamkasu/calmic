@@ -926,3 +926,24 @@ class SecurityLog(db.Model):
     
     def __repr__(self):
         return f'<SecurityLog {self.event_type} at {self.created_at}>'
+
+
+class AIEnhancementLog(db.Model):
+    """Track AI enhancement usage for quota management"""
+    __tablename__ = 'ai_enhancement_log'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    photo_id = db.Column(db.Integer, db.ForeignKey('photo.id'), nullable=True)
+    enhancement_type = db.Column(db.String(50), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    
+    user = db.relationship('User', backref=db.backref('ai_enhancements', cascade='all, delete-orphan', passive_deletes=True))
+    photo = db.relationship('Photo', backref=db.backref('ai_enhancement_logs', cascade='all, delete-orphan', passive_deletes=True))
+    
+    __table_args__ = (
+        db.Index('idx_user_created', 'user_id', 'created_at'),
+    )
+    
+    def __repr__(self):
+        return f'<AIEnhancementLog user_id={self.user_id} type={self.enhancement_type}>'

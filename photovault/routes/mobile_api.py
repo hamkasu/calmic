@@ -6,6 +6,7 @@ from flask import Blueprint, jsonify, request, current_app, url_for
 from photovault.models import Photo, UserSubscription, FamilyVault, FamilyMember, User, VaultPhoto, VaultInvitation, PhotoComment, SubscriptionPlan
 from photovault.extensions import db, csrf
 from photovault.utils.jwt_auth import token_required
+from photovault.utils.subscription_enforcement import require_storage, require_ai_quota, check_storage_limit, log_ai_enhancement
 from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash, generate_password_hash
 import os
@@ -898,6 +899,17 @@ def upload_photo(current_user):
         
         if file_size > MAX_FILE_SIZE:
             return jsonify({'error': 'File too large (max 50MB)'}), 400
+        
+        # Check storage limit before upload
+        success, message, current_gb, limit_gb = check_storage_limit(current_user.id, file_size)
+        if not success:
+            return jsonify({
+                'error': message,
+                'error_type': 'storage_limit_exceeded',
+                'current_storage_gb': round(current_gb, 2),
+                'storage_limit_gb': limit_gb,
+                'upgrade_required': True
+            }), 403
         
         # Generate unique filename
         if not file.filename:

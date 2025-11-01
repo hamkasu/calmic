@@ -16,6 +16,7 @@ from photovault.models import Photo
 from photovault.extensions import db
 from photovault.services.ai_service import get_ai_service
 from photovault.utils.colorization import get_colorizer
+from photovault.utils.subscription_enforcement import require_ai_quota, log_ai_enhancement
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,7 @@ colorization_bp = Blueprint('colorization', __name__, url_prefix='/api/colorizat
 
 @colorization_bp.route('/colorize', methods=['POST'])
 @login_required
+@require_ai_quota()
 def colorize_photo():
     """
     Colorize a photo using DNN-based colorization
@@ -142,6 +144,9 @@ def colorize_photo():
         }
         db.session.commit()
         
+        # Log AI enhancement usage for quota tracking
+        log_ai_enhancement(current_user.id, 'colorization', photo.id)
+        
         logger.info(f"Photo {photo_id} colorized successfully using {method_used}")
         
         return jsonify({
@@ -163,6 +168,7 @@ def colorize_photo():
 
 @colorization_bp.route('/colorize-ai', methods=['POST'])
 @login_required
+@require_ai_quota()
 def colorize_photo_ai():
     """
     Colorize a photo using AI-powered colorization

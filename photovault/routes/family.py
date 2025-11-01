@@ -13,6 +13,7 @@ from photovault.models import (
     db, User, FamilyVault, FamilyMember, VaultInvitation, Story, 
     VaultPhoto, StoryPhoto, StoryPerson, Photo, Person
 )
+from photovault.utils.subscription_enforcement import require_vault_capacity
 from photovault.forms import (
     validate_vault_name, validate_vault_description, validate_email_for_invitation,
     validate_invitation_role, validate_story_title, validate_story_content,
@@ -76,6 +77,7 @@ def index():
 
 @family_bp.route('/create', methods=['GET', 'POST'])
 @login_required
+@require_vault_capacity()
 def create_vault():
     """Create a new family vault"""
     if request.method == 'POST':
