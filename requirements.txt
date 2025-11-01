@@ -185,3 +185,10 @@ python-dotenv
 requests
 scikit-image
 Werkzeug
+flask
+flask-login
+flask-sqlalchemy
+numpy
+opencv-python
+pillow
+werkzeug
