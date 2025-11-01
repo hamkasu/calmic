@@ -27,9 +27,9 @@ class User(UserMixin, db.Model):
     stripe_customer_id = db.Column(db.String(255), unique=True)
     
     # Relationships
-    photos = db.relationship('Photo', backref='user', lazy=True, cascade='all, delete-orphan')
-    albums = db.relationship('Album', backref='user', lazy=True, cascade='all, delete-orphan')
-    people = db.relationship('Person', backref='user', lazy=True, cascade='all, delete-orphan')
+    photos = db.relationship('Photo', backref='user', lazy=True, cascade='all, delete-orphan', passive_deletes=True)
+    albums = db.relationship('Album', backref='user', lazy=True, cascade='all, delete-orphan', passive_deletes=True)
+    people = db.relationship('Person', backref='user', lazy=True, cascade='all, delete-orphan', passive_deletes=True)
     
     def set_password(self, password):
         """Set password hash"""
@@ -200,7 +200,7 @@ class PasswordResetToken(db.Model):
     used = db.Column(db.Boolean, default=False)
     
     # Relationships
-    user = db.relationship('User', backref='reset_tokens')
+    user = db.relationship('User', backref=db.backref('reset_tokens', cascade='all, delete-orphan', passive_deletes=True))
     
     def __init__(self, user_id):
         """Initialize password reset token"""
@@ -256,7 +256,7 @@ class VoiceMemo(db.Model):
     
     # Relationships
     photo = db.relationship('Photo', backref='voice_memos')
-    user = db.relationship('User', backref='voice_memos')
+    user = db.relationship('User', backref=db.backref('voice_memos', cascade='all, delete-orphan', passive_deletes=True))
     
     @property
     def file_size_mb(self):
@@ -294,7 +294,7 @@ class PhotoComment(db.Model):
     
     # Relationships
     photo = db.relationship('Photo', backref='comments')
-    user = db.relationship('User', backref='photo_comments')
+    user = db.relationship('User', backref=db.backref('photo_comments', cascade='all, delete-orphan', passive_deletes=True))
     
     def __repr__(self):
         return f'<PhotoComment {self.id} for Photo {self.photo_id}>'
@@ -311,7 +311,7 @@ class FamilyVault(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    creator = db.relationship('User', backref='created_vaults')
+    creator = db.relationship('User', backref=db.backref('created_vaults', cascade='all, delete-orphan', passive_deletes=True))
     members = db.relationship('FamilyMember', backref='vault', lazy='dynamic', cascade='all, delete-orphan')
     invitations = db.relationship('VaultInvitation', backref='vault', lazy='dynamic', cascade='all, delete-orphan')
     shared_photos = db.relationship('VaultPhoto', backref='vault', lazy='dynamic', cascade='all, delete-orphan')
@@ -351,8 +351,8 @@ class FamilyMember(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    user = db.relationship('User', foreign_keys=[user_id], backref='vault_memberships')
-    inviter = db.relationship('User', foreign_keys=[invited_by])
+    user = db.relationship('User', foreign_keys=[user_id], backref=db.backref('vault_memberships', cascade='all, delete-orphan', passive_deletes=True))
+    inviter = db.relationship('User', foreign_keys=[invited_by], passive_deletes=True)
     
     def can_manage_vault(self):
         """Check if member can manage vault settings"""
@@ -384,7 +384,7 @@ class VaultInvitation(db.Model):
     last_sent_at = db.Column(db.DateTime)
     
     # Relationships
-    inviter = db.relationship('User', backref='sent_invitations')
+    inviter = db.relationship('User', backref=db.backref('sent_invitations', cascade='all, delete-orphan', passive_deletes=True))
     
     @property
     def is_expired(self):
@@ -443,7 +443,7 @@ class VaultPhoto(db.Model):
     
     # Relationships
     photo = db.relationship('Photo', backref='vault_shares')
-    sharer = db.relationship('User', backref='shared_photos')
+    sharer = db.relationship('User', backref=db.backref('shared_photos', cascade='all, delete-orphan', passive_deletes=True))
     
     def __repr__(self):
         return f'<VaultPhoto {self.photo.original_name if self.photo else "Unknown"} in {self.vault.name if self.vault else "Unknown"}>'
@@ -461,7 +461,7 @@ class Story(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    author = db.relationship('User', backref='authored_stories')
+    author = db.relationship('User', backref=db.backref('authored_stories', cascade='all, delete-orphan', passive_deletes=True))
     photo_attachments = db.relationship('StoryPhoto', backref='story', lazy='dynamic', cascade='all, delete-orphan')
     person_mentions = db.relationship('StoryPerson', backref='story', lazy='dynamic', cascade='all, delete-orphan')
     
@@ -609,7 +609,7 @@ class UserSubscription(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    user = db.relationship('User', backref='user_subscriptions')
+    user = db.relationship('User', backref=db.backref('user_subscriptions', cascade='all, delete-orphan', passive_deletes=True))
     invoices = db.relationship('Invoice', backref='subscription', lazy='dynamic')
     
     @property
@@ -686,7 +686,7 @@ class Invoice(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    user = db.relationship('User', backref='invoices')
+    user = db.relationship('User', backref=db.backref('invoices', cascade='all, delete-orphan', passive_deletes=True))
     payment_records = db.relationship('PaymentHistory', backref='invoice', lazy='dynamic')
     
     @property
@@ -741,7 +741,7 @@ class PaymentHistory(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
-    user = db.relationship('User', backref='payment_history')
+    user = db.relationship('User', backref=db.backref('payment_history', cascade='all, delete-orphan', passive_deletes=True))
     
     @property
     def is_successful(self):
@@ -781,7 +781,7 @@ class SocialMediaConnection(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    user = db.relationship('User', backref='social_media_connections')
+    user = db.relationship('User', backref=db.backref('social_media_connections', cascade='all, delete-orphan', passive_deletes=True))
     
     # Composite unique constraint - one connection per user per platform
     __table_args__ = (
@@ -824,7 +824,7 @@ class AccountLockout(db.Model):
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     unlocked_at = db.Column(db.DateTime)
     
-    user = db.relationship('User', backref='lockouts')
+    user = db.relationship('User', backref=db.backref('lockouts', cascade='all, delete-orphan', passive_deletes=True))
     
     def __repr__(self):
         return f'<AccountLockout user_id={self.user_id} until {self.unlock_at}>'
@@ -843,7 +843,7 @@ class RefreshToken(db.Model):
     device_info = db.Column(db.String(500))
     ip_address = db.Column(db.String(45))
     
-    user = db.relationship('User', backref='refresh_tokens')
+    user = db.relationship('User', backref=db.backref('refresh_tokens', cascade='all, delete-orphan', passive_deletes=True))
     
     @property
     def is_valid(self):
@@ -873,7 +873,7 @@ class MFASecret(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     last_used_at = db.Column(db.DateTime)
     
-    user = db.relationship('User', backref=db.backref('mfa_secret', uselist=False))
+    user = db.relationship('User', backref=db.backref('mfa_secret', uselist=False, cascade='all, delete-orphan', passive_deletes=True))
     
     def __repr__(self):
         return f'<MFASecret user_id={self.user_id} enabled={self.is_enabled}>'
@@ -897,7 +897,7 @@ class OAuthProvider(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_login_at = db.Column(db.DateTime)
     
-    user = db.relationship('User', backref='oauth_providers')
+    user = db.relationship('User', backref=db.backref('oauth_providers', cascade='all, delete-orphan', passive_deletes=True))
     
     __table_args__ = (
         db.UniqueConstraint('user_id', 'provider', name='_user_oauth_provider_uc'),
@@ -922,7 +922,7 @@ class SecurityLog(db.Model):
     event_metadata = db.Column(db.JSON)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
     
-    user = db.relationship('User', backref='security_logs')
+    user = db.relationship('User', backref=db.backref('security_logs', cascade='all, delete-orphan', passive_deletes=True))
     
     def __repr__(self):
         return f'<SecurityLog {self.event_type} at {self.created_at}>'
