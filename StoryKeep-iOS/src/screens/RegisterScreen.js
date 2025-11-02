@@ -219,8 +219,8 @@ export default function RegisterScreen({ navigation }) {
     >
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.content}>
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Join StoryKeep to preserve your family memories</Text>
+          <Text style={styles.title}>Start Saving Family Stories</Text>
+          <Text style={styles.subtitle}>Before old photos fade and memories are forgotten</Text>
 
           <View style={styles.form}>
             {/* Username Input */}

@@ -2,6 +2,7 @@
   "expo": {
     "name": "StoryKeep",
     "slug": "storykeep",
+    "description": "Digitize old family photos and preserve the stories behind them before they fade away forever. StoryKeep captures voices, context, and memories—not just images.",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,11 +16,11 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.calmic.storykeep",
       "infoPlist": {
-        "NSCameraUsageDescription": "StoryKeep needs access to your camera to digitize physical photos.",
-        "NSMicrophoneUsageDescription": "StoryKeep needs access to your microphone to record voice memos.",
-        "NSPhotoLibraryUsageDescription": "StoryKeep needs access to your photo library to save and import photos.",
-        "NSPhotoLibraryAddUsageDescription": "StoryKeep needs permission to save photos to your library.",
-        "NSFaceIDUsageDescription": "StoryKeep uses Face ID to secure your account."
+        "NSCameraUsageDescription": "Digitize your family's old photos before they fade away forever.",
+        "NSMicrophoneUsageDescription": "Record the stories behind each photo in your grandparents' own voice.",
+        "NSPhotoLibraryUsageDescription": "Save restored family photos and memories to your library.",
+        "NSPhotoLibraryAddUsageDescription": "Preserve digitized family photos in your photo library.",
+        "NSFaceIDUsageDescription": "Keep your family's precious memories secure with Face ID."
       }
     },
     "android": {
@@ -51,20 +52,20 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow StoryKeep to access your camera to digitize photos."
+          "cameraPermission": "Digitize your family's old photos before they fade away forever."
         }
       ],
       [
         "expo-media-library",
         {
-          "photosPermission": "Allow StoryKeep to access your photos.",
-          "savePhotosPermission": "Allow StoryKeep to save photos."
+          "photosPermission": "Save restored family photos and memories to your library.",
+          "savePhotosPermission": "Preserve digitized family photos in your photo library."
         }
       ],
       [
         "expo-av",
         {
-          "microphonePermission": "Allow StoryKeep to record voice memos."
+          "microphonePermission": "Record the stories behind each photo in your grandparents' own voice."
         }
       ]
     ]

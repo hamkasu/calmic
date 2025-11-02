@@ -314,7 +314,7 @@ export default function SplashScreen({ onFinish }) {
               },
             ]}
           />
-          <Text style={styles.tagline}>Preserving Memories, Forever</Text>
+          <Text style={styles.tagline}>Bring Your Family's History Into the Digital Age</Text>
         </Animated.View>
       </View>
 

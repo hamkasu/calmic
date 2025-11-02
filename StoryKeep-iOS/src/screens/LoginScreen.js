@@ -138,8 +138,8 @@ export default function LoginScreen({ navigation }) {
           resizeMode="contain"
         />
         
-        <Text style={styles.title}>Welcome to StoryKeep</Text>
-        <Text style={styles.subtitle}>Save Your Family Stories</Text>
+        <Text style={styles.title}>Welcome Back</Text>
+        <Text style={styles.subtitle}>Continue preserving your family's legacy</Text>
 
         <View style={styles.form}>
           <TextInput
