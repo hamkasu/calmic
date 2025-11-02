@@ -11,18 +11,29 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
+import * as Haptics from 'expo-haptics';
 
 const AUTO_ENHANCE_KEY = '@auto_enhance';
 const OFFLINE_MODE_KEY = '@offline_mode';
+const PHOTO_QUALITY_KEY = '@photo_quality';
+
+const QUALITY_OPTIONS = [
+  { value: 'high', label: 'High Quality', subtitle: 'Original size (best quality)' },
+  { value: 'medium', label: 'Medium Quality', subtitle: 'Balanced (1920px width)' },
+  { value: 'low', label: 'Low Quality', subtitle: 'Compressed (saves storage)' },
+];
 
 export default function SettingsScreen({ navigation }) {
   const [autoEnhance, setAutoEnhance] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [offlineMode, setOfflineMode] = useState(true);
+  const [photoQuality, setPhotoQuality] = useState('high');
+  const [showQualityModal, setShowQualityModal] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -32,6 +43,7 @@ export default function SettingsScreen({ navigation }) {
     try {
       const autoEnhanceValue = await AsyncStorage.getItem(AUTO_ENHANCE_KEY);
       const offlineModeValue = await AsyncStorage.getItem(OFFLINE_MODE_KEY);
+      const photoQualityValue = await AsyncStorage.getItem(PHOTO_QUALITY_KEY);
 
       if (autoEnhanceValue !== null) {
         setAutoEnhance(autoEnhanceValue === 'true');
@@ -40,6 +52,10 @@ export default function SettingsScreen({ navigation }) {
       if (offlineModeValue !== null) {
         setOfflineMode(offlineModeValue === 'true');
       }
+
+      if (photoQualityValue !== null) {
+        setPhotoQuality(photoQualityValue);
+      }
     } catch (error) {
       console.error('Error loading settings:', error);
     }
@@ -47,6 +63,7 @@ export default function SettingsScreen({ navigation }) {
 
   const handleAutoEnhanceChange = async (value) => {
     try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setAutoEnhance(value);
       await AsyncStorage.setItem(AUTO_ENHANCE_KEY, value.toString());
     } catch (error) {
@@ -56,11 +73,28 @@ export default function SettingsScreen({ navigation }) {
 
   const handleOfflineModeChange = async (value) => {
     try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setOfflineMode(value);
       await AsyncStorage.setItem(OFFLINE_MODE_KEY, value.toString());
     } catch (error) {
       console.error('Error saving offline mode setting:', error);
     }
+  };
+
+  const handlePhotoQualityChange = async (quality) => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setPhotoQuality(quality);
+      await AsyncStorage.setItem(PHOTO_QUALITY_KEY, quality);
+      setShowQualityModal(false);
+    } catch (error) {
+      console.error('Error saving photo quality setting:', error);
+    }
+  };
+
+  const getQualityLabel = () => {
+    const option = QUALITY_OPTIONS.find(opt => opt.value === photoQuality);
+    return option ? option.subtitle : 'High quality (original size)';
   };
 
   const handleLogout = async () => {
@@ -154,7 +188,11 @@ export default function SettingsScreen({ navigation }) {
         <SettingItem
           icon="resize"
           title="Photo Quality"
-          subtitle="High quality (original size)"
+          subtitle={getQualityLabel()}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setShowQualityModal(true);
+          }}
         />
       </View>
 
@@ -216,6 +254,48 @@ export default function SettingsScreen({ navigation }) {
       </TouchableOpacity>
 
       <Text style={styles.footer}>StoryKeep by CALMIC SDN BHD</Text>
+
+      <Modal
+        visible={showQualityModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowQualityModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Photo Quality</Text>
+              <TouchableOpacity onPress={() => setShowQualityModal(false)}>
+                <Ionicons name="close" size={28} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            {QUALITY_OPTIONS.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.qualityOption,
+                  photoQuality === option.value && styles.qualityOptionSelected,
+                ]}
+                onPress={() => handlePhotoQualityChange(option.value)}
+              >
+                <View style={styles.qualityOptionLeft}>
+                  <Text style={[
+                    styles.qualityOptionTitle,
+                    photoQuality === option.value && styles.qualityOptionTitleSelected,
+                  ]}>
+                    {option.label}
+                  </Text>
+                  <Text style={styles.qualityOptionSubtitle}>{option.subtitle}</Text>
+                </View>
+                {photoQuality === option.value && (
+                  <Ionicons name="checkmark-circle" size={24} color="#E85D75" />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -296,5 +376,57 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
     padding: 20,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  qualityOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  qualityOptionSelected: {
+    backgroundColor: '#FFF5F7',
+  },
+  qualityOptionLeft: {
+    flex: 1,
+  },
+  qualityOptionTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+  },
+  qualityOptionTitleSelected: {
+    color: '#E85D75',
+    fontWeight: '600',
+  },
+  qualityOptionSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
   },
 });
