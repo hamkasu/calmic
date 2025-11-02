@@ -202,6 +202,17 @@ export const photoAPI = {
   },
   
   /**
+   * Apply caricature effect to a photo with exaggerated features and bold colors
+   * @param {number} photoId - The ID of the photo
+   * @param {number} exaggeration - Level of exaggeration (1-10, default: 7)
+   * @param {number} color_levels - Number of color levels (8-32, default: 16)
+   */
+  caricaturePhoto: async (photoId, exaggeration = 7, color_levels = 16) => {
+    const response = await api.post(`/api/photos/${photoId}/caricature`, { exaggeration, color_levels });
+    return response.data;
+  },
+  
+  /**
    * Apply oil painting effect to a photo
    * @param {number} photoId - The ID of the photo
    * @param {number} brush_size - Brush stroke size (1-15, default: 7)

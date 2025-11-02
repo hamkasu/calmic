@@ -58,6 +58,11 @@ export default function EnhancePhotoScreen({ route, navigation }) {
   const [cartoonEdgeThickness, setCartoonEdgeThickness] = useState(5);
   const [cartoonQuality, setCartoonQuality] = useState('balanced');
 
+  // Caricature Effect controls modal state
+  const [showCaricatureControls, setShowCaricatureControls] = useState(false);
+  const [caricatureExaggeration, setCaricatureExaggeration] = useState(7);
+  const [caricatureColorLevels, setCaricatureColorLevels] = useState(16);
+
   // Sketch Effect controls modal state
   const [showSketchControls, setShowSketchControls] = useState(false);
   const [sketchStyle, setSketchStyle] = useState('pencil');
@@ -639,6 +644,44 @@ export default function EnhancePhotoScreen({ route, navigation }) {
     setShowCartoonControls(true);
   };
 
+  const applyCaricature = async () => {
+    setShowCaricatureControls(false);
+    setProcessing(true);
+    setProcessingProgress(0);
+    setProcessingMessage('Creating caricature effect...');
+    
+    try {
+      console.log('🔧 Applying caricature with exaggeration:', caricatureExaggeration, 'color_levels:', caricatureColorLevels);
+      
+      setProcessingProgress(20);
+      setProcessingMessage('Applying caricature effect...');
+      
+      const response = await photoAPI.caricaturePhoto(photo.id, caricatureExaggeration, caricatureColorLevels);
+      
+      setProcessingProgress(75);
+      setProcessingMessage('Fetching caricature...');
+      
+      const updatedPhoto = await photoAPI.getPhotoDetail(photo.id);
+
+      setProcessingProgress(100);
+      setProcessingMessage('Complete!');
+
+      // Auto-navigate to Gallery to show updated photo
+      navigation.navigate('Gallery', { refresh: true });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to create caricature: ' + error.message);
+      console.error('Caricature error:', error);
+    } finally {
+      setProcessing(false);
+      setProcessingProgress(0);
+      setProcessingMessage('');
+    }
+  };
+
+  const handleCaricature = () => {
+    setShowCaricatureControls(true);
+  };
+
   const handleOilPainting = () => {
     setShowOilPaintingControls(true);
   };
@@ -937,6 +980,14 @@ export default function EnhancePhotoScreen({ route, navigation }) {
             description="Create comic/cartoon effect"
             onPress={handleCartoon}
             color="#00BCD4"
+          />
+
+          <EnhancementOption
+            icon="happy"
+            title="Caricature"
+            description="Exaggerated art with bold colors"
+            onPress={handleCaricature}
+            color="#E91E63"
           />
 
           <EnhancementOption
@@ -1381,6 +1432,139 @@ export default function EnhancePhotoScreen({ route, navigation }) {
               <Ionicons name="information-circle" size={20} color="#FF9800" />
               <Text style={styles.infoText}>
                 Creates comic-style effects with bold edges. Adjust quality and edge thickness for different artistic styles.
+              </Text>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Caricature Effect Modal */}
+      <Modal
+        visible={showCaricatureControls}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setShowCaricatureControls(false)}
+      >
+        <View style={styles.fullScreenModal}>
+          <View style={styles.fullScreenHeader}>
+            <TouchableOpacity 
+              onPress={() => setShowCaricatureControls(false)} 
+              style={styles.closeButton}
+            >
+              <Ionicons name="close" size={28} color="#333" />
+            </TouchableOpacity>
+            <Text style={styles.fullScreenTitle}>Caricature Effect</Text>
+            <TouchableOpacity onPress={applyCaricature} style={styles.doneButton}>
+              <Text style={styles.doneButtonText}>Apply</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.fullScreenBody}>
+            {/* Preview Section */}
+            <View style={styles.previewSection}>
+              <Text style={styles.sectionLabel}>Preview</Text>
+              <View style={styles.previewContainer}>
+                <Text style={styles.previewLoadingText}>Preview coming soon</Text>
+              </View>
+            </View>
+
+            {/* Style Presets */}
+            <View style={styles.presetsSection}>
+              <Text style={styles.sectionLabel}>Style Presets</Text>
+              <View style={styles.presetsGrid}>
+                <TouchableOpacity
+                  style={[
+                    styles.presetCard,
+                    caricatureExaggeration === 5 && styles.presetCardActive
+                  ]}
+                  onPress={() => { setCaricatureExaggeration(5); setCaricatureColorLevels(20); }}
+                >
+                  <Ionicons name="sunny" size={32} color="#E91E63" />
+                  <Text style={styles.presetCardTitle}>Subtle</Text>
+                  <Text style={styles.presetCardDescription}>Light effect</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.presetCard,
+                    caricatureExaggeration === 7 && styles.presetCardActive
+                  ]}
+                  onPress={() => { setCaricatureExaggeration(7); setCaricatureColorLevels(16); }}
+                >
+                  <Ionicons name="flash" size={32} color="#E91E63" />
+                  <Text style={styles.presetCardTitle}>Balanced</Text>
+                  <Text style={styles.presetCardDescription}>Classic look</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.presetCard,
+                    caricatureExaggeration === 9 && styles.presetCardActive
+                  ]}
+                  onPress={() => { setCaricatureExaggeration(9); setCaricatureColorLevels(12); }}
+                >
+                  <Ionicons name="rocket" size={32} color="#E91E63" />
+                  <Text style={styles.presetCardTitle}>Bold</Text>
+                  <Text style={styles.presetCardDescription}>Dramatic</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Fine-Tune Controls */}
+            <View style={styles.manualSection}>
+              <Text style={styles.sectionLabel}>Fine-Tune</Text>
+              
+              <View style={styles.controlGroup}>
+                <View style={styles.controlHeader}>
+                  <Text style={styles.controlLabel}>
+                    <Ionicons name="trending-up" size={16} /> Exaggeration
+                  </Text>
+                  <Text style={styles.controlValue}>{caricatureExaggeration}</Text>
+                </View>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={1}
+                  maximumValue={10}
+                  step={1}
+                  value={caricatureExaggeration}
+                  onValueChange={setCaricatureExaggeration}
+                  minimumTrackTintColor="#E91E63"
+                  maximumTrackTintColor="#ddd"
+                  thumbTintColor="#E91E63"
+                />
+                <Text style={styles.controlDescription}>
+                  Controls the intensity of the caricature effect
+                </Text>
+              </View>
+
+              <View style={styles.controlGroup}>
+                <View style={styles.controlHeader}>
+                  <Text style={styles.controlLabel}>
+                    <Ionicons name="color-palette" size={16} /> Color Levels
+                  </Text>
+                  <Text style={styles.controlValue}>{caricatureColorLevels}</Text>
+                </View>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={8}
+                  maximumValue={32}
+                  step={4}
+                  value={caricatureColorLevels}
+                  onValueChange={setCaricatureColorLevels}
+                  minimumTrackTintColor="#E91E63"
+                  maximumTrackTintColor="#ddd"
+                  thumbTintColor="#E91E63"
+                />
+                <Text style={styles.controlDescription}>
+                  Lower values create more posterized, bold colors
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.infoBox}>
+              <Ionicons name="information-circle" size={20} color="#E91E63" />
+              <Text style={styles.infoText}>
+                Creates exaggerated artwork with vibrant, bold colors. Perfect for creating fun, artistic portraits with a unique style.
               </Text>
             </View>
           </ScrollView>
