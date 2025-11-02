@@ -24,6 +24,7 @@ import QueueService from '../services/QueueService';
 
 const AUTO_ENHANCE_KEY = '@auto_enhance';
 const OFFLINE_MODE_KEY = '@offline_mode';
+const PHOTO_QUALITY_KEY = '@photo_quality';
 
 export default function CameraScreen({ navigation }) {
   const [batchMode, setBatchMode] = useState(false);
@@ -33,8 +34,12 @@ export default function CameraScreen({ navigation }) {
   const [uploadMessage, setUploadMessage] = useState('');
   const [autoEnhance, setAutoEnhance] = useState(false);
   const [offlineMode, setOfflineMode] = useState(false);
+  const [photoQuality, setPhotoQuality] = useState('high');
   const [isOnline, setIsOnline] = useState(true);
   const [queueCount, setQueueCount] = useState(0);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState('success');
 
   useEffect(() => {
     loadSettings();
@@ -66,6 +71,7 @@ export default function CameraScreen({ navigation }) {
     try {
       const autoEnhanceValue = await AsyncStorage.getItem(AUTO_ENHANCE_KEY);
       const offlineModeValue = await AsyncStorage.getItem(OFFLINE_MODE_KEY);
+      const photoQualityValue = await AsyncStorage.getItem(PHOTO_QUALITY_KEY);
 
       if (autoEnhanceValue !== null) {
         setAutoEnhance(autoEnhanceValue === 'true');
@@ -74,8 +80,31 @@ export default function CameraScreen({ navigation }) {
       if (offlineModeValue !== null) {
         setOfflineMode(offlineModeValue === 'true');
       }
+
+      if (photoQualityValue !== null) {
+        setPhotoQuality(photoQualityValue);
+      }
     } catch (error) {
       console.error('Error loading settings:', error);
+    }
+  };
+
+  const showToastMessage = (message, type = 'success') => {
+    setToastMessage(message);
+    setToastType(type);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
+
+  const getQualitySettings = () => {
+    switch (photoQuality) {
+      case 'low':
+        return { width: 1280, compress: 0.6 };
+      case 'medium':
+        return { width: 1920, compress: 0.8 };
+      case 'high':
+      default:
+        return { width: undefined, compress: 0.95 }; // Original size
     }
   };
 
@@ -112,10 +141,15 @@ export default function CameraScreen({ navigation }) {
       if (!result.canceled && result.assets && result.assets.length > 0) {
         setProcessing(true);
 
+        const qualitySettings = getQualitySettings();
+        const manipulations = qualitySettings.width 
+          ? [{ resize: { width: qualitySettings.width } }]
+          : [];
+
         const enhancedPhoto = await ImageManipulator.manipulateAsync(
           result.assets[0].uri,
-          [{ resize: { width: 1920 } }],
-          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+          manipulations,
+          { compress: qualitySettings.compress, format: ImageManipulator.SaveFormat.JPEG }
         );
 
         if (batchMode) {
@@ -199,8 +233,10 @@ export default function CameraScreen({ navigation }) {
           
           setUploadProgress(90);
           await new Promise(resolve => setTimeout(resolve, 300));
+          showToastMessage('✨ Photo enhanced successfully!', 'success');
         } catch (enhanceError) {
           console.error('Auto-enhance failed:', enhanceError);
+          showToastMessage('⚠️ Auto-enhance failed', 'error');
         }
       }
 
@@ -299,13 +335,18 @@ export default function CameraScreen({ navigation }) {
       if (!result.canceled && result.assets && result.assets.length > 0) {
         setProcessing(true);
 
+        const qualitySettings = getQualitySettings();
+        const manipulations = qualitySettings.width 
+          ? [{ resize: { width: qualitySettings.width } }]
+          : [];
+
         if (batchMode) {
           const enhancedPhotos = [];
           for (const asset of result.assets) {
             const enhancedPhoto = await ImageManipulator.manipulateAsync(
               asset.uri,
-              [{ resize: { width: 1920 } }],
-              { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+              manipulations,
+              { compress: qualitySettings.compress, format: ImageManipulator.SaveFormat.JPEG }
             );
             enhancedPhotos.push(enhancedPhoto);
           }
@@ -318,8 +359,8 @@ export default function CameraScreen({ navigation }) {
         } else {
           const enhancedPhoto = await ImageManipulator.manipulateAsync(
             result.assets[0].uri,
-            [{ resize: { width: 1920 } }],
-            { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+            manipulations,
+            { compress: qualitySettings.compress, format: ImageManipulator.SaveFormat.JPEG }
           );
           await processAndUpload(enhancedPhoto.uri);
         }
@@ -480,6 +521,16 @@ export default function CameraScreen({ navigation }) {
           </View>
         )}
       </View>
+
+      {/* Toast Notification */}
+      {showToast && (
+        <View style={[
+          styles.toast,
+          toastType === 'error' && styles.toastError,
+        ]}>
+          <Text style={styles.toastText}>{toastMessage}</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -658,5 +709,30 @@ const styles = StyleSheet.create({
   },
   captureButtonDisabled: {
     opacity: 0.5,
+  },
+  toast: {
+    position: 'absolute',
+    top: 100,
+    left: 20,
+    right: 20,
+    backgroundColor: '#4CAF50',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 6,
+    zIndex: 1000,
+  },
+  toastError: {
+    backgroundColor: '#F44336',
+  },
+  toastText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
