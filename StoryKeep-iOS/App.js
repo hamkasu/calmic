@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -13,6 +13,7 @@ import { StatusBar, Platform, BackHandler, Alert, Appearance } from 'react-nativ
 
 import { LoadingProvider } from './src/contexts/LoadingContext';
 import LoadingOverlay from './src/components/LoadingOverlay';
+import { registerForPushNotifications, setupNotificationListeners, handleNotificationNavigation } from './src/utils/pushNotifications';
 
 import SplashScreen from './src/screens/SplashScreen';
 import LoginScreen from './src/screens/LoginScreen';
@@ -71,6 +72,7 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showSplash, setShowSplash] = useState(true);
+  const navigationRef = useRef();
 
   useEffect(() => {
     // FORCE light mode - override system dark mode
@@ -82,6 +84,36 @@ export default function App() {
     const interval = setInterval(checkAuthStatus, 500);
     return () => clearInterval(interval);
   }, []);
+
+  // Setup push notifications when authenticated
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    // Register for push notifications
+    registerForPushNotifications().catch(error => {
+      console.error('Push notification setup error:', error);
+    });
+
+    // Setup notification listeners
+    const { notificationListener, responseListener } = setupNotificationListeners(
+      (notification) => {
+        // Handle notification received in foreground
+        console.log('Notification in foreground:', notification);
+      },
+      (data) => {
+        // Handle notification tap
+        if (navigationRef.current) {
+          handleNotificationNavigation(navigationRef.current, data);
+        }
+      }
+    );
+
+    // Cleanup listeners on unmount
+    return () => {
+      notificationListener.remove();
+      responseListener.remove();
+    };
+  }, [isAuthenticated]);
 
   // Android back button handling
   useEffect(() => {
@@ -156,6 +188,7 @@ export default function App() {
           translucent={false}
         />
         <NavigationContainer 
+          ref={navigationRef}
           theme={lightTheme}
         >
           <Stack.Navigator screenOptions={{ headerShown: false }}>

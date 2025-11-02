@@ -24,6 +24,7 @@ import * as MediaLibrary from 'expo-media-library';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { sharePhoto } from '../utils/sharePhoto';
+import BeforeAfterSlider from '../components/BeforeAfterSlider';
 
 const { width } = Dimensions.get('window');
 const BASE_URL = 'https://storykeep.calmic.com.my';
@@ -669,6 +670,19 @@ export default function PhotoDetailScreen({ route, navigation }) {
           )}
         </View>
 
+        {/* Before/After Comparison Slider */}
+        {photo.edited_url && originalImageUrl && editedImageUrl && (
+          <View style={styles.sliderSection}>
+            <Text style={styles.sliderTitle}>Compare Original vs Enhanced</Text>
+            <BeforeAfterSlider
+              beforeImage={`${originalImageUrl}?token=${authToken}`}
+              afterImage={`${editedImageUrl}?token=${authToken}`}
+              height={300}
+            />
+            <Text style={styles.sliderHint}>Drag the slider to compare</Text>
+          </View>
+        )}
+
         {photo.edited_url && (
           <View style={styles.toggleContainer}>
             <TouchableOpacity
@@ -1126,6 +1140,23 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  sliderSection: {
+    marginVertical: 20,
+    backgroundColor: '#fff',
+  },
+  sliderTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  sliderHint: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'center',
+    marginTop: 10,
   },
   toggleContainer: {
     flexDirection: 'row',

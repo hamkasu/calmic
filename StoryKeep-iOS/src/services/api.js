@@ -77,6 +77,11 @@ export const authAPI = {
     });
     return response.data;
   },
+  
+  registerPushToken: async (pushToken) => {
+    const response = await api.post('/api/push-token', { token: pushToken });
+    return response.data;
+  },
 };
 
 export const dashboardAPI = {
