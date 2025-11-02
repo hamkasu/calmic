@@ -26,6 +26,9 @@ class User(UserMixin, db.Model):
     # Billing
     stripe_customer_id = db.Column(db.String(255), unique=True)
     
+    # Push notifications
+    expo_push_token = db.Column(db.String(255), unique=True)
+    
     # Relationships
     photos = db.relationship('Photo', backref='user', lazy=True, cascade='all, delete-orphan', passive_deletes=True)
     albums = db.relationship('Album', backref='user', lazy=True, cascade='all, delete-orphan', passive_deletes=True)
