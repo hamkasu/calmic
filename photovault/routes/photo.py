@@ -2668,6 +2668,154 @@ def cartoon_photo_route(current_user, photo_id):
         }), 500
 
 
+@photo_bp.route('/api/photos/<int:photo_id>/caricature', methods=['POST'])
+@csrf.exempt
+@hybrid_auth
+def caricature_photo_route(current_user, photo_id):
+    """
+    Convert photo to caricature effect with exaggerated features and bold colors
+    
+    Args:
+        current_user: Authenticated user (from hybrid_auth decorator)
+        photo_id: ID of the photo to convert
+        
+    Request JSON:
+        exaggeration: Level of feature exaggeration (1-10, optional, default: 7)
+                     Higher values = more dramatic effect
+        color_levels: Number of color levels for quantization (8-32, optional, default: 16)
+                     Lower values = more posterized/bold effect
+        
+    Returns:
+        JSON with success status and caricature photo information
+    """
+    try:
+        from photovault.utils.artistic_effects import get_artistic_effects
+        
+        photo = Photo.query.get_or_404(photo_id)
+        
+        if photo.user_id != current_user.id and not current_user.is_admin:
+            return jsonify({
+                'success': False,
+                'error': 'Unauthorized access to this photo'
+            }), 403
+        
+        data = request.get_json() or {}
+        exaggeration = data.get('exaggeration', 7)
+        color_levels = data.get('color_levels', 16)
+        
+        try:
+            exaggeration = int(exaggeration)
+            if exaggeration < 1 or exaggeration > 10:
+                return jsonify({
+                    'success': False,
+                    'error': 'Invalid exaggeration. Must be integer between 1 and 10'
+                }), 400
+        except (TypeError, ValueError):
+            return jsonify({
+                'success': False,
+                'error': 'Invalid exaggeration. Must be an integer between 1 and 10'
+            }), 400
+        
+        try:
+            color_levels = int(color_levels)
+            if color_levels < 8 or color_levels > 32:
+                return jsonify({
+                    'success': False,
+                    'error': 'Invalid color_levels. Must be integer between 8 and 32'
+                }), 400
+        except (TypeError, ValueError):
+            return jsonify({
+                'success': False,
+                'error': 'Invalid color_levels. Must be an integer between 8 and 32'
+            }), 400
+        
+        artistic_effects = get_artistic_effects()
+        
+        unique_id = str(uuid.uuid4())
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        file_extension = os.path.splitext(photo.filename)[1] or '.jpg'
+        
+        caricature_filename = f"{current_user.id}_{unique_id}_caricature_{timestamp}{file_extension}"
+        
+        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'photovault/uploads')
+        user_folder = os.path.join(upload_folder, str(current_user.id))
+        os.makedirs(user_folder, exist_ok=True)
+        
+        caricature_path = os.path.join(user_folder, caricature_filename)
+        
+        logger.info(f"Creating caricature for photo {photo_id} with exaggeration: {exaggeration}, color_levels: {color_levels}")
+        
+        artistic_effects.create_caricature(
+            photo.file_path, 
+            caricature_path, 
+            exaggeration=exaggeration,
+            color_levels=color_levels
+        )
+        
+        thumbnail_path = None
+        thumbnail_filename = f"{current_user.id}_{unique_id}_caricature_thumb_{timestamp}.jpg"
+        thumbnail_full_path = os.path.join(user_folder, thumbnail_filename)
+        
+        if create_thumbnail_local(caricature_path, thumbnail_full_path):
+            thumbnail_path = thumbnail_full_path
+        
+        image_info = get_image_info(caricature_path)
+        
+        new_photo = Photo(
+            filename=caricature_filename,
+            original_name=f"caricature_{photo.original_name}",
+            file_path=caricature_path,
+            thumbnail_path=thumbnail_path,
+            file_size=image_info.get('size_bytes') if image_info else None,
+            width=image_info.get('width') if image_info else None,
+            height=image_info.get('height') if image_info else None,
+            mime_type=f"image/{image_info.get('format', 'jpeg').lower()}" if image_info else 'image/jpeg',
+            upload_source='artistic_effect',
+            user_id=current_user.id,
+            album_id=photo.album_id,
+            original_photo_id=photo_id,
+            is_enhanced_version=True,
+            enhancement_type='caricature'
+        )
+        
+        db.session.add(new_photo)
+        db.session.commit()
+        
+        logger.info(f"Created caricature photo {new_photo.id} from original {photo_id}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Caricature created successfully',
+            'original_photo_id': photo_id,
+            'caricature_photo_id': new_photo.id,
+            'exaggeration_used': exaggeration,
+            'color_levels_used': color_levels,
+            'caricature_photo': {
+                'id': new_photo.id,
+                'filename': new_photo.filename,
+                'original_name': new_photo.original_name,
+                'width': new_photo.width,
+                'height': new_photo.height,
+                'file_size': new_photo.file_size,
+                'created_at': new_photo.created_at.isoformat() if new_photo.created_at else None,
+                'thumbnail_url': url_for('gallery.uploaded_file', 
+                                        user_id=current_user.id, 
+                                        filename=thumbnail_filename) if thumbnail_path else None,
+                'image_url': url_for('gallery.uploaded_file', 
+                                    user_id=current_user.id, 
+                                    filename=caricature_filename)
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Caricature creation failed for photo {photo_id}: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Caricature creation failed due to unexpected error'
+        }), 500
+
+
 @photo_bp.route('/api/photos/<int:photo_id>/oil-painting', methods=['POST'])
 @csrf.exempt
 @hybrid_auth
