@@ -89,9 +89,10 @@ export default function App() {
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    // Register for push notifications
+    // Register for push notifications (gracefully fail if not available)
     registerForPushNotifications().catch(error => {
-      console.error('Push notification setup error:', error);
+      console.warn('⚠️ Push notifications not available:', error.message || error);
+      console.log('ℹ️ App will continue to work without push notifications');
     });
 
     // Setup notification listeners

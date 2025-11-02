@@ -54,10 +54,16 @@ export async function registerForPushNotifications() {
       console.log('📱 Expo Push Token:', token);
       
       // Register token with backend
-      await authAPI.registerPushToken(token);
+      try {
+        await authAPI.registerPushToken(token);
+      } catch (apiError) {
+        console.warn('⚠️ Could not register push token with backend:', apiError.message);
+        // Continue anyway - token is still valid locally
+      }
       
     } catch (error) {
-      console.error('Error getting push token:', error);
+      console.warn('⚠️ Push notifications not available:', error.message || error);
+      console.log('ℹ️ This is normal in development. Push notifications require Expo project setup.');
       return null;
     }
   } else {
