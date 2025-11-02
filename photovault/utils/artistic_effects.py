@@ -169,6 +169,96 @@ class ArtisticEffects:
             logger.error(f"Cartoon creation failed: {e}")
             raise
     
+    def create_caricature(self, image_path, output_path=None, exaggeration=7, color_levels=16):
+        """
+        Convert photo to caricature effect with exaggerated features and bold colors
+        
+        Args:
+            image_path: Path to input image
+            output_path: Path to save caricature (optional)
+            exaggeration: Level of feature exaggeration (1-10, default: 7)
+                         Higher values = more dramatic effect
+            color_levels: Number of color levels for quantization (8-32, default: 16)
+                         Lower values = more posterized/bold effect
+            
+        Returns:
+            Path to caricature image if output_path provided, else PIL Image
+        """
+        try:
+            # Validate parameters
+            exaggeration = max(1, min(10, int(exaggeration)))
+            color_levels = max(8, min(32, int(color_levels)))
+            
+            # Read image
+            img = cv2.imread(image_path)
+            if img is None:
+                raise ValueError(f"Could not read image from {image_path}")
+            
+            # Step 1: Increase saturation for vibrant colors
+            hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV).astype(np.float32)
+            saturation_boost = 1.0 + (exaggeration / 10.0)  # 1.1 to 2.0
+            hsv[:, :, 1] = np.clip(hsv[:, :, 1] * saturation_boost, 0, 255)
+            img_saturated = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
+            
+            # Step 2: Apply strong bilateral filtering for smooth color regions
+            img_smooth = img_saturated
+            num_bilateral = 5 + exaggeration  # 6 to 15 iterations
+            for _ in range(num_bilateral):
+                img_smooth = cv2.bilateralFilter(img_smooth, d=9, sigmaColor=50, sigmaSpace=50)
+            
+            # Step 3: Color quantization for poster-like effect
+            # Reduce the number of colors for a bold, simplified look
+            pixels = img_smooth.reshape((-1, 3)).astype(np.float32)
+            criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
+            _, labels, centers = cv2.kmeans(pixels, color_levels, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+            centers = np.uint8(centers)
+            quantized = centers[labels.flatten()]
+            img_quantized = quantized.reshape(img_smooth.shape)
+            
+            # Step 4: Detect edges with strong parameters
+            img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            img_blur = cv2.medianBlur(img_gray, 5)
+            
+            # Adaptive threshold with thicker edges based on exaggeration
+            block_size = 7 + (exaggeration - 1) * 2  # 7 to 25
+            if block_size % 2 == 0:
+                block_size += 1
+            
+            img_edge = cv2.adaptiveThreshold(
+                img_blur, 255,
+                cv2.ADAPTIVE_THRESH_MEAN_C,
+                cv2.THRESH_BINARY,
+                blockSize=block_size,
+                C=2
+            )
+            
+            # Make edges even bolder
+            kernel = np.ones((2, 2), np.uint8)
+            img_edge = cv2.erode(img_edge, kernel, iterations=1)
+            
+            # Convert edge to BGR
+            img_edge = cv2.cvtColor(img_edge, cv2.COLOR_GRAY2BGR)
+            
+            # Step 5: Combine quantized colors with bold edges
+            caricature = cv2.bitwise_and(img_quantized, img_edge)
+            
+            # Step 6: Final contrast enhancement for pop
+            alpha = 1.2  # Contrast
+            beta = 10    # Brightness
+            caricature = cv2.convertScaleAbs(caricature, alpha=alpha, beta=beta)
+            
+            if output_path:
+                cv2.imwrite(output_path, caricature)
+                logger.info(f"Caricature created and saved to {output_path} (exaggeration: {exaggeration}, colors: {color_levels})")
+                return output_path
+            else:
+                caricature_rgb = cv2.cvtColor(caricature, cv2.COLOR_BGR2RGB)
+                return Image.fromarray(caricature_rgb)
+                
+        except Exception as e:
+            logger.error(f"Caricature creation failed: {e}")
+            raise
+    
     def create_colored_sketch(self, image_path, output_path=None):
         """
         Convert photo to colored pencil sketch effect
