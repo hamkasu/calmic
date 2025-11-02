@@ -424,6 +424,38 @@ def get_profile(current_user):
         logger.error(f"Traceback: {traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
+@mobile_api_bp.route('/push-token', methods=['POST'])
+@csrf.exempt
+@token_required
+def register_push_token(current_user):
+    """Register or update Expo push notification token for user"""
+    try:
+        data = request.get_json()
+        if not data or 'token' not in data:
+            return jsonify({'error': 'Push token is required'}), 400
+        
+        push_token = data.get('token', '').strip()
+        
+        # Validate Expo push token format
+        if not push_token.startswith('ExponentPushToken[') and not push_token.startswith('ExpoPushToken['):
+            return jsonify({'error': 'Invalid Expo push token format'}), 400
+        
+        # Update user's push token
+        current_user.expo_push_token = push_token
+        db.session.commit()
+        
+        logger.info(f"📱 Registered push token for user {current_user.username}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Push token registered successfully'
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"❌ Push token registration error: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 @mobile_api_bp.route('/profile/avatar', methods=['POST'])
 @csrf.exempt
 @token_required
@@ -1699,6 +1731,18 @@ def add_photo_to_vault(current_user, vault_id):
         
         logger.info(f"✅ SUCCESS! Added photo {photo_id} to vault {vault_id}")
         
+        # Send push notification to vault members
+        try:
+            from photovault.utils.push_notifications import notify_vault_members
+            notify_vault_members(
+                vault_id=vault_id,
+                title=f"New photo in {vault.name}",
+                body=f"{current_user.username} added a new photo to the vault",
+                exclude_user_id=current_user.id
+            )
+        except Exception as notify_error:
+            logger.warning(f"⚠️ Push notification failed: {str(notify_error)}")
+        
         # Return photo info using same URL pattern as gallery
         return jsonify({
             'success': True,
@@ -1798,6 +1842,20 @@ def add_photos_to_vault_bulk(current_user, vault_id):
         db.session.commit()
         
         logger.info(f"🎯 BULK SHARE COMPLETE: success={success_count}, failed={failed_count}")
+        
+        # Send push notification to vault members for bulk upload
+        if success_count > 0:
+            try:
+                from photovault.utils.push_notifications import notify_vault_members
+                photo_word = "photos" if success_count > 1 else "photo"
+                notify_vault_members(
+                    vault_id=vault_id,
+                    title=f"New {photo_word} in {vault.name}",
+                    body=f"{current_user.username} added {success_count} {photo_word} to the vault",
+                    exclude_user_id=current_user.id
+                )
+            except Exception as notify_error:
+                logger.warning(f"⚠️ Push notification failed: {str(notify_error)}")
         
         return jsonify({
             'success': True,
