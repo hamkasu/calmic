@@ -347,6 +347,16 @@ export const vaultAPI = {
     });
     return response.data;
   },
+  
+  getVaultInvitations: async (vaultId) => {
+    const response = await api.get(`/api/family/vault/${vaultId}/invitations`);
+    return response.data;
+  },
+  
+  resendInvitation: async (invitationId) => {
+    const response = await api.post(`/api/family/vault/invitation/${invitationId}/resend`, {});
+    return response.data;
+  },
 };
 
 export const voiceMemoAPI = {

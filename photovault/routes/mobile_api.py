@@ -2186,6 +2186,175 @@ def invite_member_to_vault(current_user, vault_id):
             'error_type': type(e).__name__
         }), 500
 
+@mobile_api_bp.route('/family/vault/<int:vault_id>/invitations', methods=['GET'])
+@csrf.exempt
+@token_required
+def get_vault_invitations(current_user, vault_id):
+    """Get all invitations for a vault - Mobile API"""
+    try:
+        logger.info(f"📋 GET INVITATIONS REQUEST: vault_id={vault_id}, user_id={current_user.id}")
+        
+        # Get vault
+        vault = FamilyVault.query.get(vault_id)
+        if not vault:
+            return jsonify({'success': False, 'error': 'Vault not found'}), 404
+        
+        # Check if user is creator or admin
+        is_creator = vault.created_by == current_user.id
+        membership = FamilyMember.query.filter_by(
+            vault_id=vault_id,
+            user_id=current_user.id,
+            status='active'
+        ).first()
+        is_admin = membership and membership.role == 'admin'
+        
+        if not (is_creator or is_admin):
+            logger.error(f"❌ User {current_user.id} does not have permission to view invitations for vault {vault_id}")
+            return jsonify({'success': False, 'error': 'Only admins can view invitations'}), 403
+        
+        # Get all invitations for this vault
+        invitations = VaultInvitation.query.filter_by(vault_id=vault_id).order_by(VaultInvitation.created_at.desc()).all()
+        
+        # Format invitations with status and resend info
+        invitation_list = []
+        for inv in invitations:
+            # Calculate time since last sent
+            time_until_resend = 0
+            if inv.last_sent_at:
+                time_since_sent = (datetime.utcnow() - inv.last_sent_at).total_seconds()
+                time_until_resend = max(0, 300 - time_since_sent)  # 300 seconds = 5 minutes
+            
+            invitation_list.append({
+                'id': inv.id,
+                'email': inv.email,
+                'role': inv.role,
+                'status': inv.status,
+                'created_at': inv.created_at.isoformat() if inv.created_at else None,
+                'expires_at': inv.expires_at.isoformat() if inv.expires_at else None,
+                'accepted_at': inv.accepted_at.isoformat() if inv.accepted_at else None,
+                'last_sent_at': inv.last_sent_at.isoformat() if inv.last_sent_at else None,
+                'is_pending': inv.is_pending,
+                'is_expired': inv.is_expired,
+                'can_resend': inv.can_resend(min_seconds=300),  # 5 minutes cooldown
+                'time_until_resend': int(time_until_resend),  # seconds until can resend
+                'invited_by': inv.inviter.username if inv.inviter else 'Unknown'
+            })
+        
+        logger.info(f"✅ Found {len(invitation_list)} invitations for vault {vault_id}")
+        
+        return jsonify({
+            'success': True,
+            'invitations': invitation_list
+        }), 200
+        
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        logger.error(f"💥 GET INVITATIONS ERROR: {str(e)}")
+        logger.error(f"📋 TRACEBACK:\n{error_trace}")
+        
+        return jsonify({
+            'success': False,
+            'error': f'Failed to get invitations: {str(e)}'
+        }), 500
+
+@mobile_api_bp.route('/family/vault/invitation/<int:invitation_id>/resend', methods=['POST'])
+@csrf.exempt
+@token_required
+def resend_vault_invitation(current_user, invitation_id):
+    """Resend a vault invitation with 5-minute cooldown - Mobile API"""
+    try:
+        logger.info(f"📧 RESEND INVITATION REQUEST: invitation_id={invitation_id}, user_id={current_user.id}")
+        
+        # Get invitation
+        invitation = VaultInvitation.query.get(invitation_id)
+        if not invitation:
+            return jsonify({'success': False, 'error': 'Invitation not found'}), 404
+        
+        # Get vault
+        vault = FamilyVault.query.get(invitation.vault_id)
+        if not vault:
+            return jsonify({'success': False, 'error': 'Vault not found'}), 404
+        
+        # Check if user is creator or admin
+        is_creator = vault.created_by == current_user.id
+        membership = FamilyMember.query.filter_by(
+            vault_id=vault.id,
+            user_id=current_user.id,
+            status='active'
+        ).first()
+        is_admin = membership and membership.role == 'admin'
+        
+        if not (is_creator or is_admin):
+            logger.error(f"❌ User {current_user.id} does not have permission to resend invitation {invitation_id}")
+            return jsonify({'success': False, 'error': 'Only admins can resend invitations'}), 403
+        
+        # Check if invitation is pending
+        if not invitation.is_pending:
+            return jsonify({
+                'success': False,
+                'error': f'Cannot resend {invitation.status} invitation'
+            }), 400
+        
+        # Check 5-minute cooldown
+        if not invitation.can_resend(min_seconds=300):
+            time_since_sent = (datetime.utcnow() - invitation.last_sent_at).total_seconds()
+            time_until_resend = int(max(0, 300 - time_since_sent))
+            minutes = time_until_resend // 60
+            seconds = time_until_resend % 60
+            
+            return jsonify({
+                'success': False,
+                'error': f'Please wait {minutes}m {seconds}s before resending',
+                'time_until_resend': time_until_resend
+            }), 429  # 429 Too Many Requests
+        
+        # Resend invitation email
+        try:
+            from photovault.services.sendgrid_service import send_family_invitation_email
+            
+            email_sent = send_family_invitation_email(
+                email=invitation.email,
+                invitation_token=invitation.invitation_token,
+                vault_name=vault.name,
+                inviter_name=current_user.username
+            )
+            
+            if email_sent:
+                invitation.mark_as_sent()
+                db.session.commit()
+                logger.info(f"✅ INVITATION RESENT: invitation_id={invitation_id}, email={invitation.email}")
+                
+                return jsonify({
+                    'success': True,
+                    'message': f'Invitation resent to {invitation.email}'
+                }), 200
+            else:
+                logger.warning(f"⚠️ EMAIL FAILED: invitation_id={invitation_id}")
+                return jsonify({
+                    'success': False,
+                    'error': 'Failed to send email'
+                }), 500
+                
+        except Exception as e:
+            logger.error(f"❌ EMAIL ERROR: {str(e)}")
+            return jsonify({
+                'success': False,
+                'error': f'Failed to send email: {str(e)}'
+            }), 500
+        
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        logger.error(f"💥 RESEND INVITATION ERROR: {str(e)}")
+        logger.error(f"📋 TRACEBACK:\n{error_trace}")
+        db.session.rollback()
+        
+        return jsonify({
+            'success': False,
+            'error': f'Failed to resend invitation: {str(e)}'
+        }), 500
+
 @mobile_api_bp.route('/family/vault/<int:vault_id>', methods=['PATCH'])
 @csrf.exempt
 @token_required

@@ -72,6 +72,12 @@ export default function VaultDetailScreen({ route, navigation }) {
   const [editVaultName, setEditVaultName] = useState('');
   const [editVaultDescription, setEditVaultDescription] = useState('');
   const [editing, setEditing] = useState(false);
+  
+  // Invitation states
+  const [invitations, setInvitations] = useState([]);
+  const [loadingInvitations, setLoadingInvitations] = useState(false);
+  const [resendingInvitation, setResendingInvitation] = useState(null);
+  const [invitationTimers, setInvitationTimers] = useState({});
 
   useEffect(() => {
     loadAuthToken();
@@ -80,8 +86,26 @@ export default function VaultDetailScreen({ route, navigation }) {
   useEffect(() => {
     if (authToken) {
       loadVaultDetails();
+      loadVaultInvitations();
     }
   }, [authToken]);
+  
+  // Update invitation countdown timers every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setInvitationTimers(prev => {
+        const updated = { ...prev };
+        Object.keys(updated).forEach(id => {
+          if (updated[id] > 0) {
+            updated[id] = updated[id] - 1;
+          }
+        });
+        return updated;
+      });
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   const loadAuthToken = async () => {
     try {
@@ -134,6 +158,53 @@ export default function VaultDetailScreen({ route, navigation }) {
   const onRefresh = () => {
     setRefreshing(true);
     loadVaultDetails();
+    loadVaultInvitations();
+  };
+  
+  const loadVaultInvitations = async () => {
+    try {
+      setLoadingInvitations(true);
+      const response = await vaultAPI.getVaultInvitations(vaultId);
+      
+      if (response.success) {
+        setInvitations(response.invitations || []);
+        
+        // Initialize countdown timers for invitations that can't be resent yet
+        const timers = {};
+        response.invitations.forEach(inv => {
+          if (!inv.can_resend && inv.time_until_resend > 0) {
+            timers[inv.id] = inv.time_until_resend;
+          }
+        });
+        setInvitationTimers(timers);
+      }
+    } catch (error) {
+      console.error('Load invitations error:', error);
+      // Don't alert, just log - invitations are not critical
+    } finally {
+      setLoadingInvitations(false);
+    }
+  };
+  
+  const handleResendInvitation = async (invitationId) => {
+    try {
+      setResendingInvitation(invitationId);
+      const response = await vaultAPI.resendInvitation(invitationId);
+      
+      if (response.success) {
+        Alert.alert('Success', response.message || 'Invitation resent successfully');
+        // Reload invitations to get updated state
+        loadVaultInvitations();
+      } else {
+        Alert.alert('Error', response.error || 'Failed to resend invitation');
+      }
+    } catch (error) {
+      console.error('Resend invitation error:', error);
+      const errorMsg = error.response?.data?.error || 'Failed to resend invitation';
+      Alert.alert('Error', errorMsg);
+    } finally {
+      setResendingInvitation(null);
+    }
   };
 
   const loadUserPhotos = async () => {
@@ -781,9 +852,125 @@ export default function VaultDetailScreen({ route, navigation }) {
             Members
           </Text>
         </TouchableOpacity>
+        {(vault.is_creator || vault.member_role === 'admin') && (
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'invitations' && styles.tabActive]}
+            onPress={() => setActiveTab('invitations')}
+          >
+            <Text style={[styles.tabText, activeTab === 'invitations' && styles.tabTextActive]}>
+              Invitations
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      {activeTab === 'members' ? (
+      {activeTab === 'invitations' ? (
+        <ScrollView
+          style={styles.membersContainer}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          <View style={styles.membersList}>
+            <View style={styles.membersHeader}>
+              <Text style={styles.membersTitle}>Invitations</Text>
+              <TouchableOpacity onPress={openInviteModal}>
+                <Ionicons name="mail-outline" size={24} color="#E85D75" />
+              </TouchableOpacity>
+            </View>
+            
+            {loadingInvitations ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#E85D75" />
+              </View>
+            ) : invitations.length === 0 ? (
+              <View style={styles.emptyMembers}>
+                <Ionicons name="mail-open-outline" size={60} color="#666" />
+                <Text style={styles.emptyText}>No invitations yet</Text>
+                <Text style={styles.emptySubtext}>
+                  Invite family members to join this vault
+                </Text>
+              </View>
+            ) : (
+              invitations.map((invitation) => {
+                const isResending = resendingInvitation === invitation.id;
+                const timeLeft = invitationTimers[invitation.id] || 0;
+                const canResend = invitation.can_resend && timeLeft === 0;
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                
+                // Status badge color
+                let statusColor = '#FFA500'; // orange for pending
+                if (invitation.status === 'accepted') statusColor = '#4CAF50'; // green
+                if (invitation.status === 'expired') statusColor = '#999'; // gray
+                if (invitation.status === 'declined') statusColor = '#E85D75'; // red
+                
+                return (
+                  <View key={invitation.id} style={styles.invitationCard}>
+                    <View style={styles.invitationHeader}>
+                      <View style={styles.invitationInfo}>
+                        <Text style={styles.invitationEmail}>{invitation.email}</Text>
+                        <View style={styles.invitationMeta}>
+                          <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+                            <Text style={styles.statusText}>
+                              {invitation.status.charAt(0).toUpperCase() + invitation.status.slice(1)}
+                            </Text>
+                          </View>
+                          <Text style={styles.invitationRole}>• {invitation.role}</Text>
+                        </View>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.invitationDetails}>
+                      <Text style={styles.invitationDetailText}>
+                        Invited by {invitation.invited_by}
+                      </Text>
+                      {invitation.last_sent_at && (
+                        <Text style={styles.invitationDetailText}>
+                          Last sent: {new Date(invitation.last_sent_at).toLocaleDateString()}
+                        </Text>
+                      )}
+                      {invitation.expires_at && (
+                        <Text style={styles.invitationDetailText}>
+                          Expires: {new Date(invitation.expires_at).toLocaleDateString()}
+                        </Text>
+                      )}
+                    </View>
+                    
+                    {invitation.is_pending && (
+                      <View style={styles.invitationActions}>
+                        {canResend ? (
+                          <TouchableOpacity
+                            style={styles.resendButton}
+                            onPress={() => handleResendInvitation(invitation.id)}
+                            disabled={isResending}
+                          >
+                            {isResending ? (
+                              <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                              <>
+                                <Ionicons name="refresh" size={16} color="#fff" />
+                                <Text style={styles.resendButtonText}>Resend</Text>
+                              </>
+                            )}
+                          </TouchableOpacity>
+                        ) : timeLeft > 0 ? (
+                          <View style={styles.cooldownContainer}>
+                            <Ionicons name="time-outline" size={16} color="#666" />
+                            <Text style={styles.cooldownText}>
+                              Resend in {minutes}:{seconds.toString().padStart(2, '0')}
+                            </Text>
+                          </View>
+                        ) : null}
+                      </View>
+                    )}
+                  </View>
+                );
+              })
+            )}
+          </View>
+        </ScrollView>
+      ) : activeTab === 'members' ? (
         <ScrollView
           style={styles.membersContainer}
           refreshControl={
@@ -1685,5 +1872,94 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#E85D75',
     borderRadius: 3,
+  },
+  // Invitation Styles
+  invitationCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  invitationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  invitationInfo: {
+    flex: 1,
+  },
+  invitationEmail: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 6,
+  },
+  invitationMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  invitationRole: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  invitationDetails: {
+    marginBottom: 12,
+  },
+  invitationDetailText: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 4,
+  },
+  invitationActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  resendButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E85D75',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  resendButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  cooldownContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  cooldownText: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
