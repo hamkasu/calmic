@@ -157,6 +157,7 @@ label, .form-text {
     margin: 0 0.2rem;
     transition: all 0.3s ease;
     position: relative;
+    z-index: 1;
 }
 
 .navbar-dark .navbar-nav .nav-link::before {
@@ -185,6 +186,11 @@ label, .form-text {
     color: #ffffff !important;
     background: rgba(255,255,255,0.15);
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* Dropdown triggers need higher z-index to stay clickable */
+.navbar-dark .navbar-nav .dropdown > .nav-link {
+    z-index: 10;
 }
 
 /* Sign Up Button - Stunning CTA Style */
@@ -245,6 +251,8 @@ label, .form-text {
 
 .nav-item.dropdown {
     overflow: visible !important;
+    position: relative;
+    z-index: 1050;
 }
 
 @keyframes dropdownSlide {
