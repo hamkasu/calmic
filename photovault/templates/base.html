@@ -148,45 +148,17 @@ CALMIC SDN BHD - "Committed to Excellence"
                 
                 <!-- Right side navigation items -->
                 <div class="navbar-nav ms-auto">
-                    <!-- Admin/Superuser Dropdown -->
-                    {% if current_user.is_admin or current_user.is_superuser %}
-                    <div class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {{ 'active' if request.endpoint and (request.endpoint.startswith('admin.') or request.endpoint.startswith('superuser.')) }}" href="#" id="adminDropdown" role="button" 
-                           data-bs-toggle="dropdown" aria-expanded="false" aria-label="Admin menu">
-                            <i class="bi bi-gear-fill" aria-hidden="true"></i> Admin
-                            {% if current_user.is_superuser %}
-                                <span class="badge bg-danger ms-1" aria-label="Superuser role">Super</span>
-                            {% else %}
-                                <span class="badge bg-warning ms-1" aria-label="Admin role">Admin</span>
-                            {% endif %}
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="adminDropdown">
-                            <li><a class="dropdown-item" href="{{ url_for('admin.dashboard') }}">
-                                <i class="bi bi-speedometer2" aria-hidden="true"></i> Admin Dashboard
-                            </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('admin.statistics') }}">
-                                <i class="bi bi-bar-chart" aria-hidden="true"></i> Statistics
-                            </a></li>
-                            {% if current_user.is_superuser %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('superuser.dashboard') }}">
-                                <i class="bi bi-star-fill" aria-hidden="true"></i> Superuser Panel
-                            </a></li>
-                            {% endif %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('admin.profile') }}">
-                                <i class="bi bi-person-circle" aria-hidden="true"></i> Admin Profile
-                            </a></li>
-                        </ul>
-                    </div>
-                    {% endif %}
-                    
                     <!-- User menu -->
                     <div class="nav-item dropdown">
                         <a class="nav-link" href="#" id="userDropdown" role="button" 
                            data-bs-toggle="dropdown" aria-expanded="false" aria-label="User menu for {{ current_user.username }}">
                             <i class="bi bi-person-circle" aria-hidden="true"></i> 
                             {{ current_user.username }}
+                            {% if current_user.is_superuser %}
+                                <span class="badge bg-danger ms-1" aria-label="Superuser role">Super</span>
+                            {% elif current_user.is_admin %}
+                                <span class="badge bg-warning ms-1" aria-label="Admin role">Admin</span>
+                            {% endif %}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                             <li><h6 class="dropdown-header">Welcome, {{ current_user.username }}</h6></li>
@@ -203,6 +175,25 @@ CALMIC SDN BHD - "Committed to Excellence"
                             <li><a class="dropdown-item" href="{{ url_for('billing.dashboard') }}">
                                 <i class="bi bi-credit-card" aria-hidden="true"></i> My Subscription
                             </a></li>
+                            
+                            {% if current_user.is_admin or current_user.is_superuser %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin.dashboard') }}">
+                                <i class="bi bi-speedometer2" aria-hidden="true"></i> Admin Dashboard
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin.statistics') }}">
+                                <i class="bi bi-bar-chart" aria-hidden="true"></i> Statistics
+                            </a></li>
+                            {% if current_user.is_superuser %}
+                            <li><a class="dropdown-item" href="{{ url_for('superuser.dashboard') }}">
+                                <i class="bi bi-star-fill" aria-hidden="true"></i> Superuser Panel
+                            </a></li>
+                            {% endif %}
+                            <li><a class="dropdown-item" href="{{ url_for('admin.profile') }}">
+                                <i class="bi bi-person-circle" aria-hidden="true"></i> Admin Profile
+                            </a></li>
+                            {% endif %}
+                            
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}">
                                 <i class="bi bi-box-arrow-right" aria-hidden="true"></i> Logout
