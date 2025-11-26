@@ -1218,3 +1218,18 @@ Fixed web sharpening failing with "Authorization token is missing" error:
     - Created ImageCache utility for custom caching (StoryKeep-iOS/src/utils/ImageCache.js)
     - Created CachedImage component (StoryKeep-iOS/src/components/CachedImage.js)
     - Both servers restarted and running successfully
+
+[x] 320. Multicultural rotating hero background - COMPLETED
+    - Generated 5 hero images representing Malaysia's diverse ethnic groups:
+      - Chinese Malaysian family (hero-chinese.jpg)
+      - Malay Malaysian family (hero-malay.jpg)
+      - Indian Malaysian family (hero-indian.jpg)
+      - Dayak Iban family from Sarawak (hero-dayak.jpg)
+      - Peranakan Baba Nyonya family (hero-peranakan.jpg)
+    - All images show multigenerational families viewing old photos together
+    - Updated templates/index.html with slideshow functionality:
+      - CSS crossfade transitions (1.5s ease-in-out)
+      - Automatic rotation every 6 seconds
+      - Manual indicator dots for navigation
+      - Dark overlay for text readability
+    - Architect review: PASSED - all working correctly
