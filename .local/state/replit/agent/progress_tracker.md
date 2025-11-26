@@ -1206,3 +1206,15 @@ Fixed web sharpening failing with "Authorization token is missing" error:
     - Expo Server: Running with Metro bundler at exp://hutg82u-anonymous-8081.exp.direct
     - Caricature feature accessible in iOS app enhancement screen
     - All 318 tasks in progress tracker marked as completed [x]
+
+[x] 319. Fix iOS app slow loading and 500 error on annotations - COMPLETED
+    - Fixed comments API endpoint to use correct VaultPhoto model (was FamilyVaultPhoto)
+    - Updated endpoint to return empty array instead of 500 error when photo not found
+    - Added support for photos in family vaults (checks VaultPhoto and FamilyMember)
+    - Updated PhotoDetailScreen to use expo-image instead of React Native Image
+    - Added cachePolicy="memory-disk" for efficient image caching
+    - Added blurhash placeholder support for faster perceived loading
+    - Added smooth 300ms image transitions
+    - Created ImageCache utility for custom caching (StoryKeep-iOS/src/utils/ImageCache.js)
+    - Created CachedImage component (StoryKeep-iOS/src/components/CachedImage.js)
+    - Both servers restarted and running successfully

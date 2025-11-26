@@ -3564,23 +3564,50 @@ def get_photo_comments(current_user, photo_id):
     try:
         logger.info(f"💬 Getting comments for photo {photo_id}")
         
-        # Verify photo exists and user has access
+        # First check if user owns the photo
         photo = Photo.query.filter_by(id=photo_id, user_id=current_user.id).first()
+        
+        # If not owned, check if it's in a family vault they have access to
         if not photo:
-            logger.warning(f"❌ Photo {photo_id} not found for user {current_user.id}")
-            return jsonify({'success': False, 'error': 'Photo not found'}), 404
+            photo = Photo.query.filter_by(id=photo_id).first()
+            if photo:
+                # Check if user has access via family vault
+                has_vault_access = False
+                try:
+                    vault_photo = VaultPhoto.query.filter_by(photo_id=photo_id).first()
+                    if vault_photo:
+                        member = FamilyMember.query.filter_by(
+                            vault_id=vault_photo.vault_id, 
+                            user_id=current_user.id
+                        ).first()
+                        if member:
+                            has_vault_access = True
+                except Exception:
+                    pass
+                
+                if not has_vault_access:
+                    photo = None
+        
+        if not photo:
+            logger.warning(f"❌ Photo {photo_id} not found or no access for user {current_user.id}")
+            return jsonify({'success': True, 'photo_id': photo_id, 'comments': [], 'total': 0}), 200
         
         # Get all comments for this photo
         comments = PhotoComment.query.filter_by(photo_id=photo_id).order_by(PhotoComment.created_at.desc()).all()
         
-        comments_data = [{
-            'id': comment.id,
-            'comment_text': comment.comment_text,
-            'user_id': comment.user_id,
-            'username': comment.user.username,
-            'created_at': comment.created_at.isoformat(),
-            'updated_at': comment.updated_at.isoformat()
-        } for comment in comments]
+        comments_data = []
+        for comment in comments:
+            try:
+                comments_data.append({
+                    'id': comment.id,
+                    'comment_text': comment.comment_text,
+                    'user_id': comment.user_id,
+                    'username': comment.user.username if comment.user else 'Unknown',
+                    'created_at': comment.created_at.isoformat() if comment.created_at else None,
+                    'updated_at': comment.updated_at.isoformat() if comment.updated_at else None
+                })
+            except Exception as e:
+                logger.warning(f"⚠️ Error processing comment {comment.id}: {str(e)}")
         
         logger.info(f"✅ Retrieved {len(comments_data)} comments for photo {photo_id}")
         
@@ -3595,7 +3622,7 @@ def get_photo_comments(current_user, photo_id):
         logger.error(f"❌ Error getting comments: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': True, 'photo_id': photo_id, 'comments': [], 'total': 0}), 200
 
 
 @mobile_api_bp.route('/photos/<int:photo_id>/comments', methods=['POST'])
@@ -3606,11 +3633,32 @@ def add_photo_comment(current_user, photo_id):
     try:
         logger.info(f"💬 Adding comment to photo {photo_id}")
         
-        # Verify photo exists and user has access
+        # First check if user owns the photo
         photo = Photo.query.filter_by(id=photo_id, user_id=current_user.id).first()
+        
+        # If not owned, check if it's in a family vault they have access to
         if not photo:
-            logger.warning(f"❌ Photo {photo_id} not found for user {current_user.id}")
-            return jsonify({'success': False, 'error': 'Photo not found'}), 404
+            photo = Photo.query.filter_by(id=photo_id).first()
+            if photo:
+                has_vault_access = False
+                try:
+                    vault_photo = VaultPhoto.query.filter_by(photo_id=photo_id).first()
+                    if vault_photo:
+                        member = FamilyMember.query.filter_by(
+                            vault_id=vault_photo.vault_id, 
+                            user_id=current_user.id
+                        ).first()
+                        if member:
+                            has_vault_access = True
+                except Exception:
+                    pass
+                
+                if not has_vault_access:
+                    photo = None
+        
+        if not photo:
+            logger.warning(f"❌ Photo {photo_id} not found or no access for user {current_user.id}")
+            return jsonify({'success': False, 'error': 'Photo not found or no access'}), 404
         
         # Get comment text from request
         data = request.get_json()

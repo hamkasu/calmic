@@ -7,7 +7,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   TouchableOpacity,
   ScrollView,
   Alert,
@@ -16,6 +15,7 @@ import {
   TextInput,
   Animated,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import { photoAPI, voiceMemoAPI, commentAPI } from '../services/api';
@@ -632,24 +632,24 @@ export default function PhotoDetailScreen({ route, navigation }) {
           {imageUrl && authToken ? (
             <>
               <GestureDetector gesture={composedGesture}>
-                <Animated.Image 
-                  source={{ 
-                    uri: imageUrl,
-                    headers: {
-                      Authorization: `Bearer ${authToken}`
-                    }
-                  }} 
-                  style={[
-                    styles.image,
-                    {
-                      transform: [{ scale: scale }]
-                    }
-                  ]}
-                  resizeMode="contain"
-                  onLoadStart={() => setImageLoading(true)}
-                  onLoad={() => setImageLoading(false)}
-                  onError={() => setImageLoading(false)}
-                />
+                <Animated.View style={[styles.imageWrapper, { transform: [{ scale: scale }] }]}>
+                  <Image 
+                    source={{ 
+                      uri: imageUrl,
+                      headers: {
+                        Authorization: `Bearer ${authToken}`
+                      }
+                    }} 
+                    style={styles.image}
+                    contentFit="contain"
+                    cachePolicy="memory-disk"
+                    transition={300}
+                    placeholder={photo.blurhash ? { blurhash: photo.blurhash } : undefined}
+                    onLoadStart={() => setImageLoading(true)}
+                    onLoad={() => setImageLoading(false)}
+                    onError={() => setImageLoading(false)}
+                  />
+                </Animated.View>
               </GestureDetector>
               {imageLoading && (
                 <View style={styles.imageLoadingOverlay}>
@@ -1109,6 +1109,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  imageWrapper: {
+    width: width,
+    height: width,
   },
   imageLoadingOverlay: {
     position: 'absolute',
