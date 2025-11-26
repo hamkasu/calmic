@@ -21,6 +21,7 @@ import { photoAPI } from '../services/api';
 import ProgressBar from '../components/ProgressBar';
 import NetworkService from '../services/NetworkService';
 import QueueService from '../services/QueueService';
+import { compressForUpload, getFileSizeInMB } from '../utils/imageCompression';
 
 const AUTO_ENHANCE_KEY = '@auto_enhance';
 const OFFLINE_MODE_KEY = '@offline_mode';
@@ -200,12 +201,27 @@ export default function CameraScreen({ navigation }) {
     }
 
     try {
-      setUploadProgress(10);
-      setUploadMessage('Preparing image...');
+      setUploadProgress(5);
+      setUploadMessage('Compressing image...');
+      
+      // Compress image before upload for faster transfers
+      const originalSize = await getFileSizeInMB(photoUri);
+      let uploadUri = photoUri;
+      
+      if (originalSize > 2) {
+        const compressed = await compressForUpload(photoUri, 5);
+        if (compressed.uri && !compressed.error) {
+          uploadUri = compressed.uri;
+          console.log(`Compressed: ${originalSize.toFixed(1)}MB -> ${compressed.compressedSize?.toFixed(1) || '?'}MB`);
+        }
+      }
+      
+      setUploadProgress(15);
+      setUploadMessage('Preparing upload...');
       
       const formData = new FormData();
       formData.append('image', {
-        uri: photoUri,
+        uri: uploadUri,
         type: 'image/jpeg',
         name: `photo_${Date.now()}.jpg`,
       });

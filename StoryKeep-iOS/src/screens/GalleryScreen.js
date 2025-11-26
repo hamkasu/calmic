@@ -26,6 +26,8 @@ import * as MediaLibrary from 'expo-media-library';
 import { sharePhoto } from '../utils/sharePhoto';
 import { useLoading } from '../contexts/LoadingContext';
 import ProgressBar from '../components/ProgressBar';
+import { PhotoGridSkeleton } from '../components/SkeletonLoader';
+import { cacheService } from '../services/CacheService';
 
 const { width } = Dimensions.get('window');
 const COLUMN_COUNT = 3;
@@ -86,6 +88,18 @@ export default function GalleryScreen({ navigation }) {
       const token = await AsyncStorage.getItem('authToken');
       setAuthToken(token);
       
+      // Try cached data first for instant display (only on first page)
+      if (pageNum === 1 && !append) {
+        const cachedGallery = await cacheService.getCachedGallery();
+        if (cachedGallery && cachedGallery.photos && cachedGallery.photos.length > 0) {
+          setAllPhotos(cachedGallery.photos);
+          if (cachedGallery.pagination) {
+            setTotalPhotos(cachedGallery.pagination.total_count || cachedGallery.photos.length);
+          }
+          setInitialLoading(false);
+        }
+      }
+      
       if (!append) setLoadingProgress(30);
       
       // Use paginated photos endpoint for efficient loading
@@ -106,6 +120,8 @@ export default function GalleryScreen({ navigation }) {
         } else {
           // Replace all photos (fresh load or refresh)
           setAllPhotos(data.photos);
+          // Cache the first page of photos for faster loading next time
+          await cacheService.cacheGalleryData(data.photos, data.pagination);
         }
         
         // Store pagination metadata
@@ -436,7 +452,7 @@ export default function GalleryScreen({ navigation }) {
             }}
             style={styles.photoImage}
             contentFit="cover"
-            placeholder={item.blurhash}
+            placeholder={item.blurhash ? { blurhash: item.blurhash } : undefined}
             transition={200}
             cachePolicy="memory-disk"
             priority="high"
@@ -589,20 +605,13 @@ export default function GalleryScreen({ navigation }) {
 
       {initialLoading ? (
         <View style={styles.loadingContainer}>
-          <View style={styles.loadingSpinnerContainer}>
-            <ActivityIndicator size="large" color="#E85D75" />
-            <View style={styles.loadingRing} />
+          <PhotoGridSkeleton columns={3} count={15} />
+          <View style={styles.loadingTextContainer}>
+            <Text style={styles.loadingTitle}>Loading Your Photos</Text>
+            <Text style={styles.loadingSubtitle}>
+              {totalPhotos > 0 ? `${totalPhotos} photos total` : 'Fetching gallery...'}
+            </Text>
           </View>
-          <Text style={styles.loadingTitle}>Loading Your Photos</Text>
-          <Text style={styles.loadingSubtitle}>
-            {totalPhotos > 0 ? `${totalPhotos} photos total` : 'Fetching gallery...'}
-          </Text>
-          <ProgressBar 
-            progress={loadingProgress} 
-            message={loadingProgress < 50 ? "Connecting to server..." : "Loading photos..."}
-            color="#E85D75"
-            showPercentage={true}
-          />
         </View>
       ) : allPhotos.length === 0 ? (
         <View style={styles.emptyContainer}>
@@ -975,6 +984,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#888',
     marginBottom: 30,
+  },
+  loadingTextContainer: {
+    marginTop: 20,
+    alignItems: 'center',
   },
   emptyContainer: {
     flex: 1,

@@ -24,6 +24,8 @@ import api from '../services/api';
 import { useLoading } from '../contexts/LoadingContext';
 import NetworkService from '../services/NetworkService';
 import QueueService from '../services/QueueService';
+import { cacheService } from '../services/CacheService';
+import { DashboardSkeleton } from '../components/SkeletonLoader';
 
 export default function DashboardScreen({ navigation }) {
   const [stats, setStats] = useState(null);
@@ -151,11 +153,26 @@ export default function DashboardScreen({ navigation }) {
   const loadDashboardData = async () => {
     const loadingId = startLoading('Loading dashboard...');
     try {
-      const [statsData, profileData, token] = await Promise.all([
+      // Try cached data first for instant display
+      const cachedDashboard = await cacheService.getCachedDashboard();
+      const cachedProfile = await cacheService.getCachedProfile();
+      const token = await AsyncStorage.getItem('authToken');
+      
+      if (cachedDashboard && cachedProfile) {
+        setStats(cachedDashboard);
+        setUserData(cachedProfile);
+        setAuthToken(token);
+      }
+      
+      // Fetch fresh data in background
+      const [statsData, profileData] = await Promise.all([
         dashboardAPI.getStats(),
         authAPI.getProfile(),
-        AsyncStorage.getItem('authToken'),
       ]);
+      
+      // Cache the fresh data
+      await cacheService.cacheDashboardData(statsData);
+      await cacheService.cacheUserProfile(profileData);
 
       console.log('📊 Dashboard data loaded:', {
         total_photos: statsData.total_photos,
@@ -223,7 +240,7 @@ export default function DashboardScreen({ navigation }) {
   if (!stats || !userData) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#E85D75" />
+        <DashboardSkeleton />
       </View>
     );
   }

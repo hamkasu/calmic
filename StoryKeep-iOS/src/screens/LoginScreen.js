@@ -19,6 +19,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { authAPI } from '../services/api';
 import { useLoading } from '../contexts/LoadingContext';
+import { prefetchService } from '../services/PrefetchService';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -41,6 +42,9 @@ export default function LoginScreen({ navigation }) {
       if (response.token) {
         await AsyncStorage.setItem('authToken', response.token);
         await AsyncStorage.setItem('userData', JSON.stringify(response.user));
+        
+        // Start prefetching data in the background for faster loading
+        prefetchService.startPrefetch();
         
         // Save credentials securely for biometric login if not already saved
         if (!skipBiometricSave) {

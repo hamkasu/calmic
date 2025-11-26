@@ -657,12 +657,23 @@ def get_photos(current_user):
                 if enhancement_meta and not isinstance(enhancement_meta, (dict, list, str, int, float, bool, type(None))):
                     enhancement_meta = str(enhancement_meta)
                 
+                grid_thumbnail_url = None
+                if hasattr(photo, 'grid_thumbnail_path') and photo.grid_thumbnail_path:
+                    if photo.grid_thumbnail_path.startswith('uploads/'):
+                        grid_thumbnail_url = f'/{photo.grid_thumbnail_path}'
+                    elif photo.grid_thumbnail_path.startswith('users/'):
+                        grid_thumbnail_url = f'/uploads/{photo.grid_thumbnail_path}'
+                    else:
+                        grid_thumbnail_url = f'/uploads/{current_user.id}/{photo.grid_thumbnail_path}'
+                
                 photo_dict = {
                     'id': photo.id,
                     'filename': str(photo.filename) if photo.filename else '',
                     'original_url': photo_url,
                     'url': photo_url,
-                    'thumbnail_url': photo_url,
+                    'thumbnail_url': grid_thumbnail_url or photo_url,
+                    'grid_thumbnail_url': grid_thumbnail_url,
+                    'blurhash': getattr(photo, 'blurhash', None),
                     'created_at': photo.created_at.isoformat() if photo.created_at else None,
                     'file_size': int(photo.file_size) if photo.file_size else 0,
                     'has_edited': bool(photo.edited_filename),
