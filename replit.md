@@ -5,6 +5,39 @@ StoryKeep is a subscription-based platform for photo management and enhancement.
 
 ## Recent Changes
 
+### Mobile App Performance Optimization Suite (November 26, 2025)
+Implemented comprehensive performance optimizations for the iOS mobile app:
+
+**Image Loading & Caching:**
+- [x] Replaced React Native Image with expo-image for advanced caching (memory + disk)
+- [x] Added blurhash placeholder support for smooth progressive loading
+- [x] Backend API now returns `grid_thumbnail_url` (200x200) and `blurhash` for each photo
+- [x] Gallery uses optimized thumbnails with fallback to full-size images
+
+**New Services & Components:**
+- [x] `CacheService.js` - Offline caching with AsyncStorage for gallery data and user profile
+- [x] `PrefetchService.js` - Background data loading after login for instant gallery access
+- [x] `SkeletonLoader.js` - Animated skeleton loading screens for gallery, dashboard, photos
+- [x] `imageCompression.js` - Image compression utility (60-80% size reduction before upload)
+
+**Progressive Loading Pipeline:**
+1. Show skeleton loading state while fetching data
+2. Display blurhash placeholder while image downloads
+3. Fade in optimized grid thumbnail (200x200)
+4. Load full-size image on photo detail view
+
+**API Enhancements:**
+- `GET /api/photos` now returns: `grid_thumbnail_url`, `blurhash`, optimized `thumbnail_url`
+- Backend generates 200x200 grid thumbnails on photo upload using `image_optimization.py`
+
+**Files Created/Updated:**
+- `StoryKeep-iOS/src/services/CacheService.js`
+- `StoryKeep-iOS/src/services/PrefetchService.js`
+- `StoryKeep-iOS/src/components/SkeletonLoader.js`
+- `StoryKeep-iOS/src/utils/imageCompression.js`
+- `StoryKeep-iOS/src/screens/GalleryScreen.js`
+- `photovault/routes/mobile_api.py`
+
 ### Subscription Enforcement Implementation (November 1, 2025)
 Implemented comprehensive subscription plan enforcement across all platforms:
 - [x] Created `subscription_enforcement.py` with decorators and utilities for plan limit enforcement
