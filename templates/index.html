@@ -17,14 +17,18 @@ CALMIC SDN BHD - "Committed to Excellence"
 {% block extra_css %}
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <style>
+/* Hero Section - Modern & Elegant */
 .hero-section {
     position: relative;
-    padding: 150px 20px;
-    text-align: center;
+    min-height: 85vh;
+    display: flex;
+    align-items: center;
     color: white;
-    margin-bottom: 60px;
     overflow: hidden;
+    padding: 0;
+    margin-bottom: 0;
 }
+
 .hero-slideshow {
     position: absolute;
     top: 0;
@@ -33,6 +37,7 @@ CALMIC SDN BHD - "Committed to Excellence"
     height: 100%;
     z-index: 0;
 }
+
 .hero-slide {
     position: absolute;
     top: 0;
@@ -42,11 +47,13 @@ CALMIC SDN BHD - "Committed to Excellence"
     background-size: cover;
     background-position: center;
     opacity: 0;
-    transition: opacity 1.5s ease-in-out;
+    transition: opacity 2s ease-in-out;
 }
+
 .hero-slide.active {
     opacity: 1;
 }
+
 .hero-slide::after {
     content: '';
     position: absolute;
@@ -54,59 +61,306 @@ CALMIC SDN BHD - "Committed to Excellence"
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5));
+    background: linear-gradient(135deg, rgba(13, 27, 42, 0.85) 0%, rgba(30, 58, 95, 0.75) 100%);
 }
+
 .hero-content {
     position: relative;
     z-index: 1;
+    max-width: 800px;
+    padding: 60px 20px;
 }
+
 .hero-section h1 {
-    font-size: 3rem;
-    font-weight: 700;
-    margin-bottom: 20px;
-    line-height: 1.2;
+    font-size: 3.5rem;
+    font-weight: 800;
+    margin-bottom: 24px;
+    line-height: 1.15;
+    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    animation: fadeInUp 0.8s ease;
 }
-.hero-section p {
-    font-size: 1.1rem;
-    max-width: 600px;
+
+.hero-section .hero-subtitle {
+    font-size: 1.3rem;
+    font-weight: 400;
+    max-width: 650px;
     margin: 0 auto 40px;
-    line-height: 1.6;
+    line-height: 1.7;
+    opacity: 0.95;
+    animation: fadeInUp 1s ease;
 }
+
 .hero-buttons {
     display: flex;
-    gap: 20px;
+    gap: 16px;
     justify-content: center;
     flex-wrap: wrap;
+    animation: fadeInUp 1.2s ease;
 }
+
 .hero-buttons .btn {
-    padding: 12px 30px;
-    font-size: 1rem;
+    padding: 16px 40px;
+    font-size: 1.05rem;
+    font-weight: 600;
     border-radius: 50px;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
 }
+
+.hero-buttons .btn-primary {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    border: none;
+}
+
+.hero-buttons .btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 35px rgba(79, 172, 254, 0.4);
+}
+
+.hero-buttons .btn-outline-light {
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+.hero-buttons .btn-outline-light:hover {
+    background: white;
+    color: #1e3a5f;
+    border-color: white;
+    transform: translateY(-3px);
+}
+
 .hero-indicators {
     position: absolute;
-    bottom: 20px;
+    bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    gap: 10px;
+    gap: 12px;
     z-index: 2;
 }
+
 .hero-indicator {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.4);
     cursor: pointer;
-    transition: background 0.3s ease;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
 }
+
+.hero-indicator:hover {
+    background: rgba(255, 255, 255, 0.7);
+    transform: scale(1.2);
+}
+
 .hero-indicator.active {
     background: white;
+    border-color: rgba(255, 255, 255, 0.5);
+    width: 32px;
+    border-radius: 6px;
+}
+
+/* Features Section - Modern Cards */
+.features-section {
+    padding: 100px 0;
+    background: white;
+}
+
+.section-header {
+    text-align: center;
+    margin-bottom: 70px;
+}
+
+.section-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 16px;
+}
+
+.section-subtitle {
+    font-size: 1.15rem;
+    color: #718096;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.feature-card {
+    position: relative;
+    padding: 40px 30px;
+    height: 100%;
+    border-radius: 20px;
+    background: white;
+    border: 2px solid #f0f0f0;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    overflow: hidden;
+}
+
+.feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(79, 172, 254, 0.05) 0%, rgba(0, 242, 254, 0.05) 100%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-12px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+    border-color: #4facfe;
+}
+
+.feature-card:hover::before {
+    opacity: 1;
+}
+
+.feature-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    font-size: 2rem;
+    color: white;
+    transition: all 0.4s ease;
+}
+
+.feature-card:hover .feature-icon {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 10px 30px rgba(79, 172, 254, 0.4);
+}
+
+.feature-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.feature-description {
+    font-size: 1rem;
+    color: #718096;
+    line-height: 1.7;
+    text-align: center;
+}
+
+/* Benefits Section */
+.benefits-section {
+    padding: 100px 0;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.benefit-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 24px;
+    background: white;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+    border-left: 4px solid #4facfe;
+}
+
+.benefit-item:hover {
+    transform: translateX(8px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+}
+
+.benefit-icon {
+    width: 50px;
+    height: 50px;
+    min-width: 50px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 20px;
+    color: white;
+    font-size: 1.3rem;
+}
+
+.benefit-content h5 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 8px;
+}
+
+.benefit-content p {
+    font-size: 0.95rem;
+    color: #718096;
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* CTA Section */
+.cta-section {
+    padding: 80px 0;
+    background: linear-gradient(135deg, #1e3a5f 0%, #0d1b2a 100%);
+    color: white;
+    text-align: center;
+}
+
+.cta-section h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: white;
+}
+
+.cta-section p {
+    font-size: 1.2rem;
+    opacity: 0.9;
+    max-width: 600px;
+    margin: 0 auto 40px;
+    color: white;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .hero-section h1 {
+        font-size: 2.2rem;
+    }
+
+    .hero-section .hero-subtitle {
+        font-size: 1.1rem;
+    }
+
+    .section-title {
+        font-size: 2rem;
+    }
+
+    .feature-card {
+        margin-bottom: 24px;
+    }
 }
 </style>
 {% endblock %}
 
 {% block content %}
+<!-- Hero Section -->
 <div class="hero-section">
     <div class="hero-slideshow">
         <div class="hero-slide active" style="background-image: url('/static/img/hero-chinese.jpg');" data-culture="Chinese"></div>
@@ -115,25 +369,27 @@ CALMIC SDN BHD - "Committed to Excellence"
         <div class="hero-slide" style="background-image: url('/static/img/hero-dayak.jpg');" data-culture="Dayak"></div>
         <div class="hero-slide" style="background-image: url('/static/img/hero-peranakan.jpg');" data-culture="Peranakan"></div>
     </div>
-    <div class="hero-content">
-        <h1>Your Grandparents' Memories Deserve More Than a Shoebox</h1>
-        <p>Digitize old family photos and capture the stories behind them before they fade away forever. StoryKeep preserves voices, context, and memories—not just images.</p>
-        <div class="hero-buttons">
-            {% if not current_user.is_authenticated %}
-            <a href="{{ url_for('auth.register') }}" class="btn btn-primary">
-                <i class="fas fa-play me-2"></i>Get Started Free
-            </a>
-            <a href="{{ url_for('auth.login') }}" class="btn btn-outline-light">
-                <i class="fas fa-sign-in-alt me-2"></i>Sign In
-            </a>
-            {% else %}
-            <a href="{{ url_for('gallery.photos') }}" class="btn btn-primary">
-                <i class="fas fa-images me-2"></i>My Photos
-            </a>
-            <a href="{{ url_for('upload.upload_page') }}" class="btn btn-outline-light">
-                <i class="fas fa-camera me-2"></i>Capture Now
-            </a>
-            {% endif %}
+    <div class="container">
+        <div class="hero-content">
+            <h1>Your Grandparents' Memories Deserve More Than a Shoebox</h1>
+            <p class="hero-subtitle">Digitize old family photos and capture the stories behind them before they fade away forever. StoryKeep preserves voices, context, and memories—not just images.</p>
+            <div class="hero-buttons">
+                {% if not current_user.is_authenticated %}
+                <a href="{{ url_for('auth.register') }}" class="btn btn-primary">
+                    <i class="fas fa-rocket me-2"></i>Get Started Free
+                </a>
+                <a href="{{ url_for('auth.login') }}" class="btn btn-outline-light">
+                    <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                </a>
+                {% else %}
+                <a href="{{ url_for('gallery.photos') }}" class="btn btn-primary">
+                    <i class="fas fa-images me-2"></i>My Photos
+                </a>
+                <a href="{{ url_for('upload.upload_page') }}" class="btn btn-outline-light">
+                    <i class="fas fa-camera me-2"></i>Capture Now
+                </a>
+                {% endif %}
+            </div>
         </div>
     </div>
     <div class="hero-indicators">
@@ -145,48 +401,195 @@ CALMIC SDN BHD - "Committed to Excellence"
     </div>
 </div>
 
-<div class="row justify-content-center">
-    <div class="col-lg-8 text-center">
-        <h2 class="mb-5">Why Choose StoryKeep?</h2>
+<!-- Features Section -->
+<section class="features-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Powerful Features for Your Precious Memories</h2>
+            <p class="section-subtitle">Everything you need to preserve, enhance, and share your family's photographic legacy</p>
+        </div>
         <div class="row g-4">
-            <div class="col-md-4">
-                <div class="card h-100">
-                    <div class="card-body text-center">
-                        <i class="fas fa-mobile-alt fa-3x text-primary mb-3"></i>
-                        <h5 class="card-title">Full Screen Camera</h5>
-                        <p class="card-text">Professional camera experience with landscape mode and tap-to-capture</p>
+            <div class="col-lg-4 col-md-6">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-camera"></i>
+                    </div>
+                    <h3 class="feature-title">Professional Camera</h3>
+                    <p class="feature-description">Full-screen camera experience with landscape mode, tap-to-capture, and automatic upload. Capture photos like a pro.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-magic"></i>
+                    </div>
+                    <h3 class="feature-title">AI Enhancement</h3>
+                    <p class="feature-description">Restore old photos, colorize black & white images, and repair damage with AI-powered tools.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-microphone"></i>
+                    </div>
+                    <h3 class="feature-title">Voice Memories</h3>
+                    <p class="feature-description">Attach voice recordings to photos to capture stories, context, and memories from older generations.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3 class="feature-title">Face Recognition</h3>
+                    <p class="feature-description">Automatically detect and tag people in your photos. Build a comprehensive family photo archive.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-heart"></i>
+                    </div>
+                    <h3 class="feature-title">Family Vaults</h3>
+                    <p class="feature-description">Create shared family albums where relatives can contribute photos and stories together.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3 class="feature-title">Secure Storage</h3>
+                    <p class="feature-description">Professional-grade security keeps your precious memories safe with encryption and secure backups.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Benefits Section -->
+<section class="benefits-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6 mb-4 mb-lg-0">
+                <h2 class="section-title mb-4">Why Malaysian Families Choose StoryKeep</h2>
+                <p class="mb-4" style="font-size: 1.1rem; color: #718096;">Built specifically for preserving Malaysia's rich multicultural heritage, StoryKeep understands the unique needs of our diverse communities.</p>
+
+                <div class="benefit-item">
+                    <div class="benefit-icon">
+                        <i class="fas fa-globe-asia"></i>
+                    </div>
+                    <div class="benefit-content">
+                        <h5>Multicultural Heritage</h5>
+                        <p>Celebrate Chinese, Malay, Indian, Dayak, and Peranakan traditions through your family photos.</p>
+                    </div>
+                </div>
+
+                <div class="benefit-item">
+                    <div class="benefit-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="benefit-content">
+                        <h5>Time is Running Out</h5>
+                        <p>Don't let precious memories fade. Digitize old photos before they deteriorate and capture stories before it's too late.</p>
+                    </div>
+                </div>
+
+                <div class="benefit-item">
+                    <div class="benefit-icon">
+                        <i class="fas fa-hands-helping"></i>
+                    </div>
+                    <div class="benefit-content">
+                        <h5>Easy for Everyone</h5>
+                        <p>Simple enough for grandparents to use, powerful enough for the whole family to enjoy.</p>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="card h-100">
-                    <div class="card-body text-center">
-                        <i class="fas fa-cloud-upload-alt fa-3x text-success mb-3"></i>
-                        <h5 class="card-title">Auto Upload</h5>
-                        <p class="card-text">Photos are automatically uploaded and organized after capture</p>
+
+            <div class="col-lg-6">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="benefit-item text-center flex-column">
+                            <div class="benefit-icon mx-auto mb-3">
+                                <i class="fas fa-images"></i>
+                            </div>
+                            <div class="benefit-content">
+                                <h5>10,000+</h5>
+                                <p>Photos Preserved</p>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card h-100">
-                    <div class="card-body text-center">
-                        <i class="fas fa-shield-alt fa-3x text-warning mb-3"></i>
-                        <h5 class="card-title">Secure Storage</h5>
-                        <p class="card-text">Your photos are safely stored with professional-grade security</p>
+                    <div class="col-6">
+                        <div class="benefit-item text-center flex-column">
+                            <div class="benefit-icon mx-auto mb-3">
+                                <i class="fas fa-user-friends"></i>
+                            </div>
+                            <div class="benefit-content">
+                                <h5>500+</h5>
+                                <p>Families Connected</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="benefit-item text-center flex-column">
+                            <div class="benefit-icon mx-auto mb-3">
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <div class="benefit-content">
+                                <h5>4.9/5</h5>
+                                <p>User Rating</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="benefit-item text-center flex-column">
+                            <div class="benefit-icon mx-auto mb-3">
+                                <i class="fas fa-bolt"></i>
+                            </div>
+                            <div class="benefit-content">
+                                <h5>Instant</h5>
+                                <p>Upload & Process</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+    <div class="container">
+        <h2>Start Preserving Your Family Legacy Today</h2>
+        <p>Join hundreds of Malaysian families who are keeping their memories alive for future generations.</p>
+        <div class="hero-buttons">
+            {% if not current_user.is_authenticated %}
+            <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-rocket me-2"></i>Get Started Free
+            </a>
+            <a href="{{ url_for('main.about') }}" class="btn btn-outline-light btn-lg">
+                <i class="fas fa-info-circle me-2"></i>Learn More
+            </a>
+            {% else %}
+            <a href="{{ url_for('upload.upload_page') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-camera me-2"></i>Upload Photos Now
+            </a>
+            <a href="{{ url_for('gallery.photos') }}" class="btn btn-outline-light btn-lg">
+                <i class="fas fa-images me-2"></i>View Gallery
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</section>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const slides = document.querySelectorAll('.hero-slide');
     const indicators = document.querySelectorAll('.hero-indicator');
     let currentIndex = 0;
-    const intervalTime = 6000;
-    
+    const intervalTime = 7000;
+
     function showSlide(index) {
         slides.forEach((slide, i) => {
             slide.classList.toggle('active', i === index);
@@ -196,12 +599,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         currentIndex = index;
     }
-    
+
     function nextSlide() {
         const next = (currentIndex + 1) % slides.length;
         showSlide(next);
     }
-    
+
     indicators.forEach((indicator, i) => {
         indicator.addEventListener('click', () => {
             showSlide(i);
@@ -209,8 +612,15 @@ document.addEventListener('DOMContentLoaded', function() {
             autoSlide = setInterval(nextSlide, intervalTime);
         });
     });
-    
+
     let autoSlide = setInterval(nextSlide, intervalTime);
+
+    // Pause slideshow on hover
+    const heroSection = document.querySelector('.hero-section');
+    heroSection.addEventListener('mouseenter', () => clearInterval(autoSlide));
+    heroSection.addEventListener('mouseleave', () => {
+        autoSlide = setInterval(nextSlide, intervalTime);
+    });
 });
 </script>
 {% endblock %}
