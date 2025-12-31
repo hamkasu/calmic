@@ -1,0 +1,398 @@
+<!--
+StoryKeep - Professional Photo Management Platform
+Copyright (c) 2025 Calmic Sdn Bhd. All rights reserved.
+
+This software is proprietary and confidential. Unauthorized copying, distribution,
+modification, or use of this software is strictly prohibited.
+
+Website: https://www.calmic.com.my
+Email: support@calmic.com.my
+
+CALMIC SDN BHD - "Committed to Excellence"
+-->
+
+{% extends "base.html" %}
+
+{% block title %}Enhance Photo - StoryKeep{% endblock %}
+
+{% block extra_css %}
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<style>
+    .enhancement-card {
+        border: none;
+        border-radius: 16px;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .enhancement-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    }
+
+    .enhancement-card:active {
+        transform: translateY(-2px);
+    }
+
+    .enhancement-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        margin-right: 16px;
+    }
+
+    .icon-blue { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .icon-cyan { background: linear-gradient(135deg, #48c6ef 0%, #6f86d6 100%); }
+    .icon-pink { background: linear-gradient(135deg, #ff6b9d 0%, #c06c84 100%); }
+    .icon-orange { background: linear-gradient(135deg, #ffa751 0%, #ffe259 100%); }
+    .icon-teal { background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); }
+    .icon-brown { background: linear-gradient(135deg, #8e7461 0%, #d3a68f 100%); }
+    .icon-purple { background: linear-gradient(135deg, #c94b4b 0%, #4b134f 100%); }
+    .icon-violet { background: linear-gradient(135deg, #6a3093 0%, #a044ff 100%); }
+
+    .enhancement-content {
+        flex: 1;
+    }
+
+    .enhancement-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-bottom: 4px;
+    }
+
+    .enhancement-description {
+        font-size: 14px;
+        color: #666;
+        margin: 0;
+    }
+
+    .arrow-icon {
+        color: #ccc;
+        font-size: 20px;
+    }
+
+    .photo-preview {
+        max-width: 100%;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .back-button {
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        background: #f0f0f0;
+        color: #333;
+        margin-right: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .back-button:hover {
+        background: #e0e0e0;
+    }
+
+    .page-header {
+        font-size: 24px;
+        font-weight: 600;
+        color: #1a1a1a;
+    }
+
+    .processing-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.7);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .processing-content {
+        background: white;
+        padding: 30px;
+        border-radius: 16px;
+        text-align: center;
+        max-width: 400px;
+    }
+
+    .spinner-border {
+        width: 50px;
+        height: 50px;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="d-flex align-items-center mb-4">
+        <button class="back-button" onclick="goBack()">
+            <i class="bi bi-arrow-left"></i>
+        </button>
+        <h1 class="page-header mb-0">Enhance Photo</h1>
+    </div>
+
+    <!-- Photo Preview -->
+    {% if photo %}
+    <div class="card mb-4">
+        <div class="card-body text-center">
+            <img src="{{ url_for('gallery.uploaded_file', user_id=photo.user_id, filename=photo.filename) }}"
+                 alt="{{ photo.original_name }}"
+                 class="photo-preview"
+                 style="max-height: 300px;">
+            <p class="mt-3 mb-0 text-muted">{{ photo.original_name }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Enhancement Options -->
+    <div class="row">
+        <div class="col-12">
+            <!-- Sketch -->
+            <div class="enhancement-card card" onclick="applyEnhancement('sketch')">
+                <div class="card-body d-flex align-items-center">
+                    <div class="enhancement-icon icon-blue">
+                        <i class="bi bi-pencil text-white"></i>
+                    </div>
+                    <div class="enhancement-content">
+                        <div class="enhancement-title">Sketch</div>
+                        <div class="enhancement-description">Transform photo into pencil sketch</div>
+                    </div>
+                    <div class="arrow-icon">
+                        <i class="bi bi-chevron-right"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cartoonify -->
+            <div class="enhancement-card card" onclick="applyEnhancement('cartoon')">
+                <div class="card-body d-flex align-items-center">
+                    <div class="enhancement-icon icon-cyan">
+                        <i class="bi bi-emoji-smile text-white"></i>
+                    </div>
+                    <div class="enhancement-content">
+                        <div class="enhancement-title">Cartoonify</div>
+                        <div class="enhancement-description">Create comic/cartoon effect</div>
+                    </div>
+                    <div class="arrow-icon">
+                        <i class="bi bi-chevron-right"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Caricature -->
+            <div class="enhancement-card card" onclick="applyEnhancement('caricature')">
+                <div class="card-body d-flex align-items-center">
+                    <div class="enhancement-icon icon-pink">
+                        <i class="bi bi-emoji-laughing text-white"></i>
+                    </div>
+                    <div class="enhancement-content">
+                        <div class="enhancement-title">Caricature</div>
+                        <div class="enhancement-description">Exaggerated art with bold colors</div>
+                    </div>
+                    <div class="arrow-icon">
+                        <i class="bi bi-chevron-right"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Oil Painting -->
+            <div class="enhancement-card card" onclick="applyEnhancement('oil-painting')">
+                <div class="card-body d-flex align-items-center">
+                    <div class="enhancement-icon icon-orange">
+                        <i class="bi bi-brush text-white"></i>
+                    </div>
+                    <div class="enhancement-content">
+                        <div class="enhancement-title">Oil Painting</div>
+                        <div class="enhancement-description">Hand-painted artwork look</div>
+                    </div>
+                    <div class="arrow-icon">
+                        <i class="bi bi-chevron-right"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Watercolor -->
+            <div class="enhancement-card card" onclick="applyEnhancement('watercolor')">
+                <div class="card-body d-flex align-items-center">
+                    <div class="enhancement-icon icon-teal">
+                        <i class="bi bi-droplet text-white"></i>
+                    </div>
+                    <div class="enhancement-content">
+                        <div class="enhancement-title">Watercolor</div>
+                        <div class="enhancement-description">Soft, dreamy painting effect</div>
+                    </div>
+                    <div class="arrow-icon">
+                        <i class="bi bi-chevron-right"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vintage -->
+            <div class="enhancement-card card" onclick="applyEnhancement('vintage')">
+                <div class="card-body d-flex align-items-center">
+                    <div class="enhancement-icon icon-brown">
+                        <i class="bi bi-clock-history text-white"></i>
+                    </div>
+                    <div class="enhancement-content">
+                        <div class="enhancement-title">Vintage</div>
+                        <div class="enhancement-description">Classic sepia tone effect</div>
+                    </div>
+                    <div class="arrow-icon">
+                        <i class="bi bi-chevron-right"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pop Art -->
+            <div class="enhancement-card card" onclick="applyEnhancement('pop-art')">
+                <div class="card-body d-flex align-items-center">
+                    <div class="enhancement-icon icon-purple">
+                        <i class="bi bi-palette-fill text-white"></i>
+                    </div>
+                    <div class="enhancement-content">
+                        <div class="enhancement-title">Pop Art</div>
+                        <div class="enhancement-description">Warhol-style bold colors</div>
+                    </div>
+                    <div class="arrow-icon">
+                        <i class="bi bi-chevron-right"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HDR -->
+            <div class="enhancement-card card" onclick="applyEnhancement('hdr')">
+                <div class="card-body d-flex align-items-center">
+                    <div class="enhancement-icon icon-violet">
+                        <i class="bi bi-brightness-high text-white"></i>
+                    </div>
+                    <div class="enhancement-content">
+                        <div class="enhancement-title">HDR</div>
+                        <div class="enhancement-description">Dramatic high-contrast enhancement</div>
+                    </div>
+                    <div class="arrow-icon">
+                        <i class="bi bi-chevron-right"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Processing Overlay -->
+<div class="processing-overlay" id="processingOverlay">
+    <div class="processing-content">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <h5 class="mt-3">Processing...</h5>
+        <p class="text-muted">Applying <span id="effectName"></span> effect to your photo</p>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const photoId = {{ photo.id if photo else 'null' }};
+
+    function goBack() {
+        if (photoId) {
+            window.location.href = `/photo/${photoId}`;
+        } else {
+            window.history.back();
+        }
+    }
+
+    function showProcessing(effectName) {
+        document.getElementById('effectName').textContent = effectName;
+        document.getElementById('processingOverlay').style.display = 'flex';
+    }
+
+    function hideProcessing() {
+        document.getElementById('processingOverlay').style.display = 'none';
+    }
+
+    function applyEnhancement(type) {
+        if (!photoId) {
+            alert('No photo selected');
+            return;
+        }
+
+        const effectNames = {
+            'sketch': 'Sketch',
+            'cartoon': 'Cartoon',
+            'caricature': 'Caricature',
+            'oil-painting': 'Oil Painting',
+            'watercolor': 'Watercolor',
+            'vintage': 'Vintage',
+            'pop-art': 'Pop Art',
+            'hdr': 'HDR'
+        };
+
+        showProcessing(effectNames[type]);
+
+        // Get CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+        // Call the API
+        fetch(`/api/photos/${photoId}/${type}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({})
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideProcessing();
+
+            if (data.success) {
+                // Get the new photo ID from the response
+                const newPhotoId = data.sketch_photo_id ||
+                                 data.cartoon_photo_id ||
+                                 data.caricature_photo_id ||
+                                 data.oil_photo_id ||
+                                 data.watercolor_photo_id ||
+                                 data.vintage_photo_id ||
+                                 data.popart_photo_id ||
+                                 data.hdr_photo_id;
+
+                // Show success message
+                alert(`${effectNames[type]} effect applied successfully!`);
+
+                // Redirect to the new enhanced photo
+                if (newPhotoId) {
+                    window.location.href = `/photo/${newPhotoId}`;
+                } else {
+                    window.location.href = `/photo/${photoId}`;
+                }
+            } else {
+                alert('Error: ' + (data.error || 'Enhancement failed'));
+            }
+        })
+        .catch(error => {
+            hideProcessing();
+            console.error('Error:', error);
+            alert('An error occurred while processing the photo');
+        });
+    }
+</script>
+{% endblock %}

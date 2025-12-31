@@ -34,9 +34,13 @@ CALMIC SDN BHD - "Committed to Excellence"
                             <button class="btn btn-outline-secondary" onclick="toggleRename()" title="Rename photo">
                                 <i class="bi bi-pencil-square"></i>
                             </button>
-                            <a href="{{ url_for('main.editor', photo_id=photo.id) }}" 
+                            <a href="{{ url_for('main.editor', photo_id=photo.id) }}"
                                class="btn btn-outline-warning" title="Full editor with markup tools">
                                 <i class="bi bi-palette"></i>
+                            </a>
+                            <a href="{{ url_for('main.artistic_enhance_photo', photo_id=photo.id) }}"
+                               class="btn btn-outline-primary" title="Artistic effects (Sketch, Cartoon, Watercolor, etc.)">
+                                <i class="bi bi-magic"></i> Enhance
                             </a>
                             <button class="btn btn-outline-info" onclick="showQuickAnnotation()" title="Quick annotation">
                                 <i class="bi bi-chat-square-text"></i>

@@ -269,6 +269,23 @@ def enhance_photo(photo_id):
         print(f"Enhanced photo error: {str(e)}")
         return redirect(url_for('gallery.dashboard'))
 
+@main_bp.route('/photos/<int:photo_id>/artistic-enhance')
+@login_required
+def artistic_enhance_photo(photo_id):
+    """Artistic Enhancement page for specific photo - Sketch, Cartoon, Watercolor, etc."""
+    try:
+        from photovault.models import Photo
+
+        # Get the photo and verify ownership
+        photo = Photo.query.get_or_404(photo_id)
+        if photo.user_id != current_user.id:
+            return redirect(url_for('gallery.dashboard'))
+
+        return render_template('enhance_photo.html', photo=photo)
+    except Exception as e:
+        print(f"Artistic enhance photo error: {str(e)}")
+        return redirect(url_for('gallery.dashboard'))
+
 @main_bp.route('/people')
 @login_required
 def people():
