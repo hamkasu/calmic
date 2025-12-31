@@ -88,19 +88,13 @@ CALMIC SDN BHD - "Committed to Excellence"
                 {% if current_user.is_authenticated %}
                 <!-- Main Navigation for authenticated users -->
                 <div class="navbar-nav me-auto">
-                    <a class="nav-link {{ 'active' if request.endpoint == 'main.dashboard' }}" 
-                       href="{{ url_for('main.dashboard') }}" aria-current="{% if request.endpoint == 'main.dashboard' %}page{% endif %}">
-                        <i class="bi bi-speedometer2"></i> Dashboard
-                    </a>
-                    <a class="nav-link {{ 'active' if request.endpoint and (request.endpoint == 'upload.upload_page' or request.endpoint.startswith('upload.')) }}" 
-                       href="{{ url_for('upload.upload_page') }}" aria-current="{% if request.endpoint and request.endpoint.startswith('upload.') %}page{% endif %}">
-                        <i class="bi bi-cloud-upload"></i> Upload
-                    </a>
-                    <!-- Photo Detection disabled - OpenCV functionality removed -->
-                    <!-- <a class="nav-link" href="#"><i class="bi bi-scissors"></i> Detection (Disabled)</a> -->
-                    <a class="nav-link {{ 'active' if request.endpoint and (request.endpoint == 'gallery.photos' or request.endpoint.startswith('gallery.')) }}" 
+                    <a class="nav-link {{ 'active' if request.endpoint and (request.endpoint == 'gallery.photos' or request.endpoint.startswith('gallery.')) }}"
                        href="{{ url_for('gallery.photos') }}" aria-current="{% if request.endpoint and request.endpoint.startswith('gallery.') %}page{% endif %}">
                         <i class="bi bi-images"></i> Gallery
+                    </a>
+                    <a class="nav-link {{ 'active' if request.endpoint and (request.endpoint == 'upload.upload_page' or request.endpoint.startswith('upload.')) }}"
+                       href="{{ url_for('upload.upload_page') }}" aria-current="{% if request.endpoint and request.endpoint.startswith('upload.') %}page{% endif %}">
+                        <i class="bi bi-cloud-upload"></i> Upload
                     </a>
                     <a class="nav-link {{ 'active' if request.endpoint in ['main.advanced_enhancement', 'main.enhance_photo'] }}" 
                        href="{{ url_for('main.advanced_enhancement') }}" aria-current="{% if request.endpoint in ['main.advanced_enhancement', 'main.enhance_photo'] %}page{% endif %}">
