@@ -83,11 +83,7 @@ CALMIC SDN BHD - "Committed to Excellence"
                 {% if current_user.is_authenticated %}
                 <!-- Main Navigation for authenticated users -->
                 <div class="navbar-nav me-auto">
-                    <a class="nav-link {{ 'active' if request.endpoint == 'gallery.dashboard' }}" 
-                       href="{{ url_for('gallery.dashboard') }}" aria-current="{% if request.endpoint == 'gallery.dashboard' %}page{% endif %}">
-                        Dashboard
-                    </a>
-                    <a class="nav-link {{ 'active' if request.endpoint and (request.endpoint == 'upload.upload_page' or request.endpoint.startswith('upload.')) }}" 
+                    <a class="nav-link {{ 'active' if request.endpoint and (request.endpoint == 'upload.upload_page' or request.endpoint.startswith('upload.')) }}"
                        href="{{ url_for('upload.upload_page') }}" aria-current="{% if request.endpoint and request.endpoint.startswith('upload.') %}page{% endif %}">
                         Upload
                     </a>
@@ -95,8 +91,8 @@ CALMIC SDN BHD - "Committed to Excellence"
                        href="{{ url_for('photo_detection.photo_detection_page') }}" aria-current="{% if request.endpoint and request.endpoint.startswith('photo_detection.') %}page{% endif %}">
                         Detection
                     </a>
-                    <a class="nav-link {{ 'active' if request.endpoint and request.endpoint.startswith('gallery.') and request.endpoint != 'gallery.dashboard' }}" 
-                       href="{{ url_for('gallery.photos') }}" aria-current="{% if request.endpoint and request.endpoint.startswith('gallery.') and request.endpoint != 'gallery.dashboard' %}page{% endif %}">
+                    <a class="nav-link {{ 'active' if request.endpoint and request.endpoint.startswith('gallery.') }}"
+                       href="{{ url_for('gallery.photos') }}" aria-current="{% if request.endpoint and request.endpoint.startswith('gallery.') %}page{% endif %}">
                         Gallery
                     </a>
                     <div class="nav-item dropdown">
@@ -163,9 +159,6 @@ CALMIC SDN BHD - "Committed to Excellence"
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                             <li><h6 class="dropdown-header">Welcome, {{ current_user.username }}</h6></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('gallery.dashboard') }}">
-                                <i class="bi bi-house" aria-hidden="true"></i> Dashboard
-                            </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('gallery.photos') }}">
                                 <i class="bi bi-file-image" aria-hidden="true"></i> Original Photos
                             </a></li>
@@ -394,7 +387,7 @@ CALMIC SDN BHD - "Committed to Excellence"
         
         // Performance: Preload critical pages on hover (optional enhancement)
         document.addEventListener('DOMContentLoaded', function() {
-            const criticalLinks = document.querySelectorAll('a[href*="dashboard"], a[href*="upload"]');
+            const criticalLinks = document.querySelectorAll('a[href*="upload"]');
             criticalLinks.forEach(function(link) {
                 link.addEventListener('mouseenter', function() {
                     const linkElement = document.createElement('link');
