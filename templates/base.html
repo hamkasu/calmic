@@ -92,11 +92,24 @@ CALMIC SDN BHD - "Committed to Excellence"
                        href="{{ url_for('gallery.photos') }}" aria-current="{% if request.endpoint and request.endpoint.startswith('gallery.') %}page{% endif %}">
                         <i class="bi bi-images"></i> Gallery
                     </a>
-                    <a class="nav-link {{ 'active' if request.endpoint and (request.endpoint == 'upload.upload_page' or request.endpoint.startswith('upload.')) }}"
-                       href="{{ url_for('upload.upload_page') }}" aria-current="{% if request.endpoint and request.endpoint.startswith('upload.') %}page{% endif %}">
-                        <i class="bi bi-cloud-upload"></i> Upload
-                    </a>
-                    <a class="nav-link {{ 'active' if request.endpoint in ['main.advanced_enhancement', 'main.enhance_photo'] }}" 
+                    <div class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {{ 'active' if request.endpoint and (request.endpoint == 'upload.upload_page' or request.endpoint.startswith('upload.') or request.endpoint == 'photo_detection.photo_detection_page' or request.endpoint.startswith('photo_detection.')) }}"
+                           href="#" id="detectionDropdown" role="button"
+                           data-bs-toggle="dropdown" aria-expanded="false" aria-label="Detection menu">
+                            <i class="bi bi-eye" aria-hidden="true"></i> Detection
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="detectionDropdown">
+                            <li><a class="dropdown-item {{ 'active' if request.endpoint and (request.endpoint == 'upload.upload_page' or request.endpoint.startswith('upload.')) }}"
+                                   href="{{ url_for('upload.upload_page') }}">
+                                <i class="bi bi-cloud-upload" aria-hidden="true"></i> Upload
+                            </a></li>
+                            <li><a class="dropdown-item {{ 'active' if request.endpoint and (request.endpoint == 'photo_detection.photo_detection_page' or request.endpoint.startswith('photo_detection.')) }}"
+                                   href="{{ url_for('photo_detection.photo_detection_page') }}">
+                                <i class="bi bi-bounding-box" aria-hidden="true"></i> Photo Detection
+                            </a></li>
+                        </ul>
+                    </div>
+                    <a class="nav-link {{ 'active' if request.endpoint in ['main.advanced_enhancement', 'main.enhance_photo'] }}"
                        href="{{ url_for('main.advanced_enhancement') }}" aria-current="{% if request.endpoint in ['main.advanced_enhancement', 'main.enhance_photo'] %}page{% endif %}">
                         <i class="bi bi-magic"></i> Enhancement
                     </a>
