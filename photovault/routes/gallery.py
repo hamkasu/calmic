@@ -39,15 +39,9 @@ def gallery():
     return redirect(url_for('gallery.photos'))
 
 @gallery_bp.route('/gallery/photos')
-@login_required  
+@login_required
 def gallery_photos():
     """Redirect gallery/photos to photos for compatibility"""
-    return redirect(url_for('gallery.photos'))
-
-@gallery_bp.route('/dashboard')
-@login_required
-def dashboard():
-    """Redirect dashboard to photos page"""
     return redirect(url_for('gallery.photos'))
 
 @gallery_bp.route('/photos')
@@ -156,7 +150,7 @@ def view_photo(photo_id):
         return render_template('view_photo.html', photo=photo, tagged_people=[], all_people=[])
     except Exception as e:
         flash('Photo not found or database not ready.', 'error')
-        return redirect(url_for('gallery.dashboard'))
+        return redirect(url_for('gallery.photos'))
 
 @gallery_bp.route('/photo/<int:photo_id>/delete', methods=['POST'])
 @login_required
@@ -179,12 +173,12 @@ def delete_photo(photo_id):
         # Delete from database
         db.session.delete(photo)
         db.session.commit()
-        
+
         flash('Photo deleted successfully.', 'success')
     except Exception as e:
         flash('Error deleting photo or database not ready.', 'error')
-    
-    return redirect(url_for('gallery.dashboard'))
+
+    return redirect(url_for('gallery.photos'))
 @gallery_bp.route('/photos/originals')
 @login_required
 def originals():
@@ -248,11 +242,11 @@ def compare_single_photo(photo_id):
         if not photo.edited_filename:
             flash('This photo does not have an edited version for comparison.', 'warning')
             return redirect(url_for('gallery.view_photo', photo_id=photo_id))
-        
+
         return render_template('gallery/compare_single.html', photo=photo)
     except Exception as e:
         flash('Photo not found or database not ready.', 'error')
-        return redirect(url_for('gallery.dashboard'))
+        return redirect(url_for('gallery.photos'))
 
 @gallery_bp.route('/debug/file-diagnostics')
 @login_required
@@ -261,8 +255,8 @@ def file_diagnostics():
     # Temporarily allow all users for debugging (remove after fixing the issue)
     # if not current_user.is_admin:
     #     flash('Access denied. Admin privileges required.', 'error')
-    #     return redirect(url_for('gallery.dashboard'))
-    
+    #     return redirect(url_for('gallery.photos'))
+
     return render_template('debug/file_diagnostics.html')
 
 @gallery_bp.route('/uploads/<int:user_id>/<path:filename>')
