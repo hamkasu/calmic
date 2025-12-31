@@ -47,55 +47,8 @@ def gallery_photos():
 @gallery_bp.route('/dashboard')
 @login_required
 def dashboard():
-    """Gallery dashboard"""
-    try:
-        from photovault.models import Photo, UserSubscription
-        from sqlalchemy import func
-        
-        photos = Photo.query.filter_by(user_id=current_user.id).order_by(Photo.created_at.desc()).limit(12).all()
-        total_photos = Photo.query.filter_by(user_id=current_user.id).count()
-        
-        # Count edited photos (photos with edited_filename)
-        edited_photos = Photo.query.filter_by(user_id=current_user.id).filter(Photo.edited_filename.isnot(None)).count()
-        
-        # Count original photos (photos without edited_filename)
-        original_photos = Photo.query.filter_by(user_id=current_user.id).filter(Photo.edited_filename.is_(None)).count()
-        
-        # Calculate total storage used in MB
-        total_storage_bytes = db.session.query(func.sum(Photo.file_size)).filter_by(user_id=current_user.id).scalar() or 0
-        storage_used_mb = round(total_storage_bytes / (1024 * 1024), 2)
-        
-        # Get storage limit from user's active subscription
-        active_subscription = UserSubscription.query.filter_by(
-            user_id=current_user.id,
-            status='active'
-        ).first()
-        
-        if active_subscription and active_subscription.plan:
-            storage_limit_mb = active_subscription.plan.storage_gb * 1024
-        else:
-            storage_limit_mb = 100  # Default 100 MB for users without subscription
-        
-        storage_percent = (storage_used_mb / storage_limit_mb * 100) if storage_limit_mb > 0 else 0
-        
-    except Exception as e:
-        photos = []
-        total_photos = 0
-        edited_photos = 0
-        original_photos = 0
-        storage_used_mb = 0
-        storage_limit_mb = 100
-        storage_percent = 0
-        flash('Photo database not ready yet.', 'info')
-    
-    return render_template('gallery/dashboard.html', 
-                         photos=photos, 
-                         total_photos=total_photos,
-                         edited_photos=edited_photos,
-                         original_photos=original_photos,
-                         storage_used_mb=storage_used_mb,
-                         storage_limit_mb=storage_limit_mb,
-                         storage_percent=storage_percent)
+    """Redirect dashboard to photos page"""
+    return redirect(url_for('gallery.photos'))
 
 @gallery_bp.route('/photos')
 @login_required

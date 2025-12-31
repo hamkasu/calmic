@@ -15,7 +15,7 @@ main_bp = Blueprint('main', __name__)
 def index():
     """Home page"""
     if current_user.is_authenticated:
-        return redirect(url_for('gallery.dashboard'))
+        return redirect(url_for('gallery.photos'))
     
     # Get actual stats from database
     try:
